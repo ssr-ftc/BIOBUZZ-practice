@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.OFSWB.TeleOp.OFSWB.Auto;
+package org.firstinspires.ftc.teamcode.OFSWB.Auto;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierLine;
@@ -7,8 +7,8 @@ import com.pedropathing.paths.Path;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
-import org.firstinspires.ftc.teamcode.OFSWB.TeleOp.OFSWB.Constants;
-import org.firstinspires.ftc.teamcode.OFSWB.TeleOp.OFSWB.Subsystems.OFSWBSubsystem;
+import org.firstinspires.ftc.teamcode.OFSWB.Constants;
+import org.firstinspires.ftc.teamcode.OFSWB.Subsystems.OFSWBSubsystem;
 
 /**
  * Basic Autonomous template for Off Season Bot 1 (OFSWB).
