@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.OFSWB.TeleOp;
+package org.firstinspires.ftc.teamcode.OFSB2.TeleOp;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
@@ -19,7 +19,7 @@ import org.openftc.easyopencv.OpenCvWebcam;
  * Uses PedroPathing for driving.
  */
 @TeleOp(name = "OFSB1 TeleOp", group = "OFSB1")
-public class OFSWBTeleOp extends OpMode {
+public class OFSB2TeleOp extends OpMode {
 
     private Follower follower;
     private OFSB1Subsystem robot;
