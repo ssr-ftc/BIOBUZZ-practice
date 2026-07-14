@@ -5,6 +5,7 @@ import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.Path;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 import org.firstinspires.ftc.teamcode.OFSB1.Constants;
@@ -14,6 +15,7 @@ import org.firstinspires.ftc.teamcode.OFSB1.Subsystems.OFSB1Subsystem;
  * Basic Autonomous template for Off Season Bot 1 (OFSB1).
  */
 @Autonomous(name = "OFSB1 Auto", group = "OFSB1")
+@Disabled
 public class OFSB1Auto extends OpMode {
 
     private Follower follower;
