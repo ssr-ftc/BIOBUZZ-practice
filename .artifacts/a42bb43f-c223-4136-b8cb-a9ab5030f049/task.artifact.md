@@ -1,0 +1,5 @@
+- [ ] Fix `settings.gradle` by removing the invalid `allprojects` block.
+- [ ] Clean up `TeamCode/build.gradle` by merging duplicate `android` blocks.
+- [ ] Add Bylazar repository to root `build.gradle`.
+- [ ] Run Gradle Sync to verify fixes.
+- [ ] Push the `pathing` branch to GitHub.
