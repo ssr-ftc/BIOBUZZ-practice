@@ -1,12 +1,12 @@
 package org.firstinspires.ftc.teamcode.OFSB2.Auto;
 
 import static com.pedropathing.math.MathFunctions.quadraticFit;
-import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.changes;
-import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.drawCurrent;
-import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.drawCurrentAndHistory;
-import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.follower;
-import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.stopRobot;
-import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.telemetryM;
+import static org.firstinspires.ftc.teamcode.OFSB2.Auto.Tuning.changes;
+import static org.firstinspires.ftc.teamcode.OFSB2.Auto.Tuning.drawCurrent;
+import static org.firstinspires.ftc.teamcode.OFSB2.Auto.Tuning.drawCurrentAndHistory;
+import static org.firstinspires.ftc.teamcode.OFSB2.Auto.Tuning.follower;
+import static org.firstinspires.ftc.teamcode.OFSB2.Auto.Tuning.stopRobot;
+import static org.firstinspires.ftc.teamcode.OFSB2.Auto.Tuning.telemetryM;
 
 import android.annotation.SuppressLint;
 
@@ -34,7 +34,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.OFSB2.Auto.Constants;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -98,7 +98,7 @@ public class Tuning extends SelectableOpMode {
     @Override
     public void onSelect() {
         if (follower == null) {
-            follower = org.firstinspires.ftc.teamcode.pedroPathing.Constants.createFollower(hardwareMap);
+            follower = org.firstinspires.ftc.teamcode.OFSB2.Auto.Constants.createFollower(hardwareMap);
             PanelsConfigurables.INSTANCE.refreshClass(this);
         } else {
             follower = Constants.createFollower(hardwareMap);
