@@ -6,9 +6,8 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.firstinspires.ftc.teamcode.OFSB1.Constants;
-import org.firstinspires.ftc.teamcode.OFSB1.Subsystems.OFSB1Subsystem;
-import org.firstinspires.ftc.teamcode.OFSB1.Vision.OFSB1VisionProcessor;
+import org.firstinspires.ftc.teamcode.OFSB2.Auto.Constants;
+import org.firstinspires.ftc.teamcode.OFSB2.Subsystems.OFSB2Subsystem;
 import org.openftc.easyopencv.OpenCvCamera;
 import org.openftc.easyopencv.OpenCvCameraFactory;
 import org.openftc.easyopencv.OpenCvCameraRotation;
@@ -22,9 +21,9 @@ import org.openftc.easyopencv.OpenCvWebcam;
 public class OFSB2TeleOp extends OpMode {
 
     private Follower follower;
-    private OFSB1Subsystem robot;
+    private OFSB2Subsystem robot;
     private OpenCvWebcam webcam;
-    private OFSB1VisionProcessor visionProcessor;
+
 
     @Override
     public void init() {
@@ -33,13 +32,12 @@ public class OFSB2TeleOp extends OpMode {
         follower.setStartingPose(new Pose(0, 0, 0));
 
         // Initialize robot subsystems
-        robot = new OFSB1Subsystem(hardwareMap);
+        robot = new OFSB2Subsystem(hardwareMap);
 
         // Initialize Vision
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         webcam = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam 1"), cameraMonitorViewId);
-        visionProcessor = new OFSB1VisionProcessor();
-        webcam.setPipeline(visionProcessor);
+
 
         webcam.openCameraDeviceAsync(new OpenCvCamera.AsyncCameraOpenListener() {
             @Override
