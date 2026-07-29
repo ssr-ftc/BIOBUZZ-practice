@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.OFSB2.Auto;
+package org.firstinspires.ftc.teamcode.OFSB2.Auto2;
 
 import static com.pedropathing.math.MathFunctions.quadraticFit;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.changes;

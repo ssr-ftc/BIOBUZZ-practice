@@ -1,18 +1,18 @@
-package org.firstinspires.ftc.teamcode.OFSB2.Subsystems;
+package org.firstinspires.ftc.teamcode.OFSB1.Subsystems1;
 
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 /**
- * Subsystem for Off Season Bot 1 (OFSWB).
+ * Subsystem for Off Season Bot 1 (OFSB1).
  * Define your hardware here and add helper methods.
  */
-public class OFSWBSubsystem {
+public class OFSB1Subsystem {
 
     // Add your motors and servos here
     // public DcMotorEx armMotor;
     // public Servo intakeServo;
 
-    public OFSWBSubsystem(HardwareMap hardwareMap) {
+    public OFSB1Subsystem(HardwareMap hardwareMap) {
         // Initialize your hardware
         // armMotor = hardwareMap.get(DcMotorEx.class, "armMotor");
         // intakeServo = hardwareMap.get(Servo.class, "intake");

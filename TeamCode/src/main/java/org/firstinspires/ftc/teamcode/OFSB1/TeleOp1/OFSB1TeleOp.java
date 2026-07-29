@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.OFSB1.TeleOp;
+package org.firstinspires.ftc.teamcode.OFSB1.TeleOp1;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
@@ -6,9 +6,9 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.firstinspires.ftc.teamcode.OFSB1.Constants;
-import org.firstinspires.ftc.teamcode.OFSB1.Subsystems.OFSB1Subsystem;
-import org.firstinspires.ftc.teamcode.OFSB1.Vision.OFSB1VisionProcessor;
+import org.firstinspires.ftc.teamcode.OFSB1.Constants1;
+import org.firstinspires.ftc.teamcode.OFSB1.Subsystems1.OFSB1Subsystem;
+import org.firstinspires.ftc.teamcode.OFSB1.Vision1.OFSB1VisionProcessor;
 import org.openftc.easyopencv.OpenCvCamera;
 import org.openftc.easyopencv.OpenCvCameraFactory;
 import org.openftc.easyopencv.OpenCvCameraRotation;
@@ -29,7 +29,7 @@ public class OFSB1TeleOp extends OpMode {
     @Override
     public void init() {
         // Initialize PedroPathing Follower using OFSB1-specific constants
-        follower = Constants.createFollower(hardwareMap);
+        follower = Constants1.createFollower(hardwareMap);
         follower.setStartingPose(new Pose(0, 0, 0));
 
         // Initialize robot subsystems

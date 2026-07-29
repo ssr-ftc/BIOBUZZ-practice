@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.OFSWB;
+package org.firstinspires.ftc.teamcode.OFSB1;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.follower.FollowerConstants;
@@ -7,9 +7,9 @@ import com.pedropathing.paths.PathConstraints;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 /**
- * Constants for the Off Season Bot 1 (OFSWB).
+ * Constants for the Off Season Bot 1 (OFSB1).
  */
-public class Constants {
+public class Constants1 {
     public static FollowerConstants followerConstants = new FollowerConstants();
 
     public static PathConstraints pathConstraints = new PathConstraints(0.99, 100, 1, 1);
