@@ -1,20 +1,21 @@
-package org.firstinspires.ftc.teamcode.OFSB2.Auto2;
+package org.firstinspires.ftc.teamcode.OFSB2.Auto;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.follower.FollowerConstants;
 import com.pedropathing.ftc.FollowerBuilder;
+import com.pedropathing.ftc.localization.Encoder;
 import com.pedropathing.ftc.localization.constants.PinpointConstants;
 import com.pedropathing.paths.PathConstraints;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-
+import com.pedropathing.ftc.localization.constants.DriveEncoderConstants;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import com.pedropathing.ftc.drivetrains.MecanumConstants;
 /**
  * Constants for the Off Season Bot 1 (OFSWB).
  */
-public class Constants2 {
+public class Constants {
     public static FollowerConstants followerConstants = new FollowerConstants()
             .mass(7.2);
             //.forwardZeroPowerAcceleration();

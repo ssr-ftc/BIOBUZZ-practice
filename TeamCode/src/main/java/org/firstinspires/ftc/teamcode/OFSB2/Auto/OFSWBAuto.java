@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.OFSB2.Auto2;
+package org.firstinspires.ftc.teamcode.OFSB2.Auto;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierLine;
@@ -7,8 +7,8 @@ import com.pedropathing.paths.Path;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
-import org.firstinspires.ftc.teamcode.OFSWB.Constants3;
-import org.firstinspires.ftc.teamcode.OFSWB.Subsystems3.OFSWBSubsystem;
+import org.firstinspires.ftc.teamcode.OFSWB.Constants;
+import org.firstinspires.ftc.teamcode.OFSWB.Subsystems.OFSWBSubsystem;
 
 /**
  * Basic Autonomous template for Off Season Bot 1 (OFSWB).
@@ -23,7 +23,7 @@ public class OFSWBAuto extends OpMode {
 
     @Override
     public void init() {
-        follower = Constants3.createFollower(hardwareMap);
+        follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(new Pose(0, 0, 0));
 
         robot = new OFSWBSubsystem(hardwareMap);
