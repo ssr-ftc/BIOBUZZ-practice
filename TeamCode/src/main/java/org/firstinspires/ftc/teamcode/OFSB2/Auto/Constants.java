@@ -17,29 +17,29 @@ import com.pedropathing.ftc.drivetrains.MecanumConstants;
  */
 public class Constants {
     public static FollowerConstants followerConstants = new FollowerConstants()
-            .mass(7.2);
-            //.forwardZeroPowerAcceleration();
-            //.lateralZeroPowerAcceleration();
+            .mass(7.2)
+            .forwardZeroPowerAcceleration(-39.370416251310814)
+            .lateralZeroPowerAcceleration(-56.98433031510037);
 
     public static MecanumConstants driveConstants = new MecanumConstants()
             .maxPower(1)
             .rightFrontMotorName("fr")
             .rightRearMotorName("rr")
             .leftRearMotorName("rl")
-            .leftFrontMotorName("fl")
+            .leftFrontMotorName("fl" )
             .leftFrontMotorDirection(DcMotorSimple.Direction.REVERSE)
             .leftRearMotorDirection(DcMotorSimple.Direction.REVERSE)
             .rightFrontMotorDirection(DcMotorSimple.Direction.FORWARD)
-            .rightRearMotorDirection(DcMotorSimple.Direction.FORWARD);
-            //.xVelocity();
-            //.yVelocity();
+            .rightRearMotorDirection(DcMotorSimple.Direction.FORWARD)
+            .xVelocity(95.27855676365651)
+            .yVelocity(73.45713601900836);
     public static PinpointConstants localizerConstants = new PinpointConstants()
             .forwardPodY(3.5)
             .strafePodX(7)
             .distanceUnit(DistanceUnit.INCH)
             .hardwareMapName("imu")
             .encoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD)
-            .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD)
+            .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED)
             .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD);
 
     public static PathConstraints pathConstraints = new PathConstraints(0.99, 100, 1, 1);
@@ -48,6 +48,7 @@ public class Constants {
         return new FollowerBuilder(followerConstants, hardwareMap)
                 .pathConstraints(pathConstraints)
                 .mecanumDrivetrain(driveConstants)
+                .pinpointLocalizer(localizerConstants)
                 .build();
     }
 }
