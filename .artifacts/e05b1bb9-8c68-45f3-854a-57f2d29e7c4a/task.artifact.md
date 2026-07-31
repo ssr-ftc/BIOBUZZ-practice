@@ -1,0 +1,2 @@
+- [x] Add `.pinpointLocalizer(localizerConstants)` to `FollowerBuilder` in `Constants.java`
+- [x] Verify build and semantics
