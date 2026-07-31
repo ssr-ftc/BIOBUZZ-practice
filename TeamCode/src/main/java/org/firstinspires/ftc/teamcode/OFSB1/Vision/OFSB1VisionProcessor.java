@@ -29,7 +29,25 @@ public class OFSB1VisionProcessor extends OpenCvPipeline {
         public Rect boundingBox;
         public Point center;
         public double area;
+
+        // Camera-relative position, in inches:
+        //   x: 0 = dead center, + right, - left
+        //   y: 0 = camera height, + up, - down
+        //   z: distance straight out from the camera lens
+        public double x;
+        public double y;
+        public double z;
     }
+
+    // ---- Physical / camera constants for distance estimation ----
+    // Pollen ball diameter in inches. Measure a real one and update.
+    public static double BALL_DIAMETER_INCHES = 3.0;
+
+    // Focal length in pixels at 640x480. Depends on your specific webcam.
+    // ~554 corresponds to a 60 deg horizontal FOV camera (e.g. Logitech C270).
+    // CALIBRATE: place a ball exactly 24in from the lens, read the reported Z,
+    // then set FOCAL_LENGTH_PIXELS = oldValue * (24 / reportedZ).
+    public static double FOCAL_LENGTH_PIXELS = 554.0;
 
     // ---- Tunable HSV thresholds (OpenCV HSV: H 0-179, S 0-255, V 0-255) ----
     // Pollen (yellow, BIOBUZZ 2026-2027) - starting guess, TUNE THIS.
@@ -54,7 +72,9 @@ public class OFSB1VisionProcessor extends OpenCvPipeline {
     public Mat processFrame(Mat input) {
         long start = System.nanoTime();
         try {
-            detections.clear();
+            synchronized (this) {
+                detections.clear();
+            }
 
             Imgproc.cvtColor(input, hsvMat, Imgproc.COLOR_RGB2HSV);
             Core.inRange(hsvMat, yellowLower, yellowUpper, yellowMask);
@@ -83,6 +103,9 @@ public class OFSB1VisionProcessor extends OpenCvPipeline {
         Mat hierarchy = new Mat();
         Imgproc.findContours(mask, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
 
+        double cx = input.cols() / 2.0;
+        double cy = input.rows() / 2.0;
+
         for (MatOfPoint c : contours) {
             double area = Imgproc.contourArea(c);
             if (area < MIN_CONTOUR_AREA) continue;
@@ -93,10 +116,27 @@ public class OFSB1VisionProcessor extends OpenCvPipeline {
             d.boundingBox = box;
             d.center = new Point(box.x + box.width / 2.0, box.y + box.height / 2.0);
             d.area = area;
-            detections.add(d);
+
+            // Pinhole camera model. A partially occluded ball can look
+            // squashed in one axis, so use the larger bounding box side as
+            // the apparent diameter.
+            double pixelDiameter = Math.max(box.width, box.height);
+            d.z = (BALL_DIAMETER_INCHES * FOCAL_LENGTH_PIXELS) / pixelDiameter;
+            // Image x grows rightward -> matches "+ is right".
+            d.x = (d.center.x - cx) * d.z / FOCAL_LENGTH_PIXELS;
+            // Image y grows downward, world y grows upward -> negate.
+            d.y = (cy - d.center.y) * d.z / FOCAL_LENGTH_PIXELS;
+
+            synchronized (this) {
+                detections.add(d);
+            }
 
             Imgproc.rectangle(input, box, drawColor, 3);
             Imgproc.circle(input, d.center, 5, drawColor, -1);
+            Imgproc.putText(input,
+                    String.format("Z=%.1f\"", d.z),
+                    new Point(box.x, Math.max(box.y - 8, 12)),
+                    Imgproc.FONT_HERSHEY_SIMPLEX, 0.6, drawColor, 2);
         }
         hierarchy.release();
     }

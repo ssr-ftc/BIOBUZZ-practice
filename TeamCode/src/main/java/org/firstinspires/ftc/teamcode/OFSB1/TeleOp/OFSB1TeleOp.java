@@ -14,6 +14,8 @@ import org.openftc.easyopencv.OpenCvCameraFactory;
 import org.openftc.easyopencv.OpenCvCameraRotation;
 import org.openftc.easyopencv.OpenCvWebcam;
 
+import java.util.List;
+
 /**
  * TeleOp for Off Season Bot 1 (OFSB1).
  * Uses PedroPathing for driving.
@@ -25,6 +27,7 @@ public class OFSB1TeleOp extends OpMode {
     private OFSB1Subsystem robot;
     private OpenCvWebcam webcam;
     private OFSB1VisionProcessor visionProcessor;
+    private volatile boolean cameraInitialized = false;
 
     @Override
     public void init() {
@@ -44,11 +47,16 @@ public class OFSB1TeleOp extends OpMode {
         webcam.openCameraDeviceAsync(new OpenCvCamera.AsyncCameraOpenListener() {
             @Override
             public void onOpened() {
-                webcam.startStreaming(640, 480, OpenCvCameraRotation.UPRIGHT);
+                // Camera is physically mounted upside down, so rotate the
+                // stream 180 degrees. This makes image left/right/up/down
+                // match the real world, so the X/Y math needs no sign flips.
+                webcam.startStreaming(640, 480, OpenCvCameraRotation.UPSIDE_DOWN);
+                cameraInitialized = true;
             }
 
             @Override
             public void onError(int errorCode) {
+                cameraInitialized = false;
                 telemetry.addData("Camera Error", errorCode);
             }
         });
@@ -78,6 +86,18 @@ public class OFSB1TeleOp extends OpMode {
         telemetry.addData("X", follower.getPose().getX());
         telemetry.addData("Y", follower.getPose().getY());
         telemetry.addData("Heading", follower.getPose().getHeading());
+
+        // ---- Pollen (yellow ball) vision telemetry ----
+        List<OFSB1VisionProcessor.Detection> balls = visionProcessor.getDetections();
+        telemetry.addData("Camera Initialized", cameraInitialized);
+        telemetry.addData("Number of balls detected", balls.size());
+        for (int i = 0; i < balls.size(); i++) {
+            OFSB1VisionProcessor.Detection ball = balls.get(i);
+            telemetry.addData("Ball #" + (i + 1),
+                    "X: %.1f in, Y: %.1f in, Z: %.1f in, Area: %.0f px",
+                    ball.x, ball.y, ball.z, ball.area);
+        }
+
         telemetry.update();
     }
 
