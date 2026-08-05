@@ -147,9 +147,12 @@ public class OFSB1Auto extends OpMode {
 
         double fieldAngle = robotPose.getHeading() + angleOffsetRadians;
 
+        // Both targetX/targetY are computed in the SAME field frame as
+        // robotPose - do not negate one axis without negating the other,
+        // or start/end points end up in mismatched coordinate frames.
         double targetX = robotPose.getX() + driveDistance * Math.cos(fieldAngle);
         double targetY = robotPose.getY() + driveDistance * Math.sin(fieldAngle);
-        Pose targetPose = new Pose(targetX, -targetY, fieldAngle);
+        Pose targetPose = new Pose(targetX, targetY, fieldAngle);
 
         Path pathToBall = new Path(new BezierLine(robotPose, targetPose));
         pathToBall.setConstantHeadingInterpolation(fieldAngle);
