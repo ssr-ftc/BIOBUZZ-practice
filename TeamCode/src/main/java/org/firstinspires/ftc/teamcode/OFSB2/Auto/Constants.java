@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.OFSB2.Auto;
 
+import com.pedropathing.control.FilteredPIDFCoefficients;
 import com.pedropathing.control.PIDFCoefficients;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.follower.FollowerConstants;
@@ -21,13 +22,17 @@ public class Constants {
             .mass(7.2)
             .forwardZeroPowerAcceleration(-39.370416251310814)
             .lateralZeroPowerAcceleration(-56.98433031510037)
-            .translationalPIDFCoefficients(new PIDFCoefficients(0.16, 0, 0.004, 0.029));
+            .translationalPIDFCoefficients(new PIDFCoefficients(0.16, 0, 0.004, 0.031))
+            .headingPIDFCoefficients(new PIDFCoefficients(0.7, 0, 0.005, 0.019))
+            .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.025, 0, 0.00001, 0.5, 0.031))
+            .centripetalScaling(0.0005)
+            ;
 
     public static MecanumConstants driveConstants = new MecanumConstants()
             .maxPower(1)
             .rightFrontMotorName("fr")
             .rightRearMotorName("rr")
-            .leftRearMotorName("rl")
+            .leftRearMotorName("rl ")
             .leftFrontMotorName("fl" )
             .leftFrontMotorDirection(DcMotorSimple.Direction.REVERSE)
             .leftRearMotorDirection(DcMotorSimple.Direction.REVERSE)
@@ -44,7 +49,8 @@ public class Constants {
             .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED)
             .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD);
 
-    public static PathConstraints pathConstraints = new PathConstraints(0.99, 100, 1, 1);
+    public static PathConstraints pathConstraints = new PathConstraints
+            (0.99, 100, 1, 1);
 
     public static Follower createFollower(HardwareMap hardwareMap) {
         return new FollowerBuilder(followerConstants, hardwareMap)
@@ -54,7 +60,24 @@ public class Constants {
                 .build();
     }
 }
-//D: 0.004
-//F: 0.029
-//I: 0
-//P: 0.16
+/*
+Translational PIDF Values:
+D: 0.004
+F: 0.031
+I: 0
+P: 0.16
+
+Heading PIDF Values
+D: 0.005
+F: 0.019
+I: 0
+P: 0.7
+
+Drive PIDF Values
+D: 0.00001
+F: 0.031
+I: 0
+P: 0.025
+T: 0.5
+
+*/
