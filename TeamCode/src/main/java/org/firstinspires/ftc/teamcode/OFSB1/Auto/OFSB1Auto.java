@@ -30,9 +30,17 @@ import java.util.List;
 public class OFSB1Auto extends OpMode {
 
     private static final double TARGET_DISTANCE_INCHES = 5.0;
-    // How many consecutive frames the ball must be seen before we trust it
-    // and commit to a path - filters out one-frame noise blobs.
+    // How many consecutive frames the SAME ball must be seen before we trust
+    // it and commit to a path - filters out one-frame noise blobs.
     private static final int CONFIRM_FRAMES = 5;
+    // How far (inches, camera-relative x/z) a detection can be from the
+    // previous frame's candidate and still count as "the same ball" - keeps
+    // us from bouncing between two nearby balls frame to frame.
+    private static final double MATCH_DISTANCE_INCHES = 4.0;
+    // How many consecutive frames the candidate ball is allowed to vanish
+    // (occlusion, one bad mask frame) before we give up and reset - keeps
+    // a single dropped frame from throwing away confirm progress.
+    private static final int MAX_MISSED_FRAMES = 3;
 
     private Follower follower;
     private OFSB1Subsystem robot;
@@ -43,6 +51,14 @@ public class OFSB1Auto extends OpMode {
     private enum State { SCANNING, DRIVING, DONE }
     private State state = State.SCANNING;
     private int confirmCount = 0;
+    private int missedFrames = 0;
+    // The ball we are currently tracking toward confirmation - null until
+    // we've seen at least one candidate.
+    private OFSB1VisionProcessor.Detection candidate = null;
+    // The ball we actually locked onto and committed a path to. Kept around
+    // purely for telemetry after locking, since we stop reading fresh
+    // detections at that point.
+    private OFSB1VisionProcessor.Detection lockedTarget = null;
 
     @Override
     public void init() {
@@ -78,9 +94,32 @@ public class OFSB1Auto extends OpMode {
     }
 
     @Override
+    public void init_loop() {
+        int ballCount = visionProcessor.getDetections().size();
+
+        telemetry.addData("Camera Initialized", cameraInitialized);
+        telemetry.addData("Ball Count", ballCount);
+
+        if (ballCount == 0) {
+            telemetry.addLine("No balls detected - check lighting/camera aim");
+        } else {
+            List<OFSB1VisionProcessor.Detection> balls = visionProcessor.getDetections();
+            for (int i = 0; i < balls.size(); i++) {
+                OFSB1VisionProcessor.Detection b = balls.get(i);
+                telemetry.addData("Ball " + i, String.format("x=%.1f z=%.1f", b.x, b.z));
+            }
+        }
+
+        telemetry.update();
+    }
+
+    @Override
     public void start() {
         state = State.SCANNING;
         confirmCount = 0;
+        missedFrames = 0;
+        candidate = null;
+        lockedTarget = null;
     }
 
     @Override
@@ -103,6 +142,18 @@ public class OFSB1Auto extends OpMode {
 
         telemetry.addData("State", state);
         telemetry.addData("Camera Initialized", cameraInitialized);
+
+        if (state == State.SCANNING) {
+            // Still hunting - this number legitimately fluctuates frame to
+            // frame, that's expected and fine, it's not driving anything.
+            telemetry.addData("Ball Count (live)", visionProcessor.getDetections().size());
+        } else if (lockedTarget != null) {
+            // Locked - show the frozen target we committed to, not live
+            // detections, since we've stopped reading the camera for this.
+            telemetry.addData("Locked Ball X (in)", "%.1f", lockedTarget.x);
+            telemetry.addData("Locked Ball Z (in)", "%.1f", lockedTarget.z);
+        }
+
         telemetry.addData("X", follower.getPose().getX());
         telemetry.addData("Y", follower.getPose().getY());
         telemetry.addData("Heading", follower.getPose().getHeading());
@@ -112,28 +163,81 @@ public class OFSB1Auto extends OpMode {
     private void scanForBall() {
         List<OFSB1VisionProcessor.Detection> balls = visionProcessor.getDetections();
 
-        if (balls.isEmpty()) {
-            confirmCount = 0;
-            telemetry.addData("Status", "Scanning - no ball seen");
+        OFSB1VisionProcessor.Detection match = findMatch(balls);
+
+        if (match == null) {
+            // Candidate not seen this frame - tolerate a few missed frames
+            // (occlusion, one bad mask) before giving up on it entirely.
+            missedFrames++;
+            telemetry.addData("Status", "No match (" + missedFrames + "/" + MAX_MISSED_FRAMES + " missed)");
+            telemetry.addData("Ball Count (live)", balls.size());
+            if (missedFrames > MAX_MISSED_FRAMES) {
+                confirmCount = 0;
+                candidate = null;
+            }
             return;
         }
 
-        // Closest ball = smallest z (actual distance from camera)
-        OFSB1VisionProcessor.Detection target = balls.get(0);
-        for (OFSB1VisionProcessor.Detection b : balls) {
-            if (b.z < target.z) target = b;
-        }
+        // Either confirms the existing candidate (same ball, close enough
+        // to its last known position) or starts tracking a brand new one.
+        boolean sameCandidate = candidate != null
+                && Math.hypot(match.x - candidate.x, match.z - candidate.z) <= MATCH_DISTANCE_INCHES;
 
-        confirmCount++;
-        telemetry.addData("Status", "Ball seen, confirming (" + confirmCount + "/" + CONFIRM_FRAMES + ")");
-        telemetry.addData("Ball X (in)", "%.1f", target.x);
-        telemetry.addData("Ball Z (in)", "%.1f", target.z);
+        if (!sameCandidate) {
+            candidate = match;
+            confirmCount = 1;
+        } else {
+            candidate = match; // update to latest position of the same ball
+            confirmCount++;
+        }
+        missedFrames = 0;
+
+        telemetry.addData("Status", "Tracking ball, confirming (" + confirmCount + "/" + CONFIRM_FRAMES + ")");
+        telemetry.addData("Ball Count (live)", balls.size());
+        telemetry.addData("Candidate X (in)", "%.1f", candidate.x);
+        telemetry.addData("Candidate Z (in)", "%.1f", candidate.z);
 
         if (confirmCount < CONFIRM_FRAMES) {
-            return; // keep scanning until confirmed stable
+            return; // keep tracking until confirmed stable
         }
 
-        buildAndFollowPathToBall(target);
+        // Locked in - freeze this detection and stop scanning. buildAndFollowPathToBall
+        // moves state out of SCANNING, so scanForBall() will not run again this OpMode run.
+        lockedTarget = candidate;
+        buildAndFollowPathToBall(lockedTarget);
+    }
+
+    /**
+     * Finds the detection this frame that best matches what we're tracking.
+     * If we already have a candidate, prefer whichever ball is closest to
+     * its last known position (so we don't jump to a different ball just
+     * because it's momentarily nearer the camera). If we have no candidate
+     * yet, fall back to the globally closest ball, same as before.
+     */
+    private OFSB1VisionProcessor.Detection findMatch(List<OFSB1VisionProcessor.Detection> balls) {
+        if (balls.isEmpty()) return null;
+
+        if (candidate == null) {
+            OFSB1VisionProcessor.Detection closest = balls.get(0);
+            for (OFSB1VisionProcessor.Detection b : balls) {
+                if (b.z < closest.z) closest = b;
+            }
+            return closest;
+        }
+
+        OFSB1VisionProcessor.Detection best = null;
+        double bestDist = Double.MAX_VALUE;
+        for (OFSB1VisionProcessor.Detection b : balls) {
+            double dist = Math.hypot(b.x - candidate.x, b.z - candidate.z);
+            if (dist < bestDist) {
+                bestDist = dist;
+                best = b;
+            }
+        }
+        // Only accept as a match if it's actually near where we expect the
+        // tracked ball to be - otherwise treat it as "not seen this frame"
+        // rather than silently snapping to an unrelated ball.
+        return (bestDist <= MATCH_DISTANCE_INCHES) ? best : null;
     }
 
     private void buildAndFollowPathToBall(OFSB1VisionProcessor.Detection target) {
@@ -152,7 +256,7 @@ public class OFSB1Auto extends OpMode {
         // or start/end points end up in mismatched coordinate frames.
         double targetX = robotPose.getX() + driveDistance * Math.cos(fieldAngle);
         double targetY = robotPose.getY() + driveDistance * Math.sin(fieldAngle);
-        Pose targetPose = new Pose(targetX, targetY, fieldAngle);
+        Pose targetPose = new Pose(targetX, -targetY, fieldAngle);
 
         Path pathToBall = new Path(new BezierLine(robotPose, targetPose));
         pathToBall.setConstantHeadingInterpolation(fieldAngle);

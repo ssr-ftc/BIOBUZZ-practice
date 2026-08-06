@@ -66,6 +66,27 @@ public class OFSB1TeleOp extends OpMode {
     }
 
     @Override
+    public void init_loop() {
+        List<OFSB1VisionProcessor.Detection> balls = visionProcessor.getDetections();
+
+        telemetry.addData("Camera Initialized", cameraInitialized);
+        telemetry.addData("Number of balls detected", balls.size());
+
+        if (balls.isEmpty()) {
+            telemetry.addLine("No balls detected - check lighting/camera aim");
+        } else {
+            for (int i = 0; i < balls.size(); i++) {
+                OFSB1VisionProcessor.Detection ball = balls.get(i);
+                telemetry.addData("Ball #" + (i + 1),
+                        "X: %.1f in, Y: %.1f in, Z: %.1f in, Area: %.0f px",
+                        ball.x, ball.y, ball.z, ball.area);
+            }
+        }
+
+        telemetry.update();
+    }
+
+    @Override
     public void start() {
         follower.startTeleopDrive();
     }

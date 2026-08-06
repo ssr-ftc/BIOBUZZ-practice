@@ -1,12 +1,14 @@
 package org.firstinspires.ftc.teamcode.OFSB1.Vision;
 
 import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
+import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 import org.openftc.easyopencv.OpenCvPipeline;
 
@@ -15,8 +17,11 @@ import java.util.List;
 
 /**
  * Detects BIOBUZZ-season POLLEN (yellow ~2.8-3in balls) using HSV color
- * thresholding + contour analysis, with a lenient circularity check so a
- * partially-shadowed or partially-occluded ball still counts.
+ * thresholding + watershed-based separation, so balls that are touching or
+ * overlapping in the camera view are still reported as separate detections
+ * instead of merging into one blob. Circularity check remains lenient so a
+ * partially-shadowed or partially-occluded (including partly cut off at the
+ * frame edge, or partly overlapped by a neighboring ball) ball still counts.
  *
  * IMPORTANT: The HSV ranges below are starting points. Real lighting in your
  * gym/field WILL differ from these. Tune them with FTC Dashboard rather than
@@ -65,15 +70,48 @@ public class OFSB1VisionProcessor extends OpenCvPipeline {
     private Scalar yellowUpper = new Scalar(35, 255, 255);
 
     private static final double MIN_CONTOUR_AREA = 400; // px^2, filters noise
-    // Lenient on purpose - a ball with a shadow across part of it, or partly
-    // cut off at the frame edge, should still pass. A full circle scores near
-    // 1.0; this only rejects shapes that are clearly NOT round at all
-    // (tape lines, jerseys, flat panels), not partially-occluded circles.
+    // Lenient on purpose - a ball with a shadow across part of it, partly cut
+    // off at the frame edge, or partly overlapped by a neighboring ball,
+    // should still pass. A full circle scores near 1.0; a ball split from a
+    // touching neighbor by watershed still scores fairly high (a straight
+    // cut near the tangent point removes little area). This only rejects
+    // shapes that are clearly NOT round at all (tape lines, jerseys, panels).
     private static final double MIN_CIRCULARITY = 0.45;
+
+    // ---- Watershed ball-separation tuning ----
+    // Non-max-suppression radius (px) used to find one "peak" per ball in
+    // the distance transform. Should be smaller than the smallest expected
+    // ball radius in pixels (so each ball still gets its own peak) but big
+    // enough to merge noisy multi-peaks within a single ball into one.
+    // TUNE THIS alongside FOCAL_LENGTH_PIXELS - balls further away are
+    // smaller in pixels and need a smaller radius here to still get a peak.
+    private static final int PEAK_NMS_RADIUS_PX = 9;
+    // Minimum distance-transform value (px from the nearest mask edge) for a
+    // pixel to be eligible as a peak at all. Filters out shallow noise blobs
+    // that survived the open() step but are too thin/small to be a ball.
+    private static final double MIN_PEAK_DEPTH_PX = 6.0;
+    // How far (px) to dilate the mask to build the "definitely background or
+    // boundary" region for watershed. A few px is enough; this just defines
+    // the fuzzy boundary band watershed is allowed to draw the split through.
+    private static final int BG_DILATE_ITERATIONS = 3;
 
     // Working mats (allocated once, reused every frame - avoids GC churn)
     private final Mat hsvMat = new Mat();
     private final Mat yellowMask = new Mat();
+    private final Mat distMat = new Mat();
+    private final Mat dilatedDistMat = new Mat();
+    private final Mat peakMask = new Mat();
+    private final Mat depthMask = new Mat();
+    private final Mat sureFgMat = new Mat();
+    private final Mat sureBgMat = new Mat();
+    private final Mat unknownMat = new Mat();
+    private final Mat markersMat = new Mat();
+    private final Mat markerInputMat = new Mat();
+    private final Mat labelMaskMat = new Mat();
+    private final Mat peakKernel =
+            Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE,
+                    new Size(2 * PEAK_NMS_RADIUS_PX + 1, 2 * PEAK_NMS_RADIUS_PX + 1));
+    private final Mat bgKernel = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(3, 3));
 
     // ---- Debug/diagnostic state, exposed for telemetry ----
     private volatile long frameCount = 0;
@@ -93,7 +131,7 @@ public class OFSB1VisionProcessor extends OpenCvPipeline {
             Core.inRange(hsvMat, yellowLower, yellowUpper, yellowMask);
 
             // Erode+dilate (open) to knock out small noise specks like tape
-            // lines or reflections before contour detection.
+            // lines or reflections before separating/detecting balls.
             Imgproc.erode(yellowMask, yellowMask, new Mat());
             Imgproc.dilate(yellowMask, yellowMask, new Mat());
 
@@ -111,13 +149,80 @@ public class OFSB1VisionProcessor extends OpenCvPipeline {
         return input;
     }
 
+    /**
+     * Separates the binary color mask into individual ball regions (even if
+     * touching/overlapping) via distance-transform peak seeding + watershed,
+     * then measures and reports each region exactly like a normal contour.
+     */
     private void findAndDraw(Mat input, Mat mask, ArtifactColor color, Scalar drawColor) {
-        List<MatOfPoint> contours = new ArrayList<>();
-        Mat hierarchy = new Mat();
-        Imgproc.findContours(mask, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+        // 1) Distance transform: every foreground pixel's value = distance
+        //    (px) to the nearest background pixel. Each ball's center forms
+        //    a local peak here, even when two balls are touching, because
+        //    the peaks are pulled toward each ball's own center of mass.
+        Imgproc.distanceTransform(mask, distMat, Imgproc.DIST_L2, 5);
 
-        for (MatOfPoint c : contours) {
-            double area = Imgproc.contourArea(c);
+        // 2) Find local maxima (one seed per ball) via non-max suppression:
+        //    a pixel is a peak if it equals the max of its neighborhood.
+        Imgproc.dilate(distMat, dilatedDistMat, peakKernel);
+        Core.compare(distMat, dilatedDistMat, peakMask, Core.CMP_EQ);
+        // Reject shallow "peaks" from thin noise shapes, not just true balls.
+        Imgproc.threshold(distMat, depthMask, MIN_PEAK_DEPTH_PX, 255, Imgproc.THRESH_BINARY);
+        depthMask.convertTo(depthMask, CvType.CV_8U);
+        Core.bitwise_and(peakMask, depthMask, sureFgMat);
+
+        // 3) Build the "definitely background or boundary" region: dilate
+        //    the mask outward a few px. The gap between this and the seeds
+        //    (sureFgMat) is the ambiguous band watershed is allowed to cut
+        //    the split line through.
+        Imgproc.dilate(mask, sureBgMat, bgKernel, new Point(-1, -1), BG_DILATE_ITERATIONS);
+        Core.subtract(sureBgMat, sureFgMat, unknownMat);
+
+        // 4) Label each seed as its own marker, shift labels so background
+        //    (non-seed, label 0 from connectedComponents) becomes 1, and
+        //    mark the ambiguous band as 0 (unknown) for watershed to fill in.
+        int numSeeds = Imgproc.connectedComponents(sureFgMat, markersMat, 8, CvType.CV_32S);
+        if (numSeeds <= 1) {
+            // No balls in frame at all - nothing to split, nothing to report.
+            return;
+        }
+        Core.add(markersMat, new Scalar(1), markersMat);
+        markersMat.setTo(new Scalar(0), unknownMat);
+
+        // watershed() requires a 3-channel 8-bit image to run on; it doesn't
+        // use the color data meaningfully here (mask already isolated the
+        // balls), it just needs *some* valid 3-channel image of that size.
+        if (input.channels() == 4) {
+            Imgproc.cvtColor(input, markerInputMat, Imgproc.COLOR_RGBA2RGB);
+        } else {
+            input.copyTo(markerInputMat);
+        }
+        Imgproc.watershed(markerInputMat, markersMat);
+
+        // 5) Each label from 2..numSeeds+1 is now one separated ball region.
+        //    (Label 1 = background, -1 = boundary lines watershed drew.)
+        for (int label = 2; label <= numSeeds; label++) {
+            Core.inRange(markersMat, new Scalar(label), new Scalar(label), labelMaskMat);
+
+            List<MatOfPoint> contours = new ArrayList<>();
+            Mat hierarchy = new Mat();
+            Imgproc.findContours(labelMaskMat, contours, hierarchy,
+                    Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+            hierarchy.release();
+            if (contours.isEmpty()) continue;
+
+            // A single watershed region should yield one contour; if noise
+            // produced more than one, just take the largest.
+            MatOfPoint c = contours.get(0);
+            double bestArea = Imgproc.contourArea(c);
+            for (MatOfPoint candidate : contours) {
+                double a = Imgproc.contourArea(candidate);
+                if (a > bestArea) {
+                    bestArea = a;
+                    c = candidate;
+                }
+            }
+
+            double area = bestArea;
             if (area < MIN_CONTOUR_AREA) continue;
 
             double perimeter = Imgproc.arcLength(new MatOfPoint2f(c.toArray()), true);
@@ -159,7 +264,6 @@ public class OFSB1VisionProcessor extends OpenCvPipeline {
                     new Point(box.x, Math.max(box.y - 8, 12)),
                     Imgproc.FONT_HERSHEY_SIMPLEX, 0.5, drawColor, 2);
         }
-        hierarchy.release();
     }
 
     // ---------------- Public API used by TeleOp/Auto ----------------
