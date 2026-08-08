@@ -1,2 +1,3 @@
-- [x] Add `.pinpointLocalizer(localizerConstants)` to `FollowerBuilder` in `Constants.java`
-- [x] Verify build and semantics
+- [ ] Move `break` statements outside of `if` blocks in `PedroPathingtest.java`
+- [ ] Fix trailing space in `Constants.java`
+- [ ] Verify changes
