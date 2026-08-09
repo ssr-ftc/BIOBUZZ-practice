@@ -93,15 +93,16 @@ public class PedroPathingtest extends OpMode {
                 }
             case DONE:
                 if(!follower.isBusy()){
-                    telemetry.addLine("all patsh completse");
+                    telemetry.addLine("Finished everything!");
                 }
                 break;
             default:
-                telemetry.addLine("not working pls fix");
+                telemetry.addLine("State machine not working");
                 break;
         }
 
     }
+
     public void setPathState(PathState newState) {
         pathState = newState;
         pathTimer.resetTimer();

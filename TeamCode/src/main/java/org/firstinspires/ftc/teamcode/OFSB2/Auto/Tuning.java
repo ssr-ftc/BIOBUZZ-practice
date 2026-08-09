@@ -34,7 +34,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.OFSB2.Auto.Constants;
+import org.firstinspires.ftc.teamcode.OFSB2.Auto.Test.Constants;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -98,7 +98,7 @@ public class Tuning extends SelectableOpMode {
     @Override
     public void onSelect() {
         if (follower == null) {
-            follower = org.firstinspires.ftc.teamcode.OFSB2.Auto.Constants.createFollower(hardwareMap);
+            follower = Constants.createFollower(hardwareMap);
             PanelsConfigurables.INSTANCE.refreshClass(this);
         } else {
             follower = Constants.createFollower(hardwareMap);
@@ -896,7 +896,7 @@ class PredictiveBrakingTuner extends OpMode {
 
                 velocityToBrakingDistance.add(new double[]{measuredVelocity, brakingDistance});
 
-                telemetryM.debug("Test " + iteration,
+                telemetryM.debug("org/firstinspires/ftc/teamcode/OFSB2/Auto/Test " + iteration,
                         String.format("v=%.3f  d=%.3f", measuredVelocity,
                                 brakingDistance));
                 telemetryM.update(telemetry);
