@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.OFSB1;
 
 import com.pedropathing.control.FilteredPIDFCoefficients;
 import com.pedropathing.control.PIDFCoefficients;
+import com.pedropathing.control.PredictiveBrakingCoefficients;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.follower.FollowerConstants;
 import com.pedropathing.ftc.FollowerBuilder;
@@ -18,16 +19,16 @@ public class Constants {
 
     public static FollowerConstants followerConstants = new FollowerConstants()
             // Weigh the robot (with battery) on a scale, convert to your preferred unit.
-            .mass(6.216312)
+            .mass(8.9)
 
             // ---- Zero Power Accelerations ----
             // SOURCE: Tuning OpMode -> Automatic -> Forward Zero Power Acceleration Tuner
             // Robot speeds up then cuts power; telemetry reports "Deceleration" -> copy here.
-            .forwardZeroPowerAcceleration(-42.23391869597209)
+            .forwardZeroPowerAcceleration(-42.39020157863236)
 
             // SOURCE: Tuning OpMode -> Automatic -> Lateral Zero Power Acceleration Tuner
             // Same as above but strafing left/right.
-            .lateralZeroPowerAcceleration(-51.97916129649106)
+            .lateralZeroPowerAcceleration(-65.61611193537615)
 
             // ---- Translational PID ----
             // SOURCE: FTC Dashboard / Panels, live-tuned.
@@ -35,7 +36,7 @@ public class Constants {
             // Manually push the robot off-line and adjust P/I/D/F in the dashboard until it
             // snaps back quickly without oscillating. Copy the final values here.
             .translationalPIDFCoefficients(new PIDFCoefficients(
-                    0.1, // P
+                    0.15, // P
                     0, // I
                     0.01, // D
                     0.03  // F
@@ -58,10 +59,10 @@ public class Constants {
             // Manually rotate the robot and adjust P/I/D/F until it corrects heading smoothly
             // without drifting laterally or oscillating. Copy the final values here.
             .headingPIDFCoefficients(new PIDFCoefficients(
-                    0, // P
+                    0.9, // P
                     0, // I
-                    0, // D
-                    0  // F
+                    0.03, // D
+                    0.01  // F
             ))
             // SOURCE: Same dashboard session, tuned after the primary heading PID, using
             // small rotational nudges.
@@ -72,33 +73,27 @@ public class Constants {
                     0  // F
             ))
 
-            // ---- Drive PID ----
-            // SOURCE: FTC Dashboard / Panels, live-tuned.
-            // Run Drive Tuner OpMode (useDrive, useHeading, useTranslational all ON).
-            // Start P very low (hundredths/thousandths), D even smaller. Higher = faster but
-            // more overshoot at path end; lower = slower with less overshoot.
-            .drivePIDFCoefficients(new FilteredPIDFCoefficients(
-                    0, // P
-                    0, // I
-                    0, // D
-                    0, // F
-                    0  // T (Kalman filter term)
+            // ---- Predictive Braking (replaces Drive PIDF) ----
+            // SOURCE: Tuning.java -> Automatic -> PredictiveBrakingTuner gives you
+            // kLinear and kQuadratic. kP is not from the tuner -- start around 0.1 and
+            // adjust by feel on the Line Test (usual range 0.05-0.3).
+            // Args are (kP, kLinear, kQuadratic).
+            //   kQuadratic: braking distance proportional to velocity^2 (braking power,
+            //               sliding friction)
+            //   kLinear:    braking distance roughly proportional to velocity (back-EMF,
+            //               torque delay, viscous friction)
+            // PLACEHOLDER VALUES BELOW -- run PredictiveBrakingTuner and replace kLinear/
+            // kQuadratic with your actual results before trusting this in auto.
+            .predictiveBrakingCoefficients(new PredictiveBrakingCoefficients(
+                    0.1,    // kP        (placeholder -- tune by feel on Line Test)
+                    0.05535984547289155,   // kLinear   (placeholder -- replace with PredictiveBrakingTuner output)
+                    0.0017232309268316959  // kQuadratic (placeholder -- replace with PredictiveBrakingTuner output)
             ))
-            // SOURCE: Same Drive Tuner session, tuned after the primary drive PID above.
-            .secondaryDrivePIDFCoefficients(new FilteredPIDFCoefficients(
-                    0, // P
-                    0, // I
-                    0, // D
-                    0, // F
-                    0  // T (Kalman filter term)
-            ))
-            // SOURCE: Also set during drive tuning -- error distance to switch to secondary PID.
-            .drivePIDFSwitch(0)
 
             // ---- Centripetal Scaling ----
-            // SOURCE: Run a curved-path test OpMode (e.g. Circle test) AFTER all PIDs above
-            // are tuned. Increase if the robot cuts corners too aggressively on curves,
-            // decrease if it overcorrects/wobbles on curves.
+            // Kept at 0 intentionally: Pedro Pathing recommends turning centripetal
+            // scaling OFF when using Predictive Braking, since it already accounts for
+            // cornering forces on its own.
             .centripetalScaling(0);
 
     // SOURCE: These 4 numbers are your path-following tolerances/limits. Confirm which
@@ -106,6 +101,13 @@ public class Constants {
     // (tValueConstraint, velocityConstraint, translationalConstraint, headingConstraint,
     //  timeoutConstraint, brakingStrength, BEZIER_CURVE_SEARCH_LIMIT, brakingStart)
     // Tune these by watching path-following behavior; not from a dedicated tuner OpMode.
+    //
+    // NOTE (Predictive Braking): once the above is tuned, consider lowering the first
+    // value (parametric end / tValueConstraint) from 0.99 to something like 0.95-0.97.
+    // PIDF-based following tends to overshoot and hit the parametric end early, but
+    // Predictive Braking actually comes to a full stop in time, so a high value here
+    // just delays when path-end actions can trigger. Don't go below ~0.9 or the path
+    // will be marked complete before braking finishes.
     public static PathConstraints pathConstraints = new PathConstraints(0.99, 100, 1, 1);
 
     public static MecanumConstants driveConstants = new MecanumConstants()
@@ -122,11 +124,11 @@ public class Constants {
             // SOURCE: Tuning OpMode -> Automatic -> Forward Velocity Tuner.
             // Robot drives forward at full power over a set distance; telemetry reports
             // "Velocity" -> copy here.
-            .xVelocity(88.71476973886564)
+            .xVelocity(88.52735336183562)
 
             // SOURCE: Tuning OpMode -> Automatic -> Lateral Velocity Tuner.
             // Same as above but strafing.
-            .yVelocity(74.25493183286171);
+            .yVelocity(71.30248638964075);
 
     public static PinpointConstants localizerConstants = new PinpointConstants()
             // SOURCE: Physically measure with a ruler/tape measure -- distance (inches) from
