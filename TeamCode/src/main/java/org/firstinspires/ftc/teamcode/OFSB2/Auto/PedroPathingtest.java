@@ -1,5 +1,4 @@
 package org.firstinspires.ftc.teamcode.OFSB2.Auto;
-
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
@@ -7,7 +6,9 @@ import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.pedropathing.util.Timer;
-@Autonomous
+import org.firstinspires.ftc.teamcode.OFSB2.Auto.Test.Constants;
+
+@Autonomous(name = "pedroPathingTest", group = "Autonomous")
 
 public class PedroPathingtest extends OpMode {
     private Follower follower;
@@ -18,9 +19,7 @@ public class PedroPathingtest extends OpMode {
         //SHOOT > ATTEMPT TO SCORE THE ARTIFACT
 
         START_TO_ENDOFPATH1,
-        //drive start pos shoot pos
         PATH1_TO_ENDOFPATH2,
-        //shoot preload
         PATH2_TO_ENDOFPATH3,
         PATH3_TO_ENDOFPATH4,
         PATH4_TO_ENDOFPATH5,
@@ -29,7 +28,7 @@ public class PedroPathingtest extends OpMode {
     }
     PathState pathState;
 
-    private final Pose starting = new Pose(70.85831960461286, 134.72981878088962, Math.toRadians(90));
+    private final Pose startingCoordinate = new Pose(70.85831960461286, 134.72981878088962, Math.toRadians(90));
     private final Pose path1complete = new Pose(47.40449664771886, 70.25789384267753, Math.toRadians((90)));
     private final Pose path2complete = new Pose(93.91480375429161, 40.852017956911546, Math.toRadians(360));
     private final Pose path3complete = new Pose(23.31136738056013, 47.088962108731465, Math.toRadians(55));
@@ -40,8 +39,8 @@ public class PedroPathingtest extends OpMode {
     private PathChain path1_path2, path2_path3, path3_path4, path4_path5, path5_path6;
     public void buildPaths() {
         path1_path2 = follower.pathBuilder()
-                .addPath(new BezierLine(starting, path1complete))
-                .setLinearHeadingInterpolation(starting.getHeading(), path1complete.getHeading())
+                .addPath(new BezierLine(startingCoordinate, path1complete))
+                .setLinearHeadingInterpolation(startingCoordinate.getHeading(), path1complete.getHeading())
                 .build();
         path2_path3 = follower.pathBuilder()
                 .addPath(new BezierLine(path1complete, path2complete))
@@ -93,11 +92,11 @@ public class PedroPathingtest extends OpMode {
                 }
             case DONE:
                 if(!follower.isBusy()){
-                    telemetry.addLine("Finished everything!");
+                    telemetry.addLine("state machne is working");
                 }
                 break;
             default:
-                telemetry.addLine("State machine not working");
+                telemetry.addLine("something wrong");
                 break;
         }
 
@@ -114,7 +113,7 @@ public class PedroPathingtest extends OpMode {
         opModeTimer = new Timer();
         follower = Constants.createFollower(hardwareMap);
         buildPaths();
-        follower.setPose(starting);
+        follower.setPose(startingCoordinate);
     }
     public void start() {
         opModeTimer.resetTimer();

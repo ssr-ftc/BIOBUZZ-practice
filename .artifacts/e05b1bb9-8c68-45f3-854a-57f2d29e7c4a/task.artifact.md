@@ -1,3 +1,5 @@
-- [ ] Move `break` statements outside of `if` blocks in `PedroPathingtest.java`
-- [ ] Fix trailing space in `Constants.java`
-- [ ] Verify changes
+- [ ] Add `BEZIER_CURVE_SEARCH_LIMIT(100)` to `followerConstants` in `piecwise.java`
+- [ ] Boost `translationalPIDF` coefficients (P: 1.2, D: 0.01)
+- [ ] Set `maxPower` to 0.3 for a controlled precision test
+- [ ] Fix state machine logic to prevent early termination
+- [ ] Verify build and logic
