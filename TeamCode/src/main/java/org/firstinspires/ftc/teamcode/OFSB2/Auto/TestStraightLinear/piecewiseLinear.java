@@ -24,18 +24,21 @@ public class piecewiseLinear extends OpMode {
     private PathState pathState;
 
     private final Pose startingCoordinate = new Pose(72, 7, Math.toRadians(90));
-    private final Pose path1complete = new Pose(72, 100, Math.toRadians(180));
+    private final Pose path1complete = new Pose(72, 112, Math.toRadians(180));
 
     private PathChain startFinish;
 
     public void buildPaths() {
         startFinish = follower.pathBuilder()
                 .addPath(new BezierLine(startingCoordinate, path1complete))
+                .addParametricCallback(0.5, () -> follower.setMaxPower(0.3))
                 .setHeadingInterpolation(HeadingInterpolator.piecewise(
                         new HeadingInterpolator.PiecewiseNode(
                                 0, .5, HeadingInterpolator.tangent),
                         new HeadingInterpolator.PiecewiseNode(
-                                .5, 1, HeadingInterpolator.linear(Math.toRadians(90), Math.toRadians(180)))))
+                                .5, 1, HeadingInterpolator.tangent)))
+
+
                 .build();
     }
 
