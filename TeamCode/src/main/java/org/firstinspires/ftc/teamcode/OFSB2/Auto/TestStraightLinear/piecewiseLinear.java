@@ -31,7 +31,9 @@ public class piecewiseLinear extends OpMode {
     public void buildPaths() {
         startFinish = follower.pathBuilder()
                 .addPath(new BezierLine(startingCoordinate, path1complete))
+                .addParametricCallback(0.1, () -> follower.setMaxPower(0.1))
                 .addParametricCallback(0.5, () -> follower.setMaxPower(0.3))
+                .addParametricCallback(0.8, () -> follower.setMaxPower(1))
                 .setHeadingInterpolation(HeadingInterpolator.piecewise(
                         new HeadingInterpolator.PiecewiseNode(
                                 0, .5, HeadingInterpolator.tangent),
