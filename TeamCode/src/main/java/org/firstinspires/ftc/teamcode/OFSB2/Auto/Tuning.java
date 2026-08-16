@@ -34,8 +34,6 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.OFSB2.Auto.Test.Constants;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -896,7 +894,7 @@ class PredictiveBrakingTuner extends OpMode {
 
                 velocityToBrakingDistance.add(new double[]{measuredVelocity, brakingDistance});
 
-                telemetryM.debug("org/firstinspires/ftc/teamcode/OFSB2/Auto/Test " + iteration,
+                telemetryM.debug("org/firstinspires/ftc/teamcode/OFSB2/Auto/TestStraightLinear " + iteration,
                         String.format("v=%.3f  d=%.3f", measuredVelocity,
                                 brakingDistance));
                 telemetryM.update(telemetry);

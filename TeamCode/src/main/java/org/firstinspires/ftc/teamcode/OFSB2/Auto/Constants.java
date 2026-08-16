@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.OFSB2.Auto.Test;
+package org.firstinspires.ftc.teamcode.OFSB2.Auto;
 
 import com.pedropathing.control.PIDFCoefficients;
 import com.pedropathing.follower.Follower;
