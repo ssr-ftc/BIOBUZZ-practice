@@ -5,7 +5,7 @@ import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
 
-public class Paths2 {
+public class PiecewiseUTurnPaths {
 
     // FIXED: We declared MainChain right here so the constructor can save the path to it.
     public final PathChain MainChain;
@@ -30,7 +30,7 @@ public class Paths2 {
         DONE
     }
 
-    public Paths2(Follower follower) {
+    public PiecewiseUTurnPaths(Follower follower) {
 
         // We are using follower.pathBuilder() and your original Poses, which is correct!
         MainChain = follower.pathBuilder()

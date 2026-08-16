@@ -1,61 +1,20 @@
 package org.firstinspires.ftc.teamcode.OFSB2.Auto.TestCurveTangent;
 
-import com.pedropathing.control.PIDFCoefficients;
 import com.pedropathing.follower.Follower;
-import com.pedropathing.follower.FollowerConstants;
-import com.pedropathing.ftc.FollowerBuilder;
-import com.pedropathing.ftc.drivetrains.MecanumConstants;
-import com.pedropathing.ftc.localization.constants.PinpointConstants;
 import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.HeadingInterpolator;
 import com.pedropathing.paths.PathChain;
-import com.pedropathing.paths.PathConstraints;
-import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
+import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.pedropathing.util.Timer;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+
+import org.firstinspires.ftc.teamcode.OFSB2.Auto.Constants;
 
 @Autonomous(name = "PiecewiseTest", group = "Autonomous")
 public class piecwiseUTurn extends OpMode {
     private Follower follower;
     private Timer pathTimer, opModeTimer;
-
-    // --- EMBEDDED CONSTANTS (Optimized for Movement & Precision) ---
-    public FollowerConstants followerConstants = new FollowerConstants()
-            .mass(7.2)
-            .forwardZeroPowerAcceleration(-39.370416251310814)
-            .lateralZeroPowerAcceleration(-56.98433031510037)
-            .translationalPIDFCoefficients(new PIDFCoefficients(1.0, 0, 0.04, 0.07))
-            .headingPIDFCoefficients(new PIDFCoefficients(1.2, 0, 0.01, 0.019))
-            .centripetalScaling(0.0005)
-            .BEZIER_CURVE_SEARCH_LIMIT(100);
-
-    public MecanumConstants driveConstants = new MecanumConstants()
-            .maxPower(0.6)
-            .rightFrontMotorName("fr")
-            .rightRearMotorName("rr")
-            .leftRearMotorName("rl")
-            .leftFrontMotorName("fl")
-            .leftFrontMotorDirection(DcMotorSimple.Direction.REVERSE)
-            .leftRearMotorDirection(DcMotorSimple.Direction.REVERSE)
-            .rightFrontMotorDirection(DcMotorSimple.Direction.FORWARD)
-            .rightRearMotorDirection(DcMotorSimple.Direction.FORWARD)
-            .xVelocity(95.27855676365651)
-            .yVelocity(73.45713601900836);
-
-    public PinpointConstants localizerConstants = new PinpointConstants()
-            .forwardPodY(3.5)
-            .strafePodX(7)
-            .distanceUnit(DistanceUnit.INCH)
-            .hardwareMapName("imu")
-            .encoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD)
-            .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED)
-            .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD);
-
-    public PathConstraints pathConstraints = new PathConstraints(0.99, 0.1, 0.1, 0.007, 100, 1.2, 100, 1);
 
     public enum PathState {
         START_TO_END_LOOP,
@@ -74,7 +33,7 @@ public class piecwiseUTurn extends OpMode {
     private PathChain fullLoop;
 
     public void buildPaths() {
-        fullLoop = follower.pathBuilder(pathConstraints)
+        fullLoop = follower.pathBuilder(Constants.pathConstraints)
                 // PATH 1: Complex S-Curve (5 points)
                 .addPath(new BezierCurve(
                         startingCoordinate,
@@ -150,11 +109,7 @@ public class piecwiseUTurn extends OpMode {
         pathTimer = new Timer();
         opModeTimer = new Timer();
 
-        follower = new FollowerBuilder(followerConstants, hardwareMap)
-                .pathConstraints(pathConstraints)
-                .mecanumDrivetrain(driveConstants)
-                .pinpointLocalizer(localizerConstants)
-                .build();
+        follower = Constants.createFollower(hardwareMap);
 
         buildPaths();
         follower.setPose(startingCoordinate);
