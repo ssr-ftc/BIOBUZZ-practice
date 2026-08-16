@@ -23,22 +23,26 @@ public class piecewiseLinear extends OpMode {
 
     private PathState pathState;
 
-    private final Pose startingCoordinate = new Pose(72, 7, Math.toRadians(90));
-    private final Pose path1complete = new Pose(72, 112, Math.toRadians(180));
+    private final Pose startingCoordinate = new Pose(129, 13, Math.toRadians(135));
+    private final Pose path1complete = new Pose(13, 129, Math.toRadians(135));
 
     private PathChain startFinish;
 
     public void buildPaths() {
         startFinish = follower.pathBuilder()
                 .addPath(new BezierLine(startingCoordinate, path1complete))
-                .addParametricCallback(0.1, () -> follower.setMaxPower(0.1))
-                .addParametricCallback(0.5, () -> follower.setMaxPower(0.3))
-                .addParametricCallback(0.8, () -> follower.setMaxPower(1))
+                // Commented out so they don't override the smooth acceleration in the loop:
+                // .addParametricCallback(0.0, () -> follower.setMaxPower(0.25))
+                // .addParametricCallback(0.3, () -> follower.setMaxPower(0.5))
+                // .addParametricCallback(0.6, () -> follower.setMaxPower(0.75))
+                // .addParametricCallback(0.9, () -> follower.setMaxPower(1))
                 .setHeadingInterpolation(HeadingInterpolator.piecewise(
                         new HeadingInterpolator.PiecewiseNode(
-                                0, .5, HeadingInterpolator.tangent),
-                        new HeadingInterpolator.PiecewiseNode(
-                                .5, 1, HeadingInterpolator.tangent)))
+                                0, 1, HeadingInterpolator.tangent)))
+                /* new HeadingInterpolator.PiecewiseNode(
+                        .5, 1, HeadingInterpolator.tangent)))
+
+                 */
 
 
                 .build();
@@ -75,7 +79,7 @@ public class piecewiseLinear extends OpMode {
 
         buildPaths();
         follower.setPose(startingCoordinate);
-        
+
         pathState = PathState.START;
     }
 
@@ -89,6 +93,25 @@ public class piecewiseLinear extends OpMode {
     public void loop() {
         follower.update();
         statePathUpdate();
+
+        // --- SMOOTH ACCELERATION LOGIC ADDED HERE ---
+        if (follower.isBusy()) {
+            double currentT = follower.getCurrentTValue();
+
+            double startT = 0.4;
+            double endT = 1.0;
+            double startPower = 1.0;
+            double endPower = 0.25;
+
+            if (currentT >= startT && currentT <= endT) {
+                double progress = (currentT - startT) / (endT - startT);
+                double smoothPower = startPower + (progress * (endPower - startPower));
+                follower.setMaxPower(smoothPower);
+            } else if (currentT > endT) {
+                follower.setMaxPower(endPower);
+            }
+        }
+        // --------------------------------------------
 
         telemetry.addData("State", pathState);
         telemetry.addData("T Value", follower.getCurrentTValue());
