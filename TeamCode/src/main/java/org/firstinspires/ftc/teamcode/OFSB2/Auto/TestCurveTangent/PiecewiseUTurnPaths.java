@@ -7,8 +7,7 @@ import com.pedropathing.paths.PathChain;
 
 public class PiecewiseUTurnPaths {
 
-    // FIXED: We declared MainChain right here so the constructor can save the path to it.
-    public final PathChain MainChain;
+    public final PathChain mainChain;
 
     /*
      * I temporarily commented these 5 out. In Java, if a variable is marked "final",
@@ -21,19 +20,8 @@ public class PiecewiseUTurnPaths {
     // public final PathChain sample2ToReturnMid;
     // public final PathChain returnMidToEnd;
 
-    private enum AutoState {
-        DRIVE_TO_SHOOT,
-        DRIVE_TO_SAMPLE_1,
-        DRIVE_TO_SAMPLE_2,
-        DRIVE_TO_RETURN_MID,
-        DRIVE_TO_END,
-        DONE
-    }
-
     public PiecewiseUTurnPaths(Follower follower) {
-
-        // We are using follower.pathBuilder() and your original Poses, which is correct!
-        MainChain = follower.pathBuilder()
+        mainChain = follower.pathBuilder()
                 .addPath(
                         new BezierCurve(
                                 new Pose(18.702, 125.956),

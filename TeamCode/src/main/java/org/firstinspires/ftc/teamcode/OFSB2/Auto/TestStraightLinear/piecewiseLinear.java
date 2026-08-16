@@ -18,19 +18,18 @@ public class piecewiseLinear extends OpMode {
 
     public enum PathState {
         START,
-        END,
         DONE
     }
 
-    PathState pathState;
+    private PathState pathState;
 
     private final Pose startingCoordinate = new Pose(72, 7, Math.toRadians(90));
     private final Pose path1complete = new Pose(72, 100, Math.toRadians(180));
 
-    private PathChain start_finish; 
+    private PathChain startFinish;
 
     public void buildPaths() {
-        start_finish = follower.pathBuilder()
+        startFinish = follower.pathBuilder()
                 .addPath(new BezierLine(startingCoordinate, path1complete))
                 .setHeadingInterpolation(HeadingInterpolator.piecewise(
                         new HeadingInterpolator.PiecewiseNode(
@@ -43,17 +42,9 @@ public class piecewiseLinear extends OpMode {
     public void statePathUpdate() {
         switch (pathState) {
             case START:
-                follower.followPath(start_finish, true);
+                follower.followPath(startFinish, true);
                 setPathState(PathState.DONE);
                 break;
-/*
-            case END:
-                // Safeguard: Ensure robot has moved past the start (T > 0.1) before allowed to finish
-                if (follower.getCurrentTValue() > 0.1 && follower.atParametricEnd()) {
-                    setPathState(PathState.DONE);
-                }
-                break;
-                */
             case DONE:
                 if (!follower.isBusy()) {
                     telemetry.addLine("Fully Linear Piecewise Loop Finished!");

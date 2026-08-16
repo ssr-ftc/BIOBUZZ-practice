@@ -22,7 +22,7 @@ public class piecwiseUTurn extends OpMode {
         DONE
     }
 
-    PathState pathState;
+    private PathState pathState;
 
     // --- COORDINATE DEFINITIONS ---
     private final Pose startingCoordinate = new Pose(18.8794038, 125.764044, Math.toRadians(330));
