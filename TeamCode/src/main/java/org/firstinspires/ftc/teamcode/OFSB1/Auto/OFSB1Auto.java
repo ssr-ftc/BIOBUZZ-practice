@@ -21,10 +21,13 @@ import java.util.List;
 /**
  * Autonomous for Off Season Bot 1 (OFSB1).
  *
- * Scans for the closest yellow Pollen ball via OFSB1VisionProcessor, converts
- * its camera-relative x/z offset into a field-relative target pose, builds a
- * PedroPathing Path to a point TARGET_DISTANCE_INCHES short of the ball along
- * the line-of-sight, then follows that path.
+ * Scans for the closest yellow Pollen ball via OFSB1VisionProcessor, tracks
+ * it across frames to confirm it's stable, then:
+ *   1) TURNS in place to face the ball's direction
+ *   2) DRIVES straight forward to a point TARGET_DISTANCE_INCHES short of it
+ * Splitting into turn-then-drive means the drive phase is a pure forward
+ * move along the robot's heading - no strafe component needed, since the
+ * robot is already pointed at the ball before it starts translating.
  */
 @Autonomous(name = "OFSB1 Auto", group = "OFSB1")
 public class OFSB1Auto extends OpMode {
@@ -55,9 +58,8 @@ public class OFSB1Auto extends OpMode {
     // The ball we are currently tracking toward confirmation - null until
     // we've seen at least one candidate.
     private OFSB1VisionProcessor.Detection candidate = null;
-    // The ball we actually locked onto and committed a path to. Kept around
-    // purely for telemetry after locking, since we stop reading fresh
-    // detections at that point.
+    // The ball we actually locked onto. Kept for telemetry after locking,
+    // since we stop reading fresh detections at that point.
     private OFSB1VisionProcessor.Detection lockedTarget = null;
 
     @Override
@@ -240,6 +242,15 @@ public class OFSB1Auto extends OpMode {
         return (bestDist <= MATCH_DISTANCE_INCHES) ? best : null;
     }
 
+    /**
+     * Builds and follows a single path to the ball, using TANGENTIAL heading
+     * interpolation: the follower automatically rotates to face the
+     * direction it's currently traveling along the path, rather than being
+     * told a fixed target angle. For a straight BezierLine to the ball, this
+     * means the robot turns to face the ball as it starts moving, driving
+     * straight toward it with no separate turn-in-place step and no strafe
+     * component needed once it's underway.
+     */
     private void buildAndFollowPathToBall(OFSB1VisionProcessor.Detection target) {
         Pose robotPose = follower.getPose();
 
@@ -251,15 +262,23 @@ public class OFSB1Auto extends OpMode {
 
         double fieldAngle = robotPose.getHeading() + angleOffsetRadians;
 
-        // Both targetX/targetY are computed in the SAME field frame as
-        // robotPose - do not negate one axis without negating the other,
-        // or start/end points end up in mismatched coordinate frames.
+        // Both target coordinates are computed in the SAME field frame as
+        // robotPose - do not negate one axis without negating the other, or
+        // start/end points end up in mismatched coordinate frames.
         double targetX = robotPose.getX() + driveDistance * Math.cos(fieldAngle);
         double targetY = robotPose.getY() + driveDistance * Math.sin(fieldAngle);
-        Pose targetPose = new Pose(targetX, -targetY, fieldAngle);
+        // Heading value here is mostly irrelevant for tangential interpolation
+        // (the path direction determines heading, not this field), but PedroPathing's
+        // Pose constructor requires a heading argument - fieldAngle is a reasonable one.
+        Pose targetPose = new Pose(targetX, targetY, fieldAngle);
 
         Path pathToBall = new Path(new BezierLine(robotPose, targetPose));
-        pathToBall.setConstantHeadingInterpolation(fieldAngle);
+        // NOTE: verify this method name against your PedroPathing version -
+        // some releases call this setTangentHeadingInterpolation(), others
+        // may expose it as a HeadingInterpolator.tangent() passed to a
+        // general setHeadingInterpolation() setter. Check your Path Javadoc
+        // if this doesn't compile.
+        pathToBall.setTangentHeadingInterpolation();
 
         follower.followPath(pathToBall);
         state = State.DRIVING;
