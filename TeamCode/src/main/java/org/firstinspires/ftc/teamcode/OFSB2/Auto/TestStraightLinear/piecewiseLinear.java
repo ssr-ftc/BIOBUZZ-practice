@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode.OFSB2.Auto.TestStraightLinear;
 
-import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.HeadingInterpolator;
@@ -9,56 +8,67 @@ import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
-import org.firstinspires.ftc.teamcode.OFSB2.Auto.Constants;
+import org.firstinspires.ftc.teamcode.OFSB2.Subsystems.CustomFollower;
 
 @Autonomous(name = "piecewiseLinear", group = "Autonomous")
 public class piecewiseLinear extends OpMode {
-    private Follower follower;
+
+    private CustomFollower follower;
     private Timer pathTimer, opModeTimer;
 
     public enum PathState {
         START,
+        FOLLOWING,
         DONE
     }
 
     private PathState pathState;
 
-    private final Pose startingCoordinate = new Pose(129, 13, Math.toRadians(135));
-    private final Pose path1complete = new Pose(13, 129, Math.toRadians(135));
+    private final Pose startingCoordinate =
+            new Pose(129, 13, Math.toRadians(135));
+
+    private final Pose path1complete =
+            new Pose(13, 129, Math.toRadians(135));
 
     private PathChain startFinish;
 
     public void buildPaths() {
-        startFinish = follower.pathBuilder()
+        startFinish = follower.pedro.pathBuilder()
                 .addPath(new BezierLine(startingCoordinate, path1complete))
-                // Commented out so they don't override the smooth acceleration in the loop:
-                // .addParametricCallback(0.0, () -> follower.setMaxPower(0.25))
-                // .addParametricCallback(0.3, () -> follower.setMaxPower(0.5))
-                // .addParametricCallback(0.6, () -> follower.setMaxPower(0.75))
-                // .addParametricCallback(0.9, () -> follower.setMaxPower(1))
-                .setHeadingInterpolation(HeadingInterpolator.piecewise(
-                        new HeadingInterpolator.PiecewiseNode(
-                                0, 1, HeadingInterpolator.tangent)))
-                /* new HeadingInterpolator.PiecewiseNode(
-                        .5, 1, HeadingInterpolator.tangent)))
+                .setHeadingInterpolation(
 
-                 */
-
-
+                HeadingInterpolator.piecewise(
+                new HeadingInterpolator.PiecewiseNode(0, 1, HeadingInterpolator.tangent)))
                 .build();
     }
 
     public void statePathUpdate() {
         switch (pathState) {
             case START:
-                follower.followPath(startFinish, true);
-                setPathState(PathState.DONE);
+                follower.pedro.followPath(startFinish, true);
+
+                    follower.acceleration(0, 0.5, 0, 1);
+                    follower.acceleration(0.5, 1, 1, 0);
+
+                    setPathState(PathState.FOLLOWING);
+
+
                 break;
+
+            case FOLLOWING:
+
+                if (!follower.pedro.isBusy()) {
+                    setPathState(PathState.DONE);
+                }
+
+                break;
+
             case DONE:
-                if (!follower.isBusy()) {
+                if (!follower.pedro.isBusy()) {
                     telemetry.addLine("Fully Linear Piecewise Loop Finished!");
                 }
                 break;
+
             default:
                 telemetry.addLine("State machine error");
                 break;
@@ -75,10 +85,10 @@ public class piecewiseLinear extends OpMode {
         pathTimer = new Timer();
         opModeTimer = new Timer();
 
-        follower = Constants.createFollower(hardwareMap);
+        follower = new CustomFollower(hardwareMap, telemetry);
 
         buildPaths();
-        follower.setPose(startingCoordinate);
+        follower.pedro.setPose(startingCoordinate);
 
         pathState = PathState.START;
     }
@@ -94,30 +104,14 @@ public class piecewiseLinear extends OpMode {
         follower.update();
         statePathUpdate();
 
-        // --- SMOOTH ACCELERATION LOGIC ADDED HERE ---
-        if (follower.isBusy()) {
-            double currentT = follower.getCurrentTValue();
-
-            double startT = 0.4;
-            double endT = 1.0;
-            double startPower = 1.0;
-            double endPower = 0.25;
-
-            if (currentT >= startT && currentT <= endT) {
-                double progress = (currentT - startT) / (endT - startT);
-                double smoothPower = startPower + (progress * (endPower - startPower));
-                follower.setMaxPower(smoothPower);
-            } else if (currentT > endT) {
-                follower.setMaxPower(endPower);
-            }
-        }
-        // --------------------------------------------
-
         telemetry.addData("State", pathState);
-        telemetry.addData("T Value", follower.getCurrentTValue());
-        telemetry.addData("X", follower.getPose().getX());
-        telemetry.addData("Y", follower.getPose().getY());
-        telemetry.addData("Heading (Deg)", Math.toDegrees(follower.getPose().getHeading()));
+        telemetry.addData("T Value", follower.pedro.getCurrentTValue());
+        telemetry.addData("X", follower.pedro.getPose().getX());
+        telemetry.addData("Y", follower.pedro.getPose().getY());
+        telemetry.addData(
+                "Heading (Deg)",
+                Math.toDegrees(follower.pedro.getPose().getHeading())
+        );
         telemetry.addData("Path time", pathTimer.getElapsedTimeSeconds());
         telemetry.update();
     }
