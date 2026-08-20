@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode.OFSB2.Auto.TestCurveTangent;
 
-// 1. ADDED IMPORT: Bring in your CustomFollower
 import org.firstinspires.ftc.teamcode.OFSB2.Subsystems.CustomFollower;
 
 import com.pedropathing.geometry.BezierCurve;
@@ -10,10 +9,9 @@ import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
-@Autonomous(name = "piecewiseUTurn", group = "Autonomous")
-public class piecwiseUTurn extends OpMode {
+@Autonomous(name = "TangentUTurnWithObstacles", group = "Autonomous")
+public class TangentUTurnWithObstacles extends OpMode {
 
-    // 2. CHANGED THIS: Declare it as your CustomFollower
     private CustomFollower follower;
     private Timer pathTimer, opModeTimer;
 
@@ -28,12 +26,19 @@ public class piecwiseUTurn extends OpMode {
     private PathState pathState;
     private PathChain fullLoop;
 
-    private final Pose startingCoordinate = new Pose(94.0, 10.0, Math.toRadians(90));
+    // UPDATED: 65-degree heading perfectly matches the tangent line of the first curve segment
+    private final Pose startingCoordinate = new Pose(71.15238879, 9.16556836, Math.toRadians(90));
 
     public void buildPaths() {
-        // 3. ADDED .pedro: Route standard builder commands through the Pedro object
+        // FIXED: Coordinates are now in the correct Start -> C1 -> C2 -> C3 -> End order
         fullLoop = follower.pedro.pathBuilder()
-                .addPath(new BezierCurve(new Pose(94.0, 10.0), new Pose(100.0, 121.0), new Pose(81.0, 137.0), new Pose(44.0, 132.0), new Pose(47.0, 37.0)))
+                .addPath(new BezierCurve(
+                        new Pose(71.15238879, 9.16556836),       // Start
+                        new Pose(124.9036, 125.4349),            // Control 1
+                        new Pose(68.3245, 140.6177),             // Control 2
+                        new Pose(45.71252, 140.5873),            // Control 3
+                        new Pose(37.3509060, 31.8039538)         // End
+                ))
                 .setTangentHeadingInterpolation()
                 .build();
     }
@@ -41,24 +46,26 @@ public class piecwiseUTurn extends OpMode {
     public void statePathUpdate() {
         switch (pathState) {
             case START_TO_END_LOOP:
-                // 4. ADDED .pedro: Tell Pedro to follow the path
                 follower.pedro.followPath(fullLoop, true);
 
-                // You put this in the exact right spot!
+                // Utilizing your custom physics engine
                 follower.autoAcceleration(0.7, 80.0);
 
                 setPathState(PathState.FOLLOWING1);
                 break;
 
             case FOLLOWING1:
-                // 5. ADDED .pedro: Check if Pedro is busy
                 if (!follower.pedro.isBusy()) {
                     setPathState(PathState.FOLLOWING_LOOP);
                 }
                 break;
 
+            case FOLLOWING_LOOP:
+            case FOLLOWING2:
             case DONE:
+                if (!follower.pedro.isBusy()) {
                     telemetry.addLine("Autonomous Loop Finished Successfully!");
+                }
                 break;
 
             default:
@@ -77,12 +84,11 @@ public class piecwiseUTurn extends OpMode {
         pathTimer = new Timer();
         opModeTimer = new Timer();
 
-        // 6. CHANGED THIS: Initialize CustomFollower and pass in the telemetry
         follower = new CustomFollower(hardwareMap, telemetry);
 
         buildPaths();
 
-        // 7. ADDED .pedro: Set the starting pose
+        // Sets the internal odometry to prevent a snap-spin on start
         follower.pedro.setPose(startingCoordinate);
 
         pathState = PathState.START_TO_END_LOOP;
@@ -96,14 +102,13 @@ public class piecwiseUTurn extends OpMode {
 
     @Override
     public void loop() {
-        // NOTE: We do NOT add .pedro here, because we want to run YOUR update loop!
+        // Run the custom physics math loop
         follower.update();
 
+        // Update the pathing state machine
         statePathUpdate();
 
         telemetry.addData("State", pathState);
-
-        // 8. ADDED .pedro: Route the getters through Pedro to get your data
         telemetry.addData("T Value", follower.pedro.getCurrentTValue());
         telemetry.addData("X", follower.pedro.getPose().getX());
         telemetry.addData("Y", follower.pedro.getPose().getY());

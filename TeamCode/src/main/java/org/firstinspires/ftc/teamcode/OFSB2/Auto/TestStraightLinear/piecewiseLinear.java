@@ -64,9 +64,7 @@ public class piecewiseLinear extends OpMode {
                 break;
 
             case DONE:
-                if (!follower.pedro.isBusy()) {
                     telemetry.addLine("Fully Linear Piecewise Loop Finished!");
-                }
                 break;
 
             default:
