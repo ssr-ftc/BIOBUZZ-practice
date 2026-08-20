@@ -22,17 +22,18 @@ import java.util.List;
  * Autonomous for Off Season Bot 1 (OFSB1).
  *
  * Scans for the closest yellow Pollen ball via OFSB1VisionProcessor, tracks
- * it across frames to confirm it's stable, then:
- *   1) TURNS in place to face the ball's direction
- *   2) DRIVES straight forward to a point TARGET_DISTANCE_INCHES short of it
- * Splitting into turn-then-drive means the drive phase is a pure forward
- * move along the robot's heading - no strafe component needed, since the
- * robot is already pointed at the ball before it starts translating.
+ * it across frames to confirm it's stable, converts its camera-relative
+ * x/z offset into a field-relative target pose, and follows a single
+ * PedroPathing Path (constant heading, strafing as needed) to a point
+ * TARGET_DISTANCE_INCHES short of the ball along the line-of-sight.
  */
 @Autonomous(name = "OFSB1 Auto", group = "OFSB1")
 public class OFSB1Auto extends OpMode {
 
-    private static final double TARGET_DISTANCE_INCHES = 5.0;
+    private static final double TARGET_DISTANCE_INCHES = 12.0;
+    // Extra buffer added to where the path AIMS to stop, so ordinary
+    // path-following overshoot still leaves room to spare.
+    private static final double PATH_TARGET_SAFETY_MARGIN_INCHES = 1.0;
     // How many consecutive frames the SAME ball must be seen before we trust
     // it and commit to a path - filters out one-frame noise blobs.
     private static final int CONFIRM_FRAMES = 5;
@@ -61,6 +62,15 @@ public class OFSB1Auto extends OpMode {
     // The ball we actually locked onto. Kept for telemetry after locking,
     // since we stop reading fresh detections at that point.
     private OFSB1VisionProcessor.Detection lockedTarget = null;
+    // Tracks the most recent distance seen to ANY ball while DRIVING. If the
+    // ball vanishes from vision (too close, out of frame, blurred) while
+    // this was small, that's treated as dangerous - NOT as "safe, nothing
+    // detected" - since vanishing right before contact is the expected
+    // failure mode of close-range detection, not evidence of safety.
+    private double lastSeenCloseZ = Double.MAX_VALUE;
+    // If the ball was last seen closer than this when it disappeared,
+    // assume it's about to be hit and stop immediately.
+    private static final double LOST_TRACKING_STOP_THRESHOLD_INCHES = 15.0;
 
     @Override
     public void init() {
@@ -122,6 +132,7 @@ public class OFSB1Auto extends OpMode {
         missedFrames = 0;
         candidate = null;
         lockedTarget = null;
+        lastSeenCloseZ = Double.MAX_VALUE;
     }
 
     @Override
@@ -133,7 +144,9 @@ public class OFSB1Auto extends OpMode {
                 scanForBall();
                 break;
             case DRIVING:
-                if (!follower.isBusy()) {
+                if (checkLiveSafetyStop()) {
+                    state = State.DONE;
+                } else if (!follower.isBusy()) {
                     state = State.DONE;
                 }
                 break;
@@ -160,6 +173,59 @@ public class OFSB1Auto extends OpMode {
         telemetry.addData("Y", follower.getPose().getY());
         telemetry.addData("Heading", follower.getPose().getHeading());
         telemetry.update();
+    }
+
+    /**
+     * Live safety check during DRIVING. Two trigger conditions, either of
+     * which force-stops the robot immediately:
+     *   1) A ball is currently seen at or inside TARGET_DISTANCE_INCHES.
+     *   2) The ball WAS recently seen close (within LOST_TRACKING_STOP_
+     *      THRESHOLD_INCHES) and has now vanished from detection entirely -
+     *      at close range this almost always means the ball went out of
+     *      frame or out of focus right before contact, NOT that it's
+     *      actually safe. Treating "no detection" as "safe" here is exactly
+     *      backwards and is the likely reason earlier versions still hit
+     *      the ball.
+     *
+     * On trigger, forces zero drive power directly rather than trusting
+     * breakFollowing() alone to zero the motors - a belt-and-suspenders
+     * guarantee against any lag between "path cancelled" and "wheels
+     * actually stopped."
+     */
+    private boolean checkLiveSafetyStop() {
+        List<OFSB1VisionProcessor.Detection> balls = visionProcessor.getDetections();
+
+        if (!balls.isEmpty()) {
+            double closestZ = Double.MAX_VALUE;
+            for (OFSB1VisionProcessor.Detection b : balls) {
+                if (b.z < closestZ) closestZ = b.z;
+            }
+            lastSeenCloseZ = closestZ;
+
+            if (closestZ <= TARGET_DISTANCE_INCHES) {
+                forceStop("SAFETY STOP - ball within target distance (z=" + String.format("%.1f", closestZ) + ")");
+                return true;
+            }
+            return false;
+        }
+
+        // No balls detected this frame - if it was closing in fast before
+        // vanishing, assume it's now too close to see rather than gone.
+        if (lastSeenCloseZ <= LOST_TRACKING_STOP_THRESHOLD_INCHES) {
+            forceStop("SAFETY STOP - ball lost from view at close range (last z=" + String.format("%.1f", lastSeenCloseZ) + ")");
+            return true;
+        }
+        return false;
+    }
+
+    private void forceStop(String reason) {
+        // NOTE: verify breakFollowing() against your PedroPathing version -
+        // it should immediately cancel/abort the currently-following path.
+        follower.breakFollowing();
+        // Explicit zero-power override as a hard guarantee, independent of
+        // whether breakFollowing() alone zeroes the drivetrain instantly.
+        follower.setTeleOpDrive(0, 0, 0, true);
+        telemetry.addLine(reason);
     }
 
     private void scanForBall() {
@@ -243,13 +309,13 @@ public class OFSB1Auto extends OpMode {
     }
 
     /**
-     * Builds and follows a single path to the ball, using TANGENTIAL heading
-     * interpolation: the follower automatically rotates to face the
-     * direction it's currently traveling along the path, rather than being
-     * told a fixed target angle. For a straight BezierLine to the ball, this
-     * means the robot turns to face the ball as it starts moving, driving
-     * straight toward it with no separate turn-in-place step and no strafe
-     * component needed once it's underway.
+     * Builds and follows a single path to the ball, using CONSTANT heading
+     * interpolation: the robot holds a fixed heading (facing the ball's
+     * bearing) for the entire path, using strafe as needed to translate
+     * diagonally if the ball isn't directly ahead. driveDistance is
+     * distanceToBall - TARGET_DISTANCE_INCHES, so the path's endpoint sits
+     * exactly TARGET_DISTANCE_INCHES short of the ball along the
+     * line-of-sight - the robot stops there instead of driving into it.
      */
     private void buildAndFollowPathToBall(OFSB1VisionProcessor.Detection target) {
         Pose robotPose = follower.getPose();
@@ -258,7 +324,7 @@ public class OFSB1Auto extends OpMode {
         // x: lateral offset (in), z: forward distance (in), both camera-relative.
         double angleOffsetRadians = Math.atan2(target.x, target.z);
         double distanceToBall = Math.hypot(target.x, target.z);
-        double driveDistance = distanceToBall - TARGET_DISTANCE_INCHES;
+        double driveDistance = distanceToBall - TARGET_DISTANCE_INCHES - PATH_TARGET_SAFETY_MARGIN_INCHES;
 
         double fieldAngle = robotPose.getHeading() + angleOffsetRadians;
 
@@ -267,19 +333,12 @@ public class OFSB1Auto extends OpMode {
         // start/end points end up in mismatched coordinate frames.
         double targetX = robotPose.getX() + driveDistance * Math.cos(fieldAngle);
         double targetY = robotPose.getY() + driveDistance * Math.sin(fieldAngle);
-        // Heading value here is mostly irrelevant for tangential interpolation
-        // (the path direction determines heading, not this field), but PedroPathing's
-        // Pose constructor requires a heading argument - fieldAngle is a reasonable one.
         Pose targetPose = new Pose(targetX, targetY, fieldAngle);
 
         Path pathToBall = new Path(new BezierLine(robotPose, targetPose));
-        // NOTE: verify this method name against your PedroPathing version -
-        // some releases call this setTangentHeadingInterpolation(), others
-        // may expose it as a HeadingInterpolator.tangent() passed to a
-        // general setHeadingInterpolation() setter. Check your Path Javadoc
-        // if this doesn't compile.
-        pathToBall.setTangentHeadingInterpolation();
+        pathToBall.setConstantHeadingInterpolation(fieldAngle);
 
+        lastSeenCloseZ = Double.MAX_VALUE;
         follower.followPath(pathToBall);
         state = State.DRIVING;
     }
