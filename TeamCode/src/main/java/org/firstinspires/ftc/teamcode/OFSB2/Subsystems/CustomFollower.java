@@ -49,7 +49,7 @@ public class CustomFollower {
      * @param frictionCoefficient Usually 0.4 to 0.6 for mecanum wheels to prevent sliding.
      * @param maxSpeed Your robot's absolute top speed in inches per second.
      */
-    public void autoAcceleration(double frictionCoefficient, double maxSpeed) {
+    public void enableAutoPhysics(double frictionCoefficient, double maxSpeed) {
         this.mu = frictionCoefficient;
         this.robotMaxSpeed = maxSpeed;
 

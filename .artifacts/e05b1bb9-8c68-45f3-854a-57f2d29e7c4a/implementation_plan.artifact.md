@@ -1,28 +1,18 @@
-# Add U-Turn Autonomous Code (Strict Mirrored Style)
+# Reformat piecewiseLinear logic into UTurnTest
 
-This plan implements the complex 4-segment curved loop in `uTurnTestNoPiecwise.java`. The implementation will strictly follow the logic, variable names, and state machine structure of `PedroPathingtest.java` to maintain a consistent style.
+This plan reformats the content and logic from `piecewiseLinear.java` into `UTurnTest.java`, ensuring consistent naming and structure to minimize errors.
 
 ## Proposed Changes
 
 ### Autonomous Feature
 
-#### [MODIFY] [uTurnTestNoPiecwise.java](file:///C:/Users/krupa/StudioProjects/BIOBUZZ-practice/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/OFSB2/Auto/uTurnTestNoPiecwise.java)
-- **Imports**: Full set of standard Pedro Pathing and utility imports (`ArrayList`, `Arrays`).
-- **Variables**: Exact mirrored names from `PedroPathingtest.java` (`startingCoordinate`, `path1_path2`, `path2_path3`, etc.).
-- **Coordinates**: Precise values for the U-turn loop (Path 1-4).
-- **Higher-Order Bezier Curves**: Wrapped in `new ArrayList<>(Arrays.asList(...))` to resolve the constructor errors seen earlier.
-- **State Machine**:
-    - Mirrored `PathState` enum.
-    - Mirrored `statePathUpdate()` logic with per-path `break` statements.
-    - Mirrored `setPathState()` method.
-- **Heading Logic**:
-    - Paths 1 & 2: `setTangentHeadingInterpolation()`.
-    - Paths 3 & 4: `setLinearHeadingInterpolation()`.
+#### [MODIFY] [UTurnTest.java](file:///C:/Users/krupa/StudioProjects/BIOBUZZ-practice/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/OFSB2/Auto/TestCurveTangent/UTurnTest.java)
+- Update the package name to `org.firstinspires.ftc.teamcode.OFSB2.Auto.TestCurveTangent`.
+- Update the class name to `UTurnTest`.
+- Copy all imports, fields, and methods from `piecewiseLinear.java`.
+- Set the `@Autonomous` name to `"UTurnTest"`.
 
 ## Verification Plan
 
 ### Automated Tests
-- Run `analyze_file` to ensure zero syntax or import errors.
-
-### Manual Verification
-- Deploy to the robot and confirm the OpMode starts correctly and follows the 4-segment curved loop smoothly.
+- Run `analyze_file` on `UTurnTest.java` to verify that there are no syntax or semantic errors.
