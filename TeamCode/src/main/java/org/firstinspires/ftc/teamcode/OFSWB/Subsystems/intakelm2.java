@@ -74,4 +74,7 @@ public class intakelm2 {
     public void intake_on (){
         intakeMotor.setPower(1);
     }
+    public void intake_off(){
+        intakeMotor.setPower(0);
+    }
 }
