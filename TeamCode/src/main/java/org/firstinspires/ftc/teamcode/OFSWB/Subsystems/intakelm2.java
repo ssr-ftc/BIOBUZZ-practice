@@ -38,43 +38,59 @@ public class intakelm2 {
 
     }
     public void start() {
+
         down();
     }
     public void up_1(){
+
         armServo.setPosition(armServo.getPosition()+0.01);
     }
 
     public void down_1(){
+
         armServo.setPosition(armServo.getPosition()-0.01);
     }
     // ---------- ARM CONTROL ----------
 
     public void up() {
+
         armServo.setPosition(arm_up);
     }
 
     public void down() {
+
         armServo.setPosition(arm_down);
     }
     public void intake_ball_height(){
+
         armServo.setPosition(ballheight);
     }
 
     public void setArmPosition(double position) {
+
         armServo.setPosition(position);
     }
 
     public double getArmPosition() {
+
         return armServo.getPosition();
     }
 
     public double getMotorPower() {
+
         return intakeMotor.getPower();
     }
     public void intake_on (){
+
         intakeMotor.setPower(1);
     }
     public void intake_off(){
+
         intakeMotor.setPower(0);
     }
+
+    public void outtake(){
+        intakeMotor.setPower(-1);
+    }
+
 }

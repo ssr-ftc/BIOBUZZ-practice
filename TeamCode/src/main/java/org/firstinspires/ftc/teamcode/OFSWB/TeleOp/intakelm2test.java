@@ -41,6 +41,9 @@ public class intakelm2test extends OpMode {
         if (gamepad1.right_bumper){
             intake.intake_off();
         }
+        if (gamepad1.left_bumper) {
+            intake.outtake();
+        }
         telemetry.addData("servo position",intake.getArmPosition());
     }
 
