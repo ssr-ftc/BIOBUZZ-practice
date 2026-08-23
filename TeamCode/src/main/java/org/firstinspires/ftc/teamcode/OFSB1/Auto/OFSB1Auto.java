@@ -17,33 +17,17 @@ import org.openftc.easyopencv.OpenCvCameraRotation;
 import org.openftc.easyopencv.OpenCvWebcam;
 
 import java.util.List;
-
-/**
- * Autonomous for Off Season Bot 1 (OFSB1).
- *
- * Scans for the closest yellow Pollen ball via OFSB1VisionProcessor, tracks
- * it across frames to confirm it's stable, converts its camera-relative
- * x/z offset into a field-relative target pose, and follows a single
- * PedroPathing Path (constant heading, strafing as needed) to a point
- * TARGET_DISTANCE_INCHES short of the ball along the line-of-sight.
- */
 @Autonomous(name = "OFSB1 Auto", group = "OFSB1")
 public class OFSB1Auto extends OpMode {
 
     private static final double TARGET_DISTANCE_INCHES = 12.0;
-    // Extra buffer added to where the path AIMS to stop, so ordinary
-    // path-following overshoot still leaves room to spare.
+//stops before hitting the ball
     private static final double PATH_TARGET_SAFETY_MARGIN_INCHES = 1.0;
-    // How many consecutive frames the SAME ball must be seen before we trust
-    // it and commit to a path - filters out one-frame noise blobs.
+//how mqny times the frame gets detected before ball positon can be trusted
     private static final int CONFIRM_FRAMES = 5;
-    // How far (inches, camera-relative x/z) a detection can be from the
-    // previous frame's candidate and still count as "the same ball" - keeps
-    // us from bouncing between two nearby balls frame to frame.
+    // How far (inches, camera-relative x/z) a detection
     private static final double MATCH_DISTANCE_INCHES = 4.0;
-    // How many consecutive frames the candidate ball is allowed to vanish
-    // (occlusion, one bad mask frame) before we give up and reset - keeps
-    // a single dropped frame from throwing away confirm progress.
+//how mqny missed frames
     private static final int MAX_MISSED_FRAMES = 3;
 
     private Follower follower;
@@ -56,17 +40,12 @@ public class OFSB1Auto extends OpMode {
     private State state = State.SCANNING;
     private int confirmCount = 0;
     private int missedFrames = 0;
-    // The ball we are currently tracking toward confirmation - null until
-    // we've seen at least one candidate.
+//ball being tracked till confirmation, untill then its null
     private OFSB1VisionProcessor.Detection candidate = null;
-    // The ball we actually locked onto. Kept for telemetry after locking,
-    // since we stop reading fresh detections at that point.
+    // stop reading more frames once telemetry is locked onto ball position
     private OFSB1VisionProcessor.Detection lockedTarget = null;
     // Tracks the most recent distance seen to ANY ball while DRIVING. If the
-    // ball vanishes from vision (too close, out of frame, blurred) while
-    // this was small, that's treated as dangerous - NOT as "safe, nothing
-    // detected" - since vanishing right before contact is the expected
-    // failure mode of close-range detection, not evidence of safety.
+    // ball vanishes from vision (too close, out of frame, blurred) consideered "safe"
     private double lastSeenCloseZ = Double.MAX_VALUE;
     // If the ball was last seen closer than this when it disappeared,
     // assume it's about to be hit and stop immediately.
