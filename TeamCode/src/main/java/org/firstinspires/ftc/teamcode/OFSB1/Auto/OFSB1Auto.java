@@ -21,14 +21,21 @@ import java.util.List;
 public class OFSB1Auto extends OpMode {
 
     private static final double TARGET_DISTANCE_INCHES = 12.0;
-//stops before hitting the ball
+    //stops before hitting the ball
     private static final double PATH_TARGET_SAFETY_MARGIN_INCHES = 1.0;
-//how mqny times the frame gets detected before ball positon can be trusted
-    private static final int CONFIRM_FRAMES = 5;
+    //how mqny times the frame gets detected before ball positon can be trusted
+    private static final int CONFIRM_FRAMES = 3;
     // How far (inches, camera-relative x/z) a detection
     private static final double MATCH_DISTANCE_INCHES = 4.0;
-//how mqny missed frames
+    //how mqny missed frames
     private static final int MAX_MISSED_FRAMES = 3;
+
+    // Only send telemetry.update() (network I/O) every N loop iterations,
+    // instead of every single loop, so the control loop isn't throttled
+    // waiting on the Driver Station connection. addData() calls are cheap
+    // and still happen every loop - only the actual send is skipped.
+    private static final int TELEMETRY_UPDATE_INTERVAL = 5;
+    private int telemetryCounter = 0;
 
     private Follower follower;
     private OFSB1Subsystem robot;
@@ -40,7 +47,7 @@ public class OFSB1Auto extends OpMode {
     private State state = State.SCANNING;
     private int confirmCount = 0;
     private int missedFrames = 0;
-//ball being tracked till confirmation, untill then its null
+    //ball being tracked till confirmation, untill then its null
     private OFSB1VisionProcessor.Detection candidate = null;
     // stop reading more frames once telemetry is locked onto ball position
     private OFSB1VisionProcessor.Detection lockedTarget = null;
@@ -112,6 +119,7 @@ public class OFSB1Auto extends OpMode {
         candidate = null;
         lockedTarget = null;
         lastSeenCloseZ = Double.MAX_VALUE;
+        telemetryCounter = 0;
     }
 
     @Override
@@ -151,7 +159,15 @@ public class OFSB1Auto extends OpMode {
         telemetry.addData("X", follower.getPose().getX());
         telemetry.addData("Y", follower.getPose().getY());
         telemetry.addData("Heading", follower.getPose().getHeading());
-        telemetry.update();
+
+        // Throttle the actual network send - addData() above is cheap and
+        // still runs every loop, but telemetry.update() is comparatively
+        // slow and doesn't need to fire every single cycle.
+        telemetryCounter++;
+        if (telemetryCounter >= TELEMETRY_UPDATE_INTERVAL) {
+            telemetry.update();
+            telemetryCounter = 0;
+        }
     }
 
     /**
@@ -205,6 +221,10 @@ public class OFSB1Auto extends OpMode {
         // whether breakFollowing() alone zeroes the drivetrain instantly.
         follower.setTeleOpDrive(0, 0, 0, true);
         telemetry.addLine(reason);
+        // Safety-critical message - force an immediate send rather than
+        // waiting on the throttled telemetry cadence.
+        telemetry.update();
+        telemetryCounter = 0;
     }
 
     private void scanForBall() {
