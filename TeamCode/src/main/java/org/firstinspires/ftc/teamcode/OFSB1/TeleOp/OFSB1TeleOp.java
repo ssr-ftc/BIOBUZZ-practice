@@ -47,10 +47,7 @@ public class OFSB1TeleOp extends OpMode {
         webcam.openCameraDeviceAsync(new OpenCvCamera.AsyncCameraOpenListener() {
             @Override
             public void onOpened() {
-                // Camera is physically mounted upside down, so rotate the
-                // stream 180 degrees. This makes image left/right/up/down
-                // match the real world, so the X/Y math needs no sign flips.
-                webcam.startStreaming(640, 480, OpenCvCameraRotation.UPSIDE_DOWN);
+                webcam.startStreaming(640, 480, OpenCvCameraRotation.UPRIGHT);
                 cameraInitialized = true;
             }
 
@@ -67,22 +64,7 @@ public class OFSB1TeleOp extends OpMode {
 
     @Override
     public void init_loop() {
-        List<OFSB1VisionProcessor.Detection> balls = visionProcessor.getDetections();
-
-        telemetry.addData("Camera Initialized", cameraInitialized);
-        telemetry.addData("Number of balls detected", balls.size());
-
-        if (balls.isEmpty()) {
-            telemetry.addLine("No balls detected - check lighting/camera aim");
-        } else {
-            for (int i = 0; i < balls.size(); i++) {
-                OFSB1VisionProcessor.Detection ball = balls.get(i);
-                telemetry.addData("Ball #" + (i + 1),
-                        "X: %.1f in, Y: %.1f in, Z: %.1f in, Area: %.0f px",
-                        ball.x, ball.y, ball.z, ball.area);
-            }
-        }
-
+        addVisionTelemetry();
         telemetry.update();
     }
 
@@ -96,8 +78,12 @@ public class OFSB1TeleOp extends OpMode {
         follower.update();
 
         // Driving control
+        // Strafing lives on the analog triggers (L2/R2 on PS4, LT/RT on
+        // Xbox/Logitech): L2 strafes left, R2 strafes right, and how far
+        // you pull controls the speed. Matches the old stick convention
+        // where positive strafe = left.
         double forward = -gamepad1.left_stick_y;
-        double strafe = -gamepad1.left_stick_x;
+        double strafe = gamepad1.left_trigger - gamepad1.right_trigger;
         double turn = -gamepad1.right_stick_x;
         follower.setTeleOpDrive(forward, strafe, turn, true);
 
@@ -109,17 +95,44 @@ public class OFSB1TeleOp extends OpMode {
         telemetry.addData("Heading", follower.getPose().getHeading());
 
         // ---- Pollen (yellow ball) vision telemetry ----
-        List<OFSB1VisionProcessor.Detection> balls = visionProcessor.getDetections();
-        telemetry.addData("Camera Initialized", cameraInitialized);
-        telemetry.addData("Number of balls detected", balls.size());
-        for (int i = 0; i < balls.size(); i++) {
-            OFSB1VisionProcessor.Detection ball = balls.get(i);
-            telemetry.addData("Ball #" + (i + 1),
-                    "X: %.1f in, Y: %.1f in, Z: %.1f in, Area: %.0f px",
-                    ball.x, ball.y, ball.z, ball.area);
-        }
+        addVisionTelemetry();
 
         telemetry.update();
+    }
+
+    /**
+     * Vision telemetry shared by init_loop() and loop(): per-ball position
+     * data plus pipeline health/diagnostics from the vision processor.
+     */
+    private void addVisionTelemetry() {
+        List<OFSB1VisionProcessor.Detection> balls = visionProcessor.getDetections();
+
+        telemetry.addData("Camera Initialized", cameraInitialized);
+        telemetry.addData("Number of balls detected", balls.size());
+
+        if (balls.isEmpty()) {
+            telemetry.addLine("No balls detected - check lighting/camera aim");
+        } else {
+            for (int i = 0; i < balls.size(); i++) {
+                OFSB1VisionProcessor.Detection ball = balls.get(i);
+                telemetry.addData("Ball #" + (i + 1),
+                        "X: %.1f in, Y: %.1f in, Z: %.1f in, r: %.0f px, score: %.2f",
+                        ball.x, ball.y, ball.z, ball.radiusPx, ball.circularity);
+            }
+        }
+
+        // ---- Pipeline health ----
+        // Frame count not increasing = pipeline stalled.
+        telemetry.addData("Vision Frames", visionProcessor.getFrameCount());
+        // Watch this while balls overlap - if it climbs too high, the Hough
+        // splitter is costing too much per frame.
+        telemetry.addData("Vision Frame Time (ms)", "%.1f", visionProcessor.getLastProcessTimeMs());
+        // 0 on a clean scene; pinned at max = HSV range matching non-ball stuff.
+        telemetry.addData("Hough Splits Last Frame", visionProcessor.getHoughRunsLastFrame());
+        String visionError = visionProcessor.getLastError();
+        if (visionError != null) {
+            telemetry.addData("VISION ERROR", visionError);
+        }
     }
 
     @Override

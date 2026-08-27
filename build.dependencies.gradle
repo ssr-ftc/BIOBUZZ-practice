@@ -20,4 +20,8 @@ dependencies {
     implementation 'com.pedropathing:telemetry:1.0.0'
     implementation 'com.bylazar:fullpanels:1.0.12'
     implementation 'org.openftc:easyopencv:1.7.3'
+    // NOTE: do NOT add com.acmerobotics.dashboard here - FTC Dashboard and
+    // Panels (fullpanels, required by Pedro's tuning) both try to bind the
+    // same network ports at app startup, which crash-loops the RC app
+    // (BindException: Address already in use -> blue LED, no code).
 }
