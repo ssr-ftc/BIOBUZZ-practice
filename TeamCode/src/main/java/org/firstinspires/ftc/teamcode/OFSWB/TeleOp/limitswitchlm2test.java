@@ -15,7 +15,8 @@ public class limitswitchlm2test extends LinearOpMode {
         waitForStart();
 
         while (opModeIsActive()) {
-            telemetry.addData("Pressed", limitSwitch.isPressed());
+            telemetry.addData("magnet is near sensor:", limitSwitch.isPressed());
+            telemetry.addData("value:", limitSwitch.getValue());
             telemetry.update();
         }
     }

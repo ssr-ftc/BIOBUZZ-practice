@@ -12,4 +12,7 @@ public class limitswitchlm2 {
     public boolean isPressed() {
         return sensor.isPressed();
     }
+    public double getValue() {
+        return sensor.getValue();
+    }
 }
