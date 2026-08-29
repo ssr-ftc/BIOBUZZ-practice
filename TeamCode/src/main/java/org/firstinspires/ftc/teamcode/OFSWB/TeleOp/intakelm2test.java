@@ -21,27 +21,41 @@ public class intakelm2test extends OpMode {
     }
     @Override
     public void loop() {
-        if (gamepad1.dpadUpWasPressed()){
+        if (gamepad2.dpadUpWasPressed()){
             intake.up_1();
         }
-        if (gamepad1.dpadDownWasPressed()){
+        if (gamepad2.dpadDownWasPressed()){
             intake.down_1();
         }
-        if (gamepad1.circle){
+        if (gamepad2.circle){
             intake.intake_ball_height();
         }
-        else if (gamepad1.triangle){
+        else if (gamepad2.triangle){
             intake.up();
-        } else if (gamepad1.cross) {
+        } else if (gamepad2.cross) {
             intake.down();
         }
-        if (gamepad1.right_bumper) {
-            intake.intake_on();
+
+        if (intake.getArmPosition() > 0.21 && intake.getArmPosition() < 0.23) {
+            telemetry.addLine("its at right height");
+
+            if (gamepad2.rightBumperWasPressed()) {
+                if (intake.isIntakeOn()) {
+                    intake.turn_off_intake();
+                } else {
+                    intake.turn_on_intake();
+                }
+            }
+        } else {
+            if (intake.isIntakeOn()) {
+                intake.turn_off_intake();
+            }
         }
-        if (gamepad1.left_bumper){
-            intake.intake_off();
+
+        if (gamepad2.left_bumper){
+            intake.turn_off_intake();
         }
-        if (gamepad1.square) {
+        if (gamepad2.square) {
             intake.outtake();
         }
         telemetry.addData("servo position",intake.getArmPosition());

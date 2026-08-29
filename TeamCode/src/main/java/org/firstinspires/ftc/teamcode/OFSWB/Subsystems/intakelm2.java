@@ -7,15 +7,15 @@ import com.qualcomm.robotcore.hardware.Servo;
 public class intakelm2 {
 
 
-    private final DcMotor intakeMotor;
-    private final Servo armServo;
+    private  DcMotor intakeMotor;
+    private  Servo armServo;
 
     private static final String MOTOR_NAME = "intake";
     private static final String SERVO_NAME = "lift_intake"; // <-- change to match your config
 
-    private static final double arm_up = 0.29;
-    private static final double arm_down = 0.13;
-    private static final double ballheight = 0.22;
+    public  double arm_up = 0.28;
+   public  double arm_down = 0.13;
+   public   double ballheight = 0.22;
 
     // Position past which the motor should automatically turn on.
     // If your arm goes UP as position increases, flip the comparison in update().
@@ -70,6 +70,10 @@ public class intakelm2 {
 
         armServo.setPosition(position);
     }
+    public boolean isIntakeOn(){
+        boolean x =(intakeMotor.getPower() != 0);
+        return x;
+    }
 
     public double getArmPosition() {
 
@@ -80,17 +84,17 @@ public class intakelm2 {
 
         return intakeMotor.getPower();
     }
-    public void intake_on (){
+    public void turn_on_intake(){
 
-        intakeMotor.setPower(1);
+        intakeMotor.setPower(0.967);
     }
-    public void intake_off(){
+    public void turn_off_intake(){
 
         intakeMotor.setPower(0);
     }
 
     public void outtake(){
-        intakeMotor.setPower(-1);
+        intakeMotor.setPower(-0.967);
     }
 
 }
