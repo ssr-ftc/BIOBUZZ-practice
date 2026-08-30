@@ -17,17 +17,19 @@ import org.openftc.easyopencv.OpenCvCameraRotation;
 import org.openftc.easyopencv.OpenCvWebcam;
 
 import java.util.List;
+import java.util.Locale;
+
 @Autonomous(name = "OFSB1 Auto", group = "OFSB1")
 public class OFSB1Auto extends OpMode {
 
     private static final double TARGET_DISTANCE_INCHES = 12.0;
-    //stops before hitting the ball
+    // Stops before hitting the ball
     private static final double PATH_TARGET_SAFETY_MARGIN_INCHES = 1.0;
-    //how mqny times the frame gets detected before ball positon can be trusted
+    // How many times the frame gets detected before ball position can be trusted
     private static final int CONFIRM_FRAMES = 3;
-    // How far (inches, camera-relative x/z) a detection
+    // How far (inches, camera-relative x/z) a detection can drift and still count as the same ball
     private static final double MATCH_DISTANCE_INCHES = 4.0;
-    //how mqny missed frames
+    // How many missed frames are tolerated before giving up on the candidate
     private static final int MAX_MISSED_FRAMES = 3;
 
     // Only send telemetry.update() (network I/O) every N loop iterations,
@@ -47,12 +49,13 @@ public class OFSB1Auto extends OpMode {
     private State state = State.SCANNING;
     private int confirmCount = 0;
     private int missedFrames = 0;
-    //ball being tracked till confirmation, untill then its null
+    // Ball being tracked until confirmation - null until then
     private OFSB1VisionProcessor.Detection candidate = null;
-    // stop reading more frames once telemetry is locked onto ball position
+    // Stop reading more frames once locked onto a ball position
     private OFSB1VisionProcessor.Detection lockedTarget = null;
     // Tracks the most recent distance seen to ANY ball while DRIVING. If the
-    // ball vanishes from vision (too close, out of frame, blurred) consideered "safe"
+    // ball vanishes from vision (too close, out of frame, blurred), that is
+    // NOT considered safe.
     private double lastSeenCloseZ = Double.MAX_VALUE;
     // If the ball was last seen closer than this when it disappeared,
     // assume it's about to be hit and stop immediately.
@@ -104,7 +107,7 @@ public class OFSB1Auto extends OpMode {
             List<OFSB1VisionProcessor.Detection> balls = visionProcessor.getDetections();
             for (int i = 0; i < balls.size(); i++) {
                 OFSB1VisionProcessor.Detection b = balls.get(i);
-                telemetry.addData("Ball " + i, String.format("x=%.1f z=%.1f", b.x, b.z));
+                telemetry.addData("Ball " + i, String.format(Locale.US, "x=%.1f z=%.1f", b.x, b.z));
             }
         }
 
@@ -131,9 +134,7 @@ public class OFSB1Auto extends OpMode {
                 scanForBall();
                 break;
             case DRIVING:
-                if (checkLiveSafetyStop()) {
-                    state = State.DONE;
-                } else if (!follower.isBusy()) {
+                if (checkLiveSafetyStop() || !follower.isBusy()) {
                     state = State.DONE;
                 }
                 break;
@@ -171,20 +172,16 @@ public class OFSB1Auto extends OpMode {
     }
 
     /**
-     * Live safety check during DRIVING. Two trigger conditions, either of
-     * which force-stops the robot immediately:
-     *   1) A ball is currently seen at or inside TARGET_DISTANCE_INCHES.
-     *   2) The ball WAS recently seen close (within LOST_TRACKING_STOP_
-     *      THRESHOLD_INCHES) and has now vanished from detection entirely -
-     *      at close range this almost always means the ball went out of
-     *      frame or out of focus right before contact, NOT that it's
-     *      actually safe. Treating "no detection" as "safe" here is exactly
-     *      backwards and is the likely reason earlier versions still hit
-     *      the ball.
+     * Live safety check during DRIVING. Two trigger conditions force-stop
+     * the robot immediately: a ball currently seen at or inside
+     * TARGET_DISTANCE_INCHES, or a ball that was recently close and has now
+     * vanished from detection entirely (treated as dangerous, not safe,
+     * since vanishing right before contact is the expected failure mode of
+     * close-range detection).
      *
      * On trigger, forces zero drive power directly rather than trusting
      * breakFollowing() alone to zero the motors - a belt-and-suspenders
-     * guarantee against any lag between "path cancelled" and "wheels
+     * guarantee against any lag between "path canceled" and "wheels
      * actually stopped."
      */
     private boolean checkLiveSafetyStop() {
@@ -198,7 +195,7 @@ public class OFSB1Auto extends OpMode {
             lastSeenCloseZ = closestZ;
 
             if (closestZ <= TARGET_DISTANCE_INCHES) {
-                forceStop("SAFETY STOP - ball within target distance (z=" + String.format("%.1f", closestZ) + ")");
+                forceStop("SAFETY STOP - ball within target distance (z=" + String.format(Locale.US, "%.1f", closestZ) + ")");
                 return true;
             }
             return false;
@@ -207,7 +204,7 @@ public class OFSB1Auto extends OpMode {
         // No balls detected this frame - if it was closing in fast before
         // vanishing, assume it's now too close to see rather than gone.
         if (lastSeenCloseZ <= LOST_TRACKING_STOP_THRESHOLD_INCHES) {
-            forceStop("SAFETY STOP - ball lost from view at close range (last z=" + String.format("%.1f", lastSeenCloseZ) + ")");
+            forceStop("SAFETY STOP - ball lost from view at close range (last z=" + String.format(Locale.US, "%.1f", lastSeenCloseZ) + ")");
             return true;
         }
         return false;
@@ -250,13 +247,8 @@ public class OFSB1Auto extends OpMode {
         boolean sameCandidate = candidate != null
                 && Math.hypot(match.x - candidate.x, match.z - candidate.z) <= MATCH_DISTANCE_INCHES;
 
-        if (!sameCandidate) {
-            candidate = match;
-            confirmCount = 1;
-        } else {
-            candidate = match; // update to latest position of the same ball
-            confirmCount++;
-        }
+        candidate = match; // update to latest position (new or same ball)
+        confirmCount = sameCandidate ? confirmCount + 1 : 1;
         missedFrames = 0;
 
         telemetry.addData("Status", "Tracking ball, confirming (" + confirmCount + "/" + CONFIRM_FRAMES + ")");
@@ -309,12 +301,9 @@ public class OFSB1Auto extends OpMode {
 
     /**
      * Builds and follows a single path to the ball, using CONSTANT heading
-     * interpolation: the robot holds a fixed heading (facing the ball's
-     * bearing) for the entire path, using strafe as needed to translate
-     * diagonally if the ball isn't directly ahead. driveDistance is
-     * distanceToBall - TARGET_DISTANCE_INCHES, so the path's endpoint sits
-     * exactly TARGET_DISTANCE_INCHES short of the ball along the
-     * line-of-sight - the robot stops there instead of driving into it.
+     * interpolation: the robot holds a fixed heading for the entire path,
+     * strafing as needed. The path's endpoint sits TARGET_DISTANCE_INCHES
+     * short of the ball along the line-of-sight.
      */
     private void buildAndFollowPathToBall(OFSB1VisionProcessor.Detection target) {
         Pose robotPose = follower.getPose();
@@ -350,3 +339,4 @@ public class OFSB1Auto extends OpMode {
         }
     }
 }
+
