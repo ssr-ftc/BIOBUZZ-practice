@@ -32,6 +32,19 @@ public class OFSB1Auto extends OpMode {
     // How many missed frames are tolerated before giving up on the candidate
     private static final int MAX_MISSED_FRAMES = 3;
 
+    // ---- Mid-course re-targeting ----
+    // Re-checks the ball's position periodically WHILE DRIVING and rebuilds
+    // the path if needed, instead of trusting one open-loop calculation for
+    // the entire approach. Corrects for odometry drift or an inaccurate
+    // initial reading.
+    private static final int REPLAN_INTERVAL_LOOPS = 15;
+    private static final int MAX_REPLANS = 3;
+    // Only replan if the fresh reading disagrees with where we expected to
+    // be by more than this - avoids replanning on ordinary sensor noise.
+    private static final double REPLAN_ERROR_THRESHOLD_INCHES = 2.0;
+    private int loopsSincePlan = 0;
+    private int replanCount = 0;
+
     // Only send telemetry.update() (network I/O) every N loop iterations,
     // instead of every single loop, so the control loop isn't throttled
     // waiting on the Driver Station connection. addData() calls are cheap
@@ -53,6 +66,10 @@ public class OFSB1Auto extends OpMode {
     private OFSB1VisionProcessor.Detection candidate = null;
     // Stop reading more frames once locked onto a ball position
     private OFSB1VisionProcessor.Detection lockedTarget = null;
+    // Recent x/z readings of the current candidate, collected while
+    // confirming - averaged at lock time instead of using just the final
+    // frame, which reduces the effect of single-frame detection noise.
+    private final List<double[]> recentReadings = new java.util.ArrayList<>();
     // Tracks the most recent distance seen to ANY ball while DRIVING. If the
     // ball vanishes from vision (too close, out of frame, blurred), that is
     // NOT considered safe.
@@ -121,6 +138,9 @@ public class OFSB1Auto extends OpMode {
         missedFrames = 0;
         candidate = null;
         lockedTarget = null;
+        recentReadings.clear();
+        loopsSincePlan = 0;
+        replanCount = 0;
         lastSeenCloseZ = Double.MAX_VALUE;
         telemetryCounter = 0;
     }
@@ -134,7 +154,13 @@ public class OFSB1Auto extends OpMode {
                 scanForBall();
                 break;
             case DRIVING:
-                if (checkLiveSafetyStop() || !follower.isBusy()) {
+                loopsSincePlan++;
+                if (checkLiveSafetyStop()) {
+                    state = State.DONE;
+                } else if (checkReplan()) {
+                    // Path was rebuilt this loop - stay in DRIVING, follower
+                    // is now following the corrected path.
+                } else if (!follower.isBusy()) {
                     state = State.DONE;
                 }
                 break;
@@ -169,6 +195,36 @@ public class OFSB1Auto extends OpMode {
             telemetry.update();
             telemetryCounter = 0;
         }
+    }
+
+    /**
+     * Periodically re-reads the ball's live position while driving and
+     * rebuilds the path if the fresh reading disagrees meaningfully with
+     * where we expected to be. Corrects for odometry drift or an
+     * inaccurate initial estimate, instead of trusting one open-loop
+     * calculation for the whole approach. Capped at MAX_REPLANS to avoid
+     * endless re-triggering if detection is noisy near the target.
+     */
+    private boolean checkReplan() {
+        if (loopsSincePlan < REPLAN_INTERVAL_LOOPS) return false;
+        if (replanCount >= MAX_REPLANS) return false;
+
+        List<OFSB1VisionProcessor.Detection> balls = visionProcessor.getDetections();
+        OFSB1VisionProcessor.Detection match = findMatch(balls);
+        if (match == null) return false; // can't verify - leave the existing path running
+
+        double freshDistance = Math.hypot(match.x, match.z);
+        double expectedRemaining = TARGET_DISTANCE_INCHES + PATH_TARGET_SAFETY_MARGIN_INCHES;
+
+        if (Math.abs(freshDistance - expectedRemaining) <= REPLAN_ERROR_THRESHOLD_INCHES) {
+            loopsSincePlan = 0;
+            return false; // close enough to plan - not worth disrupting the current path
+        }
+
+        telemetry.addLine("Replanning - drift detected (fresh z=" + String.format(Locale.US, "%.1f", match.z) + ")");
+        replanCount++;
+        buildAndFollowPathToBall(match.x, match.z);
+        return true;
     }
 
     /**
@@ -248,7 +304,13 @@ public class OFSB1Auto extends OpMode {
                 && Math.hypot(match.x - candidate.x, match.z - candidate.z) <= MATCH_DISTANCE_INCHES;
 
         candidate = match; // update to latest position (new or same ball)
-        confirmCount = sameCandidate ? confirmCount + 1 : 1;
+        if (sameCandidate) {
+            confirmCount++;
+        } else {
+            confirmCount = 1;
+            recentReadings.clear(); // new candidate - discard readings from the old one
+        }
+        recentReadings.add(new double[]{match.x, match.z});
         missedFrames = 0;
 
         telemetry.addData("Status", "Tracking ball, confirming (" + confirmCount + "/" + CONFIRM_FRAMES + ")");
@@ -260,10 +322,18 @@ public class OFSB1Auto extends OpMode {
             return; // keep tracking until confirmed stable
         }
 
-        // Locked in - freeze this detection and stop scanning. buildAndFollowPathToBall
-        // moves state out of SCANNING, so scanForBall() will not run again this OpMode run.
+        // Locked in - average the readings collected during confirmation
+        // instead of trusting just the final frame, then stop scanning.
+        double avgX = 0, avgZ = 0;
+        for (double[] r : recentReadings) {
+            avgX += r[0];
+            avgZ += r[1];
+        }
+        avgX /= recentReadings.size();
+        avgZ /= recentReadings.size();
+
         lockedTarget = candidate;
-        buildAndFollowPathToBall(lockedTarget);
+        buildAndFollowPathToBall(avgX, avgZ);
     }
 
     /**
@@ -305,13 +375,11 @@ public class OFSB1Auto extends OpMode {
      * strafing as needed. The path's endpoint sits TARGET_DISTANCE_INCHES
      * short of the ball along the line-of-sight.
      */
-    private void buildAndFollowPathToBall(OFSB1VisionProcessor.Detection target) {
+    private void buildAndFollowPathToBall(double cameraRelativeX, double cameraRelativeZ) {
         Pose robotPose = follower.getPose();
 
-        // Convert camera-relative offset into a field-relative bearing/distance.
-        // x: lateral offset (in), z: forward distance (in), both camera-relative.
-        double angleOffsetRadians = Math.atan2(target.x, target.z);
-        double distanceToBall = Math.hypot(target.x, target.z);
+        double angleOffsetRadians = Math.atan2(cameraRelativeX, cameraRelativeZ);
+        double distanceToBall = Math.hypot(cameraRelativeX, cameraRelativeZ);
         double driveDistance = distanceToBall - TARGET_DISTANCE_INCHES - PATH_TARGET_SAFETY_MARGIN_INCHES;
 
         double fieldAngle = robotPose.getHeading() + angleOffsetRadians;
@@ -327,6 +395,7 @@ public class OFSB1Auto extends OpMode {
         pathToBall.setConstantHeadingInterpolation(fieldAngle);
 
         lastSeenCloseZ = Double.MAX_VALUE;
+        loopsSincePlan = 0;
         follower.followPath(pathToBall);
         state = State.DRIVING;
     }
@@ -339,4 +408,3 @@ public class OFSB1Auto extends OpMode {
         }
     }
 }
-
