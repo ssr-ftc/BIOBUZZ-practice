@@ -16,58 +16,41 @@ import org.openftc.easyopencv.OpenCvCameraFactory;
 import org.openftc.easyopencv.OpenCvCameraRotation;
 import org.openftc.easyopencv.OpenCvWebcam;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
-/**
- * Autonomous for Off Season Bot 1 (OFSB1).
- *
- * Two selectable behaviors - pick with gamepad1 during init (shown on
- * telemetry), locked in at start:
- *
- *   MODE 1 (press A): SINGLE BALL - track the closest yellow Pollen ball,
- *     drive to TARGET_DISTANCE_INCHES short of it, facing it.
- *
- *   MODE 2 (press B): BIGGEST CLUSTER - group detected balls into clusters
- *     (balls within CLUSTER_LINK_INCHES of each other belong to the same
- *     blob), then drive to the centroid of the cluster containing the MOST
- *     balls, stopping TARGET_DISTANCE_INCHES short and facing it.
- *
- * Both modes use the same confirm-over-several-frames tracking so a
- * one-frame noise detection never triggers a path.
- */
 @Autonomous(name = "OFSB1 Auto", group = "OFSB1")
 public class OFSB1Auto extends OpMode {
 
-    // How far the FRONT OF THE ROBOT should stop from the target (inches).
-    private static final double TARGET_DISTANCE_INCHES = 5.0;
-
-    // ---- Camera mounting geometry (inches) ----
-    // Measured robot: 14.5 long (camera 8 from the back, ~6.5 behind the
-    // front), 13.5 wide (camera 7 from the left, 6.5 from the right).
-    // PedroPathing poses track the ROBOT CENTER, but the vision processor
-    // reports offsets from the CAMERA LENS - these convert between the two.
-    private static final double CAMERA_FORWARD_OF_CENTER = 0.75; // 8 - 14.5/2
-    private static final double CAMERA_RIGHT_OF_CENTER = 0.25;   // 7 - 13.5/2
-    private static final double CENTER_TO_FRONT = 7.25;          // 14.5/2
-    // How many consecutive frames the SAME target must be seen before we
-    // trust it and commit to a path - filters out one-frame noise blobs.
-    private static final int CONFIRM_FRAMES = 5;
-    // How far (inches, camera-relative x/z) a detection can be from the
-    // previous frame's candidate and still count as "the same target".
+    private static final double TARGET_DISTANCE_INCHES = 12.0;
+    // Stops before hitting the ball
+    private static final double PATH_TARGET_SAFETY_MARGIN_INCHES = 1.0;
+    // How many times the frame gets detected before ball position can be trusted
+    private static final int CONFIRM_FRAMES = 3;
+    // How far (inches, camera-relative x/z) a detection can drift and still count as the same ball
     private static final double MATCH_DISTANCE_INCHES = 4.0;
-    // Cluster centroids wobble more than a single ball (membership can
-    // change frame to frame), so allow a looser match for them.
-    private static final double CLUSTER_MATCH_DISTANCE_INCHES = 6.0;
-    // How many consecutive frames the candidate is allowed to vanish
-    // (occlusion, one bad mask frame) before we give up and reset.
+    // How many missed frames are tolerated before giving up on the candidate
     private static final int MAX_MISSED_FRAMES = 3;
-    // Two balls whose camera-relative positions are within this distance of
-    // each other count as part of the same cluster/blob (Mode 2).
-    private static final double CLUSTER_LINK_INCHES = 10.0;
 
-    private enum Mode { SINGLE_BALL, BIGGEST_CLUSTER }
-    private Mode mode = Mode.SINGLE_BALL;
+    // ---- Mid-course re-targeting ----
+    // Re-checks the ball's position periodically WHILE DRIVING and rebuilds
+    // the path if needed, instead of trusting one open-loop calculation for
+    // the entire approach. Corrects for odometry drift or an inaccurate
+    // initial reading.
+    private static final int REPLAN_INTERVAL_LOOPS = 15;
+    private static final int MAX_REPLANS = 3;
+    // Only replan if the fresh reading disagrees with where we expected to
+    // be by more than this - avoids replanning on ordinary sensor noise.
+    private static final double REPLAN_ERROR_THRESHOLD_INCHES = 2.0;
+    private int loopsSincePlan = 0;
+    private int replanCount = 0;
+
+    // Only send telemetry.update() (network I/O) every N loop iterations,
+    // instead of every single loop, so the control loop isn't throttled
+    // waiting on the Driver Station connection. addData() calls are cheap
+    // and still happen every loop - only the actual send is skipped.
+    private static final int TELEMETRY_UPDATE_INTERVAL = 5;
+    private int telemetryCounter = 0;
 
     private Follower follower;
     private OFSB1Subsystem robot;
@@ -79,21 +62,21 @@ public class OFSB1Auto extends OpMode {
     private State state = State.SCANNING;
     private int confirmCount = 0;
     private int missedFrames = 0;
-
-    /**
-     * What we drive toward. In SINGLE_BALL mode this is one detection; in
-     * BIGGEST_CLUSTER mode it's the centroid of a group of detections.
-     */
-    private static class Target {
-        double x;      // camera-relative lateral offset, inches (+ right)
-        double z;      // camera-relative forward distance, inches
-        int ballCount; // 1 in single-ball mode; cluster size in cluster mode
-    }
-
-    // The target we are currently tracking toward confirmation.
-    private Target candidate = null;
-    // The target we locked onto and committed a path to (kept for telemetry).
-    private Target lockedTarget = null;
+    // Ball being tracked until confirmation - null until then
+    private OFSB1VisionProcessor.Detection candidate = null;
+    // Stop reading more frames once locked onto a ball position
+    private OFSB1VisionProcessor.Detection lockedTarget = null;
+    // Recent x/z readings of the current candidate, collected while
+    // confirming - averaged at lock time instead of using just the final
+    // frame, which reduces the effect of single-frame detection noise.
+    private final List<double[]> recentReadings = new java.util.ArrayList<>();
+    // Tracks the most recent distance seen to ANY ball while DRIVING. If the
+    // ball vanishes from vision (too close, out of frame, blurred), that is
+    // NOT considered safe.
+    private double lastSeenCloseZ = Double.MAX_VALUE;
+    // If the ball was last seen closer than this when it disappeared,
+    // assume it's about to be hit and stop immediately.
+    private static final double LOST_TRACKING_STOP_THRESHOLD_INCHES = 15.0;
 
     @Override
     public void init() {
@@ -112,7 +95,7 @@ public class OFSB1Auto extends OpMode {
         webcam.openCameraDeviceAsync(new OpenCvCamera.AsyncCameraOpenListener() {
             @Override
             public void onOpened() {
-                webcam.startStreaming(640, 480, OpenCvCameraRotation.UPRIGHT);
+                webcam.startStreaming(640, 480, OpenCvCameraRotation.UPSIDE_DOWN);
                 cameraInitialized = true;
             }
 
@@ -130,38 +113,18 @@ public class OFSB1Auto extends OpMode {
 
     @Override
     public void init_loop() {
-        // ---- Mode selection (locked in once START is pressed) ----
-        if (gamepad1.a) mode = Mode.SINGLE_BALL;
-        if (gamepad1.b) mode = Mode.BIGGEST_CLUSTER;
+        int ballCount = visionProcessor.getDetections().size();
 
-        telemetry.addLine("=== MODE SELECT (gamepad1) ===");
-        telemetry.addLine("A = Mode 1: closest single ball");
-        telemetry.addLine("B = Mode 2: cluster with most balls");
-        telemetry.addData("Selected", mode == Mode.SINGLE_BALL
-                ? "Mode 1: SINGLE BALL" : "Mode 2: BIGGEST CLUSTER");
-        telemetry.addLine("");
-
-        // ---- Live vision preview ----
-        List<OFSB1VisionProcessor.Detection> balls = visionProcessor.getDetections();
         telemetry.addData("Camera Initialized", cameraInitialized);
-        telemetry.addData("Ball Count", balls.size());
+        telemetry.addData("Ball Count", ballCount);
 
-        if (balls.isEmpty()) {
+        if (ballCount == 0) {
             telemetry.addLine("No balls detected - check lighting/camera aim");
         } else {
+            List<OFSB1VisionProcessor.Detection> balls = visionProcessor.getDetections();
             for (int i = 0; i < balls.size(); i++) {
                 OFSB1VisionProcessor.Detection b = balls.get(i);
-                telemetry.addData("Ball " + i, String.format("x=%.1f z=%.1f", b.x, b.z));
-            }
-            List<Target> clusters = clusterBalls(balls);
-            telemetry.addData("Cluster Count", clusters.size());
-            Target biggest = null;
-            for (Target t : clusters) {
-                if (biggest == null || t.ballCount > biggest.ballCount) biggest = t;
-            }
-            if (biggest != null) {
-                telemetry.addData("Biggest Cluster",
-                        String.format("%d balls at x=%.1f z=%.1f", biggest.ballCount, biggest.x, biggest.z));
+                telemetry.addData("Ball " + i, String.format(Locale.US, "x=%.1f z=%.1f", b.x, b.z));
             }
         }
 
@@ -175,6 +138,11 @@ public class OFSB1Auto extends OpMode {
         missedFrames = 0;
         candidate = null;
         lockedTarget = null;
+        recentReadings.clear();
+        loopsSincePlan = 0;
+        replanCount = 0;
+        lastSeenCloseZ = Double.MAX_VALUE;
+        telemetryCounter = 0;
     }
 
     @Override
@@ -183,19 +151,24 @@ public class OFSB1Auto extends OpMode {
 
         switch (state) {
             case SCANNING:
-                scanForTarget();
+                scanForBall();
                 break;
             case DRIVING:
-                if (!follower.isBusy()) {
+                loopsSincePlan++;
+                if (checkLiveSafetyStop()) {
+                    state = State.DONE;
+                } else if (checkReplan()) {
+                    // Path was rebuilt this loop - stay in DRIVING, follower
+                    // is now following the corrected path.
+                } else if (!follower.isBusy()) {
                     state = State.DONE;
                 }
                 break;
             case DONE:
-                telemetry.addLine("Path Complete - stopped near target");
+                telemetry.addLine("Path Complete - stopped near ball");
                 break;
         }
 
-        telemetry.addData("Mode", mode);
         telemetry.addData("State", state);
         telemetry.addData("Camera Initialized", cameraInitialized);
 
@@ -206,40 +179,111 @@ public class OFSB1Auto extends OpMode {
         } else if (lockedTarget != null) {
             // Locked - show the frozen target we committed to, not live
             // detections, since we've stopped reading the camera for this.
-            telemetry.addData("Locked Target X (in)", "%.1f", lockedTarget.x);
-            telemetry.addData("Locked Target Z (in)", "%.1f", lockedTarget.z);
-            telemetry.addData("Locked Target Balls", lockedTarget.ballCount);
+            telemetry.addData("Locked Ball X (in)", "%.1f", lockedTarget.x);
+            telemetry.addData("Locked Ball Z (in)", "%.1f", lockedTarget.z);
         }
 
         telemetry.addData("X", follower.getPose().getX());
         telemetry.addData("Y", follower.getPose().getY());
         telemetry.addData("Heading", follower.getPose().getHeading());
-        telemetry.update();
+
+        // Throttle the actual network send - addData() above is cheap and
+        // still runs every loop, but telemetry.update() is comparatively
+        // slow and doesn't need to fire every single cycle.
+        telemetryCounter++;
+        if (telemetryCounter >= TELEMETRY_UPDATE_INTERVAL) {
+            telemetry.update();
+            telemetryCounter = 0;
+        }
     }
 
-    private void scanForTarget() {
+    /**
+     * Periodically re-reads the ball's live position while driving and
+     * rebuilds the path if the fresh reading disagrees meaningfully with
+     * where we expected to be. Corrects for odometry drift or an
+     * inaccurate initial estimate, instead of trusting one open-loop
+     * calculation for the whole approach. Capped at MAX_REPLANS to avoid
+     * endless re-triggering if detection is noisy near the target.
+     */
+    private boolean checkReplan() {
+        if (loopsSincePlan < REPLAN_INTERVAL_LOOPS) return false;
+        if (replanCount >= MAX_REPLANS) return false;
+
+        List<OFSB1VisionProcessor.Detection> balls = visionProcessor.getDetections();
+        OFSB1VisionProcessor.Detection match = findMatch(balls);
+        if (match == null) return false; // can't verify - leave the existing path running
+
+        double freshDistance = Math.hypot(match.x, match.z);
+        double expectedRemaining = TARGET_DISTANCE_INCHES + PATH_TARGET_SAFETY_MARGIN_INCHES;
+
+        if (Math.abs(freshDistance - expectedRemaining) <= REPLAN_ERROR_THRESHOLD_INCHES) {
+            loopsSincePlan = 0;
+            return false; // close enough to plan - not worth disrupting the current path
+        }
+
+        telemetry.addLine("Replanning - drift detected (fresh z=" + String.format(Locale.US, "%.1f", match.z) + ")");
+        replanCount++;
+        buildAndFollowPathToBall(match.x, match.z);
+        return true;
+    }
+
+    /**
+     * Live safety check during DRIVING. Two trigger conditions force-stop
+     * the robot immediately: a ball currently seen at or inside
+     * TARGET_DISTANCE_INCHES, or a ball that was recently close and has now
+     * vanished from detection entirely (treated as dangerous, not safe,
+     * since vanishing right before contact is the expected failure mode of
+     * close-range detection).
+     *
+     * On trigger, forces zero drive power directly rather than trusting
+     * breakFollowing() alone to zero the motors - a belt-and-suspenders
+     * guarantee against any lag between "path canceled" and "wheels
+     * actually stopped."
+     */
+    private boolean checkLiveSafetyStop() {
         List<OFSB1VisionProcessor.Detection> balls = visionProcessor.getDetections();
 
-        // Build this frame's list of possible targets for the active mode.
-        List<Target> targets = (mode == Mode.SINGLE_BALL)
-                ? ballsAsTargets(balls)
-                : clusterBalls(balls);
-        double matchDist = (mode == Mode.SINGLE_BALL)
-                ? MATCH_DISTANCE_INCHES
-                : CLUSTER_MATCH_DISTANCE_INCHES;
-
-        Target match = findMatch(targets, matchDist);
-
-        // In cluster mode, if a different cluster now clearly holds more
-        // balls than the one we're tracking, abandon ours and start
-        // confirming the bigger one - "most balls" is the whole point.
-        if (mode == Mode.BIGGEST_CLUSTER && match != null) {
-            Target biggest = pickBest(targets);
-            if (biggest != null && biggest.ballCount > match.ballCount) {
-                candidate = null; // force re-confirmation from scratch
-                match = biggest;
+        if (!balls.isEmpty()) {
+            double closestZ = Double.MAX_VALUE;
+            for (OFSB1VisionProcessor.Detection b : balls) {
+                if (b.z < closestZ) closestZ = b.z;
             }
+            lastSeenCloseZ = closestZ;
+
+            if (closestZ <= TARGET_DISTANCE_INCHES) {
+                forceStop("SAFETY STOP - ball within target distance (z=" + String.format(Locale.US, "%.1f", closestZ) + ")");
+                return true;
+            }
+            return false;
         }
+
+        // No balls detected this frame - if it was closing in fast before
+        // vanishing, assume it's now too close to see rather than gone.
+        if (lastSeenCloseZ <= LOST_TRACKING_STOP_THRESHOLD_INCHES) {
+            forceStop("SAFETY STOP - ball lost from view at close range (last z=" + String.format(Locale.US, "%.1f", lastSeenCloseZ) + ")");
+            return true;
+        }
+        return false;
+    }
+
+    private void forceStop(String reason) {
+        // NOTE: verify breakFollowing() against your PedroPathing version -
+        // it should immediately cancel/abort the currently-following path.
+        follower.breakFollowing();
+        // Explicit zero-power override as a hard guarantee, independent of
+        // whether breakFollowing() alone zeroes the drivetrain instantly.
+        follower.setTeleOpDrive(0, 0, 0, true);
+        telemetry.addLine(reason);
+        // Safety-critical message - force an immediate send rather than
+        // waiting on the throttled telemetry cadence.
+        telemetry.update();
+        telemetryCounter = 0;
+    }
+
+    private void scanForBall() {
+        List<OFSB1VisionProcessor.Detection> balls = visionProcessor.getDetections();
+
+        OFSB1VisionProcessor.Detection match = findMatch(balls);
 
         if (match == null) {
             // Candidate not seen this frame - tolerate a few missed frames
@@ -254,181 +298,104 @@ public class OFSB1Auto extends OpMode {
             return;
         }
 
-        // Either confirms the existing candidate (same target, close enough
+        // Either confirms the existing candidate (same ball, close enough
         // to its last known position) or starts tracking a brand new one.
         boolean sameCandidate = candidate != null
-                && Math.hypot(match.x - candidate.x, match.z - candidate.z) <= matchDist;
+                && Math.hypot(match.x - candidate.x, match.z - candidate.z) <= MATCH_DISTANCE_INCHES;
 
-        if (!sameCandidate) {
-            candidate = match;
-            confirmCount = 1;
-        } else {
-            candidate = match; // update to latest position of the same target
+        candidate = match; // update to latest position (new or same ball)
+        if (sameCandidate) {
             confirmCount++;
+        } else {
+            confirmCount = 1;
+            recentReadings.clear(); // new candidate - discard readings from the old one
         }
+        recentReadings.add(new double[]{match.x, match.z});
         missedFrames = 0;
 
-        telemetry.addData("Status", "Tracking target, confirming (" + confirmCount + "/" + CONFIRM_FRAMES + ")");
+        telemetry.addData("Status", "Tracking ball, confirming (" + confirmCount + "/" + CONFIRM_FRAMES + ")");
         telemetry.addData("Ball Count (live)", balls.size());
         telemetry.addData("Candidate X (in)", "%.1f", candidate.x);
         telemetry.addData("Candidate Z (in)", "%.1f", candidate.z);
-        telemetry.addData("Candidate Balls", candidate.ballCount);
 
         if (confirmCount < CONFIRM_FRAMES) {
             return; // keep tracking until confirmed stable
         }
 
-        // Locked in - freeze this target and stop scanning. buildAndFollowPathToTarget
-        // moves state out of SCANNING, so scanForTarget() will not run again this run.
+        // Locked in - average the readings collected during confirmation
+        // instead of trusting just the final frame, then stop scanning.
+        double avgX = 0, avgZ = 0;
+        for (double[] r : recentReadings) {
+            avgX += r[0];
+            avgZ += r[1];
+        }
+        avgX /= recentReadings.size();
+        avgZ /= recentReadings.size();
+
         lockedTarget = candidate;
-        buildAndFollowPathToTarget(lockedTarget);
-    }
-
-    /** Wraps each individual detection as its own Target (Mode 1). */
-    private List<Target> ballsAsTargets(List<OFSB1VisionProcessor.Detection> balls) {
-        List<Target> out = new ArrayList<>();
-        for (OFSB1VisionProcessor.Detection b : balls) {
-            Target t = new Target();
-            t.x = b.x;
-            t.z = b.z;
-            t.ballCount = 1;
-            out.add(t);
-        }
-        return out;
+        buildAndFollowPathToBall(avgX, avgZ);
     }
 
     /**
-     * Groups detections into clusters: a ball joins a cluster if it is
-     * within CLUSTER_LINK_INCHES of ANY ball already in it (Mode 2). Each
-     * cluster becomes one Target at the centroid of its members.
-     *
-     * Greedy single-pass grouping - good enough for the handful of balls
-     * ever visible at once; not worth a full union-find.
+     * Finds the detection this frame that best matches what we're tracking.
+     * If we already have a candidate, prefer whichever ball is closest to
+     * its last known position (so we don't jump to a different ball just
+     * because it's momentarily nearer the camera). If we have no candidate
+     * yet, fall back to the globally closest ball, same as before.
      */
-    private List<Target> clusterBalls(List<OFSB1VisionProcessor.Detection> balls) {
-        List<List<OFSB1VisionProcessor.Detection>> groups = new ArrayList<>();
-
-        for (OFSB1VisionProcessor.Detection b : balls) {
-            List<OFSB1VisionProcessor.Detection> home = null;
-            for (List<OFSB1VisionProcessor.Detection> g : groups) {
-                for (OFSB1VisionProcessor.Detection m : g) {
-                    if (Math.hypot(b.x - m.x, b.z - m.z) <= CLUSTER_LINK_INCHES) {
-                        home = g;
-                        break;
-                    }
-                }
-                if (home != null) break;
-            }
-            if (home == null) {
-                home = new ArrayList<>();
-                groups.add(home);
-            }
-            home.add(b);
-        }
-
-        List<Target> out = new ArrayList<>();
-        for (List<OFSB1VisionProcessor.Detection> g : groups) {
-            Target t = new Target();
-            for (OFSB1VisionProcessor.Detection m : g) {
-                t.x += m.x;
-                t.z += m.z;
-            }
-            t.x /= g.size();
-            t.z /= g.size();
-            t.ballCount = g.size();
-            out.add(t);
-        }
-        return out;
-    }
-
-    /**
-     * Finds this frame's target that best matches what we're tracking.
-     * If we already have a candidate, prefer whichever target is closest to
-     * its last known position - but only within matchDist, otherwise report
-     * "not seen" rather than silently snapping to something unrelated.
-     * With no candidate yet, pick the best target for the active mode.
-     */
-    private Target findMatch(List<Target> targets, double matchDist) {
-        if (targets.isEmpty()) return null;
+    private OFSB1VisionProcessor.Detection findMatch(List<OFSB1VisionProcessor.Detection> balls) {
+        if (balls.isEmpty()) return null;
 
         if (candidate == null) {
-            return pickBest(targets);
+            OFSB1VisionProcessor.Detection closest = balls.get(0);
+            for (OFSB1VisionProcessor.Detection b : balls) {
+                if (b.z < closest.z) closest = b;
+            }
+            return closest;
         }
 
-        Target best = null;
+        OFSB1VisionProcessor.Detection best = null;
         double bestDist = Double.MAX_VALUE;
-        for (Target t : targets) {
-            double dist = Math.hypot(t.x - candidate.x, t.z - candidate.z);
+        for (OFSB1VisionProcessor.Detection b : balls) {
+            double dist = Math.hypot(b.x - candidate.x, b.z - candidate.z);
             if (dist < bestDist) {
                 bestDist = dist;
-                best = t;
+                best = b;
             }
         }
-        return (bestDist <= matchDist) ? best : null;
+        // Only accept as a match if it's actually near where we expect the
+        // tracked ball to be - otherwise treat it as "not seen this frame"
+        // rather than silently snapping to an unrelated ball.
+        return (bestDist <= MATCH_DISTANCE_INCHES) ? best : null;
     }
 
     /**
-     * Best fresh target for the active mode: closest ball in SINGLE_BALL,
-     * most balls (ties broken by distance) in BIGGEST_CLUSTER.
+     * Builds and follows a single path to the ball, using CONSTANT heading
+     * interpolation: the robot holds a fixed heading for the entire path,
+     * strafing as needed. The path's endpoint sits TARGET_DISTANCE_INCHES
+     * short of the ball along the line-of-sight.
      */
-    private Target pickBest(List<Target> targets) {
-        Target best = null;
-        for (Target t : targets) {
-            if (best == null) {
-                best = t;
-            } else if (mode == Mode.BIGGEST_CLUSTER) {
-                if (t.ballCount > best.ballCount
-                        || (t.ballCount == best.ballCount && t.z < best.z)) {
-                    best = t;
-                }
-            } else if (t.z < best.z) {
-                best = t;
-            }
-        }
-        return best;
-    }
-
-    private void buildAndFollowPathToTarget(Target target) {
+    private void buildAndFollowPathToBall(double cameraRelativeX, double cameraRelativeZ) {
         Pose robotPose = follower.getPose();
 
-        // Shift the camera-relative reading to be ROBOT-CENTER-relative,
-        // since that's what the follower's pose refers to.
-        double ballForward = target.z + CAMERA_FORWARD_OF_CENTER;
-        double ballRight = target.x + CAMERA_RIGHT_OF_CENTER;
+        double angleOffsetRadians = Math.atan2(cameraRelativeX, cameraRelativeZ);
+        double distanceToBall = Math.hypot(cameraRelativeX, cameraRelativeZ);
+        double driveDistance = distanceToBall - TARGET_DISTANCE_INCHES - PATH_TARGET_SAFETY_MARGIN_INCHES;
 
-        double distanceToBall = Math.hypot(ballRight, ballForward);
-        // Stop so the FRONT BUMPER (7.25in ahead of center once we're
-        // facing the ball) ends up TARGET_DISTANCE_INCHES from the target -
-        // NOT the camera, which sits ~6.5in behind the front and would
-        // otherwise let the robot plow into the ball.
-        double driveDistance = distanceToBall - (CENTER_TO_FRONT + TARGET_DISTANCE_INCHES);
+        double fieldAngle = robotPose.getHeading() + angleOffsetRadians;
 
-        if (driveDistance <= 0) {
-            // Already at or inside the stop distance - nothing to drive.
-            state = State.DONE;
-            return;
-        }
-
-        // Ball position in FIELD coordinates via a proper rotation by the
-        // robot's heading (CCW-positive; at heading 0, forward = +x and
-        // left = +y). This replaces the old "+atan2 offset with a Y sign
-        // flip" shortcut, which field testing (AprilTagAlignment's square
-        // button) proved drives the wrong way once heading isn't zero.
-        double h = robotPose.getHeading();
-        double ballFieldX = robotPose.getX() + ballForward * Math.cos(h) + ballRight * Math.sin(h);
-        double ballFieldY = robotPose.getY() + ballForward * Math.sin(h) - ballRight * Math.cos(h);
-
-        double fieldAngle = Math.atan2(ballFieldY - robotPose.getY(), ballFieldX - robotPose.getX());
-
+        // Both target coordinates are computed in the SAME field frame as
+        // robotPose - do not negate one axis without negating the other, or
+        // start/end points end up in mismatched coordinate frames.
         double targetX = robotPose.getX() + driveDistance * Math.cos(fieldAngle);
         double targetY = robotPose.getY() + driveDistance * Math.sin(fieldAngle);
         Pose targetPose = new Pose(targetX, targetY, fieldAngle);
 
-        // Constant heading along the line of sight = robot ends up FACING
-        // the target, as required by both modes.
         Path pathToBall = new Path(new BezierLine(robotPose, targetPose));
         pathToBall.setConstantHeadingInterpolation(fieldAngle);
 
+        lastSeenCloseZ = Double.MAX_VALUE;
+        loopsSincePlan = 0;
         follower.followPath(pathToBall);
         state = State.DRIVING;
     }
