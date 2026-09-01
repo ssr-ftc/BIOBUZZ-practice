@@ -396,7 +396,6 @@ public class OFSB1Auto extends OpMode {
         double ballForward = target.z + CAMERA_FORWARD_OF_CENTER;
         double ballRight = target.x + CAMERA_RIGHT_OF_CENTER;
 
-        double angleOffsetRadians = Math.atan2(ballRight, ballForward);
         double distanceToBall = Math.hypot(ballRight, ballForward);
         // Stop so the FRONT BUMPER (7.25in ahead of center once we're
         // facing the ball) ends up TARGET_DISTANCE_INCHES from the target -
@@ -410,15 +409,20 @@ public class OFSB1Auto extends OpMode {
             return;
         }
 
-        double fieldAngle = robotPose.getHeading() + angleOffsetRadians;
+        // Ball position in FIELD coordinates via a proper rotation by the
+        // robot's heading (CCW-positive; at heading 0, forward = +x and
+        // left = +y). This replaces the old "+atan2 offset with a Y sign
+        // flip" shortcut, which field testing (AprilTagAlignment's square
+        // button) proved drives the wrong way once heading isn't zero.
+        double h = robotPose.getHeading();
+        double ballFieldX = robotPose.getX() + ballForward * Math.cos(h) + ballRight * Math.sin(h);
+        double ballFieldY = robotPose.getY() + ballForward * Math.sin(h) - ballRight * Math.cos(h);
+
+        double fieldAngle = Math.atan2(ballFieldY - robotPose.getY(), ballFieldX - robotPose.getX());
 
         double targetX = robotPose.getX() + driveDistance * Math.cos(fieldAngle);
         double targetY = robotPose.getY() + driveDistance * Math.sin(fieldAngle);
-        // NOTE: the Y sign flip is carried over from the previous version of
-        // this file. Verify on-field that a ball off to one side produces a
-        // path toward that side; if it mirrors, remove the negation here and
-        // retest (the camera-x vs field-heading sign conventions must agree).
-        Pose targetPose = new Pose(targetX, -targetY, fieldAngle);
+        Pose targetPose = new Pose(targetX, targetY, fieldAngle);
 
         // Constant heading along the line of sight = robot ends up FACING
         // the target, as required by both modes.
