@@ -124,11 +124,7 @@ public class OFSB1TeleOp extends OpMode {
         // ---- Pipeline health ----
         // Frame count not increasing = pipeline stalled.
         telemetry.addData("Vision Frames", visionProcessor.getFrameCount());
-        // Watch this while balls overlap - if it climbs too high, the Hough
-        // splitter is costing too much per frame.
         telemetry.addData("Vision Frame Time (ms)", "%.1f", visionProcessor.getLastProcessTimeMs());
-        // 0 on a clean scene; pinned at max = HSV range matching non-ball stuff.
-        telemetry.addData("Hough Splits Last Frame", visionProcessor.getHoughRunsLastFrame());
         String visionError = visionProcessor.getLastError();
         if (visionError != null) {
             telemetry.addData("VISION ERROR", visionError);
