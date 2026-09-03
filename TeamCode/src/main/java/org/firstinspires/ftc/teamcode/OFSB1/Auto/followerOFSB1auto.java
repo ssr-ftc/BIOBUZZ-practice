@@ -62,8 +62,13 @@ public class followerOFSB1auto extends OpMode {
     // No STRAFE_KP - centering is done by rotating to face the ball
     // (heading control), not by strafing. See followBall().
     private static final double TURN_KP = 0.02;
-    private static final double MAX_DRIVE_POWER = 0.5;
-    private static final double MAX_TURN_POWER = 0.4;
+    // Overall speed caps. Lowered from 0.5/0.4 to slow the robot down -
+    // these are the hard ceiling on output power regardless of how large
+    // the distance/angle error is. Turn this back up if it now feels too
+    // sluggish; turn it down further (e.g. 0.15/0.12) for an even slower,
+    // more cautious follow.
+    private static final double MAX_DRIVE_POWER = 0.25;
+    private static final double MAX_TURN_POWER = 0.2;
 
     // Errors smaller than this are treated as "close enough" so the robot
     // doesn't buzz/jitter right at the target distance/heading.

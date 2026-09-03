@@ -1,7 +1,6 @@
 package org.firstinspires.ftc.teamcode.OFSB1.Vision;
 
 import org.opencv.core.Core;
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
@@ -15,32 +14,6 @@ import org.openftc.easyopencv.OpenCvPipeline;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Detects POLLEN balls (yellow ~5in enlarged-pickleball-style balls with
- * holes in the surface) using HSV color thresholding + contour analysis,
- * plus a Hough-circle "splitter" that separates overlapping/occluded balls
- * which merge into one yellow blob. Blob interiors are filled solid before
- * analysis so the surface holes can't register as balls of their own.
- *
- * Detections are published sorted left-to-right (Ball #1 = leftmost).
- *
- * Two-tier design (accuracy without per-frame lag):
- *   1. FAST PATH (every blob): if a yellow blob is round AND solid, it is
- *      almost certainly a single ball - accept it with cheap contour math.
- *   2. SPLIT PATH (suspicious blobs only): if the blob is NOT round/solid
- *      (peanut shape = two merged balls, crescent = ball peeking out from
- *      behind another), run HoughCircles on just that blob's small region
- *      of the mask. Hough votes on edge ARCS, so it recovers each ball's
- *      true circle even when only part of its outline is visible.
- *
- * The expensive step runs only where needed, only on small sub-images, and
- * is hard-capped per frame - so a clean scene costs the same as the old
- * contour-only pipeline.
- *
- * IMPORTANT: The HSV ranges below are starting points. Real lighting in your
- * gym/field WILL differ from these. Tune them with FTC Dashboard rather than
- * guessing blind.
- */
 public class OFSB1VisionProcessor extends OpenCvPipeline {
 
     public enum ArtifactColor { YELLOW }
@@ -50,10 +23,7 @@ public class OFSB1VisionProcessor extends OpenCvPipeline {
         public Rect boundingBox;
         public Point center;
         public double area;
-        // Confidence-ish score in 0..1:
-        //  - fast-path detections: classic circularity (4*pi*A / P^2)
-        //  - Hough-split detections: fraction of the fitted circle that is
-        //    actually yellow mask (lower for occluded balls, by design)
+        // Classic circularity score: 4*pi*A / P^2. 1.0 = perfect circle.
         public double circularity;
         // Fitted circle radius in pixels (what the Z estimate is based on).
         public double radiusPx;
@@ -68,9 +38,12 @@ public class OFSB1VisionProcessor extends OpenCvPipeline {
     }
 
     // ---- Physical / camera constants for distance estimation ----
-    // Real-world ball diameter (inches). Our practice balls are ~5in
-    // enlarged-pickleball-style balls (with holes in the surface).
-    private static final double BALL_DIAMETER_INCHES = 5.0;
+    // Real-world ball diameter (inches). Official AndyMark am-5851 Pollen
+    // spec: 2.8in +/- 0.1in. THIS CHANGED FROM 5.0 - if you already
+    // calibrated FOCAL_LENGTH_PIXELS assuming a 5in ball, redo that
+    // calibration against the real 2.8in ball or your Z readings will be
+    // wrong by roughly a factor of 5/2.8 (~1.79x too far).
+    private static final double BALL_DIAMETER_INCHES = 2.8;
 
     // Horizontal field of view of your webcam, in degrees, AT THE RESOLUTION
     // YOU ARE STREAMING (640x480 here). Replace with your webcam's actual spec.
@@ -95,64 +68,51 @@ public class OFSB1VisionProcessor extends OpenCvPipeline {
     // X/Y/Z are only world-accurate once this matches reality.
     private static final double CAMERA_TILT_DEGREES = 0.0;
     // Optional sanity filter: a ball ON THE FLOOR must sit at
-    // (ball radius - camera height) ~= -16.5in relative to the lens. A
+    // (ball radius - camera height) ~= 1.4 - 19 = -17.6in relative to the
+    // lens (using the 2.8in Pollen diameter). A
     // detection whose height disagrees badly has a bogus size estimate
-    // (phantom circle, merged blob) and can be rejected. ONLY enable this
+    // (phantom circle, non-ball blob) and can be rejected. ONLY enable this
     // after CAMERA_TILT_DEGREES is set accurately, or it will throw away
-    // real balls.
+    // real balls. Also a good tool for rejecting furniture/wall detections,
+    // since those almost never sit at "on the floor" height.
     private static final boolean HEIGHT_FILTER_ENABLED = false;
     private static final double HEIGHT_TOLERANCE_INCHES = 6.0;
 
     // ---- Tunable HSV thresholds (OpenCV HSV: H 0-179, S 0-255, V 0-255) ----
-    // Pollen (yellow) - starting guess, TUNE THIS.
-    private Scalar yellowLower = new Scalar(20, 100, 100);
-    private Scalar yellowUpper = new Scalar(35, 255, 255);
+    // Pollen (yellow). Starting point for saturated yellow plastic under
+    // typical indoor lighting - NOT an official spec, see class javadoc.
+    // Raised the saturation/value floors vs. the old placeholder: dull
+    // yellow-ish furniture/wood tends to sit lower on both S and V than a
+    // glossy game ball, so this alone should cut a lot of false positives.
+    // TUNE THIS with FTC Dashboard/Panels against your real balls.
+    public static Scalar yellowLower = new Scalar(22, 140, 120);
+    public static Scalar yellowUpper = new Scalar(32, 255, 255);
 
-    private static final double MIN_CONTOUR_AREA = 200; // px^2, coarse pre-filter
-    private static final double MIN_RADIUS_PX = 8;      // minimum fitted-circle radius
+    private static final double MIN_CONTOUR_AREA = 400; // px^2, coarse pre-filter (raised from 200)
+    private static final double MIN_RADIUS_PX = 10;      // minimum fitted-circle radius (raised from 8)
 
-    // ---- Fast path vs split path decision ----
-    // A lone, unobstructed ball scores near 1.0 on BOTH of these. A merged
-    // blob (peanut) or occluded ball (crescent) scores low on at least one,
-    // which routes it to the Hough splitter instead.
+    // A lone, unobstructed ball scores near 1.0 on both of these. Anything
+    // scoring low on either (peanut shape, crescent, non-ball blob) is
+    // rejected rather than split apart.
     private static final double SINGLE_BALL_MIN_CIRCULARITY = 0.75;
-    // Contour area / enclosing-circle area. A full disk is ~1.0; a peanut
-    // inside its enclosing circle is ~0.5-0.65.
+    // Contour area / enclosing-circle area. A full disk is ~1.0.
     private static final double SINGLE_BALL_MIN_FILL = 0.75;
 
-    // Fallback: if the splitter finds nothing, a blob at least this round is
-    // still accepted as one ball (matches the old pipeline's leniency).
-    private static final double MIN_CIRCULARITY = 0.45;
-
-    // ---- Hough splitter tuning ----
-    // Hard cap on splitter runs per frame so a pathological scene (yellow
-    // banner, bad HSV tuning) can't stall the pipeline.
-    private static final int MAX_HOUGH_BLOBS_PER_FRAME = 4;
-    private static final int MAX_CIRCLES_PER_BLOB = 4;
-    // Canny high threshold used internally by HoughCircles.
-    private static final double HOUGH_CANNY_THRESHOLD = 120;
-    // Accumulator votes needed to accept a circle. LOWER finds fainter /
-    // more-occluded arcs but risks phantom circles; raise if you see
-    // circles appearing on non-balls.
-    private static final double HOUGH_VOTES_THRESHOLD = 20;
-    // A fitted circle must have at least this fraction of its area covered
-    // by yellow mask to count. A fully visible ball is ~0.9+; a half-hidden
-    // ball can be ~0.3, hence the low bar.
-    private static final double MIN_MASK_COVERAGE = 0.28;
+    // Fallback: a blob that fails the strict fast-path check above but is
+    // still reasonably round is accepted as one ball (keeps a shadowed/
+    // partially-lit ball from being dropped entirely).
+    private static final double MIN_CIRCULARITY = 0.55; // raised from 0.45 - fewer furniture false positives
 
     // Working mats (allocated once, reused every frame - avoids GC churn)
     private final Mat blurred = new Mat();
     private final Mat hsvMat = new Mat();
     private final Mat yellowMask = new Mat();
-    private final Mat houghInput = new Mat();
-    private final Mat houghCircles = new Mat();
     private final Mat morphKernel = Imgproc.getStructuringElement(
             Imgproc.MORPH_ELLIPSE, new Size(5, 5));
 
     // ---- Debug/diagnostic state, exposed for telemetry ----
     private volatile long frameCount = 0;
     private volatile long lastProcessTimeNs = 0;
-    private volatile int houghRunsLastFrame = 0;
     private volatile String lastError = null;
     private final List<Detection> detections = new ArrayList<>();
 
@@ -168,9 +128,7 @@ public class OFSB1VisionProcessor extends OpenCvPipeline {
 
             // OPEN (erode->dilate) clears small noise specks.
             // CLOSE (dilate->erode) fills small gaps/holes (glare, shadow)
-            // so one ball stays one blob. Note CLOSE can also glue two
-            // near-touching balls together - that's fine now, because the
-            // Hough splitter pulls merged blobs back apart.
+            // so one ball stays one blob.
             Imgproc.morphologyEx(yellowMask, yellowMask, Imgproc.MORPH_OPEN, morphKernel);
             Imgproc.morphologyEx(yellowMask, yellowMask, Imgproc.MORPH_CLOSE, morphKernel);
 
@@ -207,16 +165,13 @@ public class OFSB1VisionProcessor extends OpenCvPipeline {
 
         // Fill every blob solid. The pickleball-style balls have holes in
         // their surface, which punch dark spots into the yellow mask. Left
-        // as-is, those spots create interior edges that the Hough splitter
-        // happily fits small circles to ("ball inside a ball") and they
-        // also drag down the mask-coverage score of real balls. Painting
-        // the external contours filled erases the holes while leaving the
-        // blob outlines - the only edges we actually care about - intact.
+        // as-is, those spots create spurious interior edges/contours.
+        // Painting the external contours filled erases the holes while
+        // leaving the blob outlines - the only edges we actually care
+        // about - intact.
         Imgproc.drawContours(mask, contours, -1, new Scalar(255), -1);
 
         List<Detection> found = new ArrayList<>();
-        int houghBudget = MAX_HOUGH_BLOBS_PER_FRAME;
-        int houghRuns = 0;
 
         for (MatOfPoint c : contours) {
             double area = Imgproc.contourArea(c);
@@ -234,31 +189,22 @@ public class OFSB1VisionProcessor extends OpenCvPipeline {
             double circularity = (4 * Math.PI * area) / (perimeter * perimeter);
             double fillRatio = area / (Math.PI * circleRadius[0] * circleRadius[0]);
 
-            // FAST PATH: round and solid -> a single unobstructed ball.
+            // Round and solid -> accept as a single ball.
             if (circularity >= SINGLE_BALL_MIN_CIRCULARITY && fillRatio >= SINGLE_BALL_MIN_FILL) {
                 found.add(makeDetection(color, Imgproc.boundingRect(c),
                         circleCenter, circleRadius[0], area, circularity));
                 continue;
             }
 
-            // SPLIT PATH: peanut/crescent-shaped blob - probably 2+ merged
-            // balls, or one ball partly hidden behind another.
-            boolean split = false;
-            if (houghBudget > 0) {
-                houghBudget--;
-                houghRuns++;
-                split = splitBlobWithHough(mask, c, circleRadius[0], color, found);
-            }
-
-            // Splitter found nothing (or budget exhausted): keep the old
-            // lenient behavior so a shadowed single ball isn't dropped.
-            if (!split && circularity >= MIN_CIRCULARITY) {
+            // Lenient fallback: still round enough to trust (e.g. partially
+            // shadowed ball) even though it missed the strict fast path.
+            if (circularity >= MIN_CIRCULARITY) {
                 found.add(makeDetection(color, Imgproc.boundingRect(c),
                         circleCenter, circleRadius[0], area, circularity));
             }
+            // Otherwise: irregular blob (merged balls, furniture edge, etc.)
+            // is dropped rather than split apart.
         }
-
-        houghRunsLastFrame = houghRuns;
 
         if (HEIGHT_FILTER_ENABLED) {
             // A floor ball's center must be (ball radius - camera height)
@@ -275,90 +221,6 @@ public class OFSB1VisionProcessor extends OpenCvPipeline {
         return found;
     }
 
-    /**
-     * Runs HoughCircles on just this blob's padded bounding box within the
-     * mask. Returns true if at least one validated circle was added.
-     */
-    private boolean splitBlobWithHough(Mat mask, MatOfPoint contour, float blobRadius,
-                                       ArtifactColor color, List<Detection> out) {
-        Rect box = Imgproc.boundingRect(contour);
-        int pad = 8;
-        int x = Math.max(box.x - pad, 0);
-        int y = Math.max(box.y - pad, 0);
-        int w = Math.min(box.width + 2 * pad, mask.cols() - x);
-        int h = Math.min(box.height + 2 * pad, mask.rows() - y);
-        Mat roi = mask.submat(new Rect(x, y, w, h));
-
-        // Slight blur gives Hough's internal edge detector a smooth gradient
-        // instead of a hard binary step.
-        Imgproc.GaussianBlur(roi, houghInput, new Size(5, 5), 0);
-        roi.release();
-
-        // Each ball in a merged pair is roughly half the blob's enclosing
-        // radius, so centers should be at least ~half a blob-radius apart.
-        double minDist = Math.max(MIN_RADIUS_PX, blobRadius * 0.5);
-        // A real ball is a big fraction of its blob (half of a merged pair,
-        // ~all of a lone blob). The surface holes of the pickleball-style
-        // balls are FAR smaller than that, so a per-blob minimum radius
-        // rejects hole-sized circles even if their edges survive the
-        // hole-filling above.
-        int minR = (int) Math.max(MIN_RADIUS_PX, blobRadius * 0.3);
-        int maxR = (int) Math.ceil(blobRadius) + 2;
-
-        Imgproc.HoughCircles(houghInput, houghCircles, Imgproc.HOUGH_GRADIENT,
-                2.0,   // dp=2: accumulator at half resolution - faster, still accurate
-                minDist,
-                HOUGH_CANNY_THRESHOLD,
-                HOUGH_VOTES_THRESHOLD,
-                minR, maxR);
-
-        int added = 0;
-        for (int i = 0; i < houghCircles.cols() && added < MAX_CIRCLES_PER_BLOB; i++) {
-            double[] circ = houghCircles.get(0, i);
-            if (circ == null) continue;
-            double cx = circ[0] + x;
-            double cy = circ[1] + y;
-            double r = circ[2];
-
-            // Reject circles that aren't actually sitting on yellow pixels
-            // (Hough can hallucinate arcs from mask noise).
-            double coverage = maskCoverage(mask, cx, cy, r);
-            if (coverage < MIN_MASK_COVERAGE) continue;
-
-            int bx = (int) Math.max(cx - r, 0);
-            int by = (int) Math.max(cy - r, 0);
-            int bw = (int) Math.min(2 * r, mask.cols() - bx);
-            int bh = (int) Math.min(2 * r, mask.rows() - by);
-            Rect circleBox = new Rect(bx, by, bw, bh);
-
-            // Area = yellow pixels inside the fitted circle; circularity
-            // field carries the coverage score for these detections.
-            out.add(makeDetection(color, circleBox, new Point(cx, cy), r,
-                    coverage * Math.PI * r * r, coverage));
-            added++;
-        }
-        return added > 0;
-    }
-
-    /** Fraction of the circle's area that is "on" in the mask (0..1). */
-    private double maskCoverage(Mat mask, double cx, double cy, double r) {
-        int x0 = (int) Math.floor(Math.max(cx - r, 0));
-        int y0 = (int) Math.floor(Math.max(cy - r, 0));
-        int x1 = (int) Math.ceil(Math.min(cx + r, mask.cols()));
-        int y1 = (int) Math.ceil(Math.min(cy + r, mask.rows()));
-        if (x1 - x0 <= 0 || y1 - y0 <= 0) return 0;
-
-        Mat roi = mask.submat(new Rect(x0, y0, x1 - x0, y1 - y0));
-        Mat circleMask = Mat.zeros(roi.size(), CvType.CV_8UC1);
-        Imgproc.circle(circleMask, new Point(cx - x0, cy - y0),
-                (int) Math.round(r), new Scalar(255), -1);
-        Core.bitwise_and(roi, circleMask, circleMask);
-        int onPixels = Core.countNonZero(circleMask);
-        circleMask.release();
-        roi.release();
-        return onPixels / (Math.PI * r * r);
-    }
-
     private Detection makeDetection(ArtifactColor color, Rect box, Point center,
                                     double radiusPx, double area, double score) {
         Detection d = new Detection();
@@ -370,8 +232,7 @@ public class OFSB1VisionProcessor extends OpenCvPipeline {
         d.radiusPx = radiusPx;
 
         // Distance along the camera's optical axis, using known ball size vs
-        // the FITTED circle diameter (correct even when the ball is partly
-        // hidden, unlike the merged blob's size).
+        // the fitted circle diameter.
         double pixelDiameter = radiusPx * 2.0;
         double zCam = (BALL_DIAMETER_INCHES * FOCAL_LENGTH_PIXELS) / pixelDiameter;
 
@@ -422,22 +283,13 @@ public class OFSB1VisionProcessor extends OpenCvPipeline {
         return lastProcessTimeNs / 1_000_000.0;
     }
 
-    /**
-     * How many blobs needed the Hough splitter last frame (0 on a clean
-     * scene). If this is pinned at MAX_HOUGH_BLOBS_PER_FRAME, your HSV range
-     * is probably matching non-ball stuff.
-     */
-    public int getHoughRunsLastFrame() {
-        return houghRunsLastFrame;
-    }
-
     /** Non-null if the last processFrame() call threw - check this first when debugging. */
     public String getLastError() {
         return lastError;
     }
 
     public void setYellowRange(Scalar lower, Scalar upper) {
-        this.yellowLower = lower;
-        this.yellowUpper = upper;
+        yellowLower = lower;
+        yellowUpper = upper;
     }
 }
