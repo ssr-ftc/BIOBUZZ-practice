@@ -44,27 +44,36 @@ public class followerOFSB1auto extends OpMode {
     // runs once per loop() call, so this is 4 consecutive loop iterations
     // with a matched detection, not a literal 1-second wall-clock timer.
     private static final int CONFIRM_FRAMES = 4;
+
+    // How far (inches, camera-relative x/z) a detection can drift and still
+    // count as the same ball we're already tracking.
     private static final double MATCH_DISTANCE_INCHES = 4.0;
+
+    // How many consecutive missed frames are tolerated before we treat the
+    // ball as lost - during SCANNING this resets the candidate, during
+    // FOLLOWING this stops the robot and drops back to SCANNING.
     private static final int MAX_MISSED_FRAMES = 5;
+
+    // ---- Proportional (visual-servo) drive gains ----
+    // Power applied per inch (forward) or per degree (turn) of error.
+    // These are starting points - tune on the actual robot, increasing
+    // gradually until following feels responsive without oscillating.
     private static final double FORWARD_KP = 0.035;
-    private static final double TURN_KP = 0.01;
-    //   - Still oscillating / overshooting past center -> higher TURN_KP.
-    //   - Feels sluggish / hesitates well before reaching center, or visibly "shivers" from noisy angle readings -> lower TURN_KD.
-    // is used when the robot is moving
-    private static final double TURN_KD = 0.004;
-    //is used for inital turn correction to the ball
+    // No STRAFE_KP - centering is done by rotating to face the ball
+    // (heading control), not by strafing. See followBall().
+    private static final double TURN_KP = 0.02;
+    // Overall speed caps. Lowered from 0.5/0.4 to slow the robot down -
+    // these are the hard ceiling on output power regardless of how large
+    // the distance/angle error is. Turn this back up if it now feels too
+    // sluggish; turn it down further (e.g. 0.15/0.12) for an even slower,
+    // more cautious follow.
     private static final double MAX_DRIVE_POWER = 0.25;
     private static final double MAX_TURN_POWER = 0.2;
 
     // Errors smaller than this are treated as "close enough" so the robot
     // doesn't buzz/jitter right at the target distance/heading.
     private static final double DISTANCE_DEADBAND_INCHES = 1.0;
-    // Widened from 2.0 -> 4.0: at 2 degrees, normal vision-detection jitter
-    // frame-to-frame could sit right on the deadband edge and flicker the
-    // turn command on/off rapidly, which looks like oscillation even
-    // without any real overshoot. A wider deadband gives that jitter room
-    // to live in without triggering a turn command at all.
-    private static final double ANGLE_DEADBAND_DEGREES = 4.0;
+    private static final double ANGLE_DEADBAND_DEGREES = 2.0;
 
     // Only send telemetry.update() (network I/O) every N loops, same
     // reasoning as OFSB1Auto - addData() is cheap, update() is not.
@@ -90,18 +99,6 @@ public class followerOFSB1auto extends OpMode {
     // and FOLLOWING so a brief loss-and-reacquire doesn't require starting
     // the match-distance check over from a blank slate.
     private OFSB1VisionProcessor.Detection candidate = null;
-
-    // ---- Turn-axis PD derivative state ----
-    // Previous loop's angle-to-ball and the wall-clock time it was read at,
-    // used to compute how fast the angle is currently changing (see
-    // followBall()). Real timestamps are used rather than assuming a fixed
-    // loop period, since loop() timing on the Control Hub isn't perfectly
-    // constant. Reset (hasLastAngle = false) any time FOLLOWING is
-    // (re)entered, so a stale rate from before a scan/reacquire cycle never
-    // leaks into the very first correction after locking onto a ball.
-    private double lastAngleToBallDegrees = 0;
-    private long lastAngleTimeNs = 0;
-    private boolean hasLastAngle = false;
 
     // True once follower.startTeleopDrive() has been called. Guards against
     // ever calling setTeleOpDrive() before teleop-drive mode is actually
@@ -237,9 +234,6 @@ public class followerOFSB1auto extends OpMode {
         if (confirmCount >= CONFIRM_FRAMES) {
             missedFrames = 0;
             state = State.FOLLOWING;
-            // Fresh lock-on - don't let a rate computed before this ball
-            // was (re)acquired feed into the first turn correction.
-            hasLastAngle = false;
         }
     }
 
@@ -265,7 +259,6 @@ public class followerOFSB1auto extends OpMode {
                 state = State.SCANNING;
                 confirmCount = 0;
                 candidate = null;
-                hasLastAngle = false;
             }
             return;
         }
@@ -284,25 +277,6 @@ public class followerOFSB1auto extends OpMode {
         // right (clockwise) to bring it onto the centerline.
         double angleToBallDegrees = Math.toDegrees(Math.atan2(match.x, match.z));
 
-        // How fast that angle is currently changing, in degrees/second -
-        // the derivative term. Using a real elapsed time (not "1 loop")
-        // keeps this correct even if loop() timing isn't perfectly steady.
-        // As the robot swings the ball back toward center, the angle
-        // shrinks, so this rate goes negative - which is exactly what lets
-        // the PD term below subtract power and brake the turn instead of
-        // carrying it through at full commanded power and overshooting.
-        long now = System.nanoTime();
-        double angleRateDegPerSec = 0;
-        if (hasLastAngle) {
-            double dtSeconds = (now - lastAngleTimeNs) / 1_000_000_000.0;
-            if (dtSeconds > 0) {
-                angleRateDegPerSec = (angleToBallDegrees - lastAngleToBallDegrees) / dtSeconds;
-            }
-        }
-        lastAngleToBallDegrees = angleToBallDegrees;
-        lastAngleTimeNs = now;
-        hasLastAngle = true;
-
         double forwardPower = 0;
         if (Math.abs(distanceError) > DISTANCE_DEADBAND_INCHES) {
             forwardPower = clamp(distanceError * FORWARD_KP, -MAX_DRIVE_POWER, MAX_DRIVE_POWER);
@@ -310,12 +284,7 @@ public class followerOFSB1auto extends OpMode {
 
         double turnPower = 0;
         if (Math.abs(angleToBallDegrees) > ANGLE_DEADBAND_DEGREES) {
-            // PD, not P: proportional term drives toward center, derivative
-            // term damps the approach so it doesn't fly through center at
-            // full power and immediately need an equal-and-opposite
-            // correction (the oscillation pattern this replaces).
-            double pdOutput = (angleToBallDegrees * TURN_KP) + (angleRateDegPerSec * TURN_KD);
-            turnPower = clamp(pdOutput, -MAX_TURN_POWER, MAX_TURN_POWER);
+            turnPower = clamp(angleToBallDegrees * TURN_KP, -MAX_TURN_POWER, MAX_TURN_POWER);
         }
 
         // No strafe term - centering the ball on the camera's vertical
@@ -336,7 +305,6 @@ public class followerOFSB1auto extends OpMode {
         telemetry.addData("Forward Power", "%.2f", forwardPower);
         telemetry.addData("Turn Power", "%.2f", turnPower);
         telemetry.addData("Angle To Ball (deg)", "%.1f", angleToBallDegrees);
-        telemetry.addData("Angle Rate (deg/s)", "%.1f", angleRateDegPerSec);
     }
 
     private void stopDrive() {
