@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.OFSWB.Subsystems;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 public class intake {
@@ -12,6 +13,7 @@ public class intake {
 
     public intake(HardwareMap hardwareMap) {
         intakeMotor = hardwareMap.get(DcMotor.class, MOTOR_NAME);
+        intakeMotor.setDirection(DcMotorSimple.Direction.REVERSE);
         intakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
     }
     public void turn_on_intake() {
@@ -31,5 +33,4 @@ public class intake {
         return intakeMotor.getPower();
     }
 }
-
-// hi
+//

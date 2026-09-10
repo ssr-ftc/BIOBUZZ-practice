@@ -86,3 +86,4 @@ public class lifters {
     public void rightUp() { liftRight.setPosition(RIGHT_UP); }
     public void rightDown() { liftRight.setPosition(RIGHT_DOWN); }
 }
+//hi
