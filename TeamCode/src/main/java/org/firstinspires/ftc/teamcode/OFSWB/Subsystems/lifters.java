@@ -14,14 +14,13 @@ public class lifters {
     private boolean sequenceRunning = false;
 
     private static final double LEFT_UP = 0.43;
-    private static final double LEFT_DOWN = 0.1;
+    private static final double LEFT_DOWN = 0.055;
     private static final double BACK_UP = 0.41;
-    private static final double BACK_DOWN = 0.035;
+    private static final double BACK_DOWN = 0.01;
     private static final double RIGHT_UP = 0.40;
-    private static final double RIGHT_DOWN = 0.04;
-
-    private static final double UP_HOLD_SECONDS = 0.3;
-    private static final double DOWN_WAIT_SECONDS = 0.3;
+    private static final double RIGHT_DOWN = 0.03;
+    private static final double UP_HOLD_SECONDS = 0.25;   // 100 ms up before coming down
+    private static final double DOWN_WAIT_SECONDS = 0.4;  // 300 ms down before next lift starts
 
     public lifters(HardwareMap hardwareMap) {
         liftLeft = hardwareMap.get(Servo.class, "lift_left");
@@ -30,7 +29,10 @@ public class lifters {
         liftRight.setDirection(Servo.Direction.REVERSE);
     }
 
-
+    // Call this once (e.g. on a button press) to kick off the full sequence:
+    // left up -> wait 100ms -> left down -> wait 300ms ->
+    // back up -> wait 100ms -> back down -> wait 300ms ->
+    // right up -> wait 100ms -> right down -> wait 300ms -> done
     public void startSequence() {
         sequenceRunning = true;
         sequenceStep = 1;
@@ -38,6 +40,8 @@ public class lifters {
         leftUp();
     }
 
+    // Call this every loop() cycle. It checks elapsed time and advances the
+    // sequence step by step, without blocking anything else.
     public void update() {
         if (!sequenceRunning) return;
 
