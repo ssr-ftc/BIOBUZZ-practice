@@ -3,6 +3,8 @@ repositories {
     google() // Needed for androidx
     maven { url = "https://mymaven.bylazar.com/releases" }
     maven { url = "https://central.sonatype.com/repository/maven-snapshots/" }
+    maven { url = 'https://maven.brott.dev/' }
+
 }
 
 dependencies {
@@ -15,6 +17,8 @@ dependencies {
     implementation 'org.firstinspires.ftc:FtcCommon:11.1.0'
     implementation 'org.firstinspires.ftc:Vision:11.1.0'
     implementation 'androidx.appcompat:appcompat:1.2.0'
+    implementation 'com.acmerobotics.dashboard:dashboard:0.4.15'
+
 
     implementation 'com.pedropathing:ftc:2.1.2'
     implementation 'com.pedropathing:telemetry:1.0.0'
