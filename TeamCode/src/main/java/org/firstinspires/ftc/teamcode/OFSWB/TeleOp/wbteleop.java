@@ -9,6 +9,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.OFSWB.Subsystems.intake;
 import org.firstinspires.ftc.teamcode.OFSWB.Subsystems.depo;
 import org.firstinspires.ftc.teamcode.OFSWB.Subsystems.lifters;
+import org.firstinspires.ftc.teamcode.Timer;
 
 @TeleOp(name = "wb teleop", group = "tests")
 public class wbteleop extends OpMode {
@@ -24,6 +25,7 @@ public class wbteleop extends OpMode {
     private double speedScale = 0.8;
 
     private ElapsedTime shotTimer = new ElapsedTime();
+    Timer timer;
     private int shotStep = 0;
     private boolean shooting = false;
 
@@ -46,6 +48,9 @@ public class wbteleop extends OpMode {
         intake = new intake(hardwareMap);
         depo = new depo(hardwareMap);
         lifters = new lifters(hardwareMap);
+        timer = new Timer();
+        timer.createNew("intake");
+        timer.createNew("depo");
     }
 
     @Override
@@ -68,6 +73,7 @@ public class wbteleop extends OpMode {
     public void loop() {
         driveMecanum();
 
+        depo.run_using_pid();
         if (gamepad2.rightBumperWasPressed() && !shooting) {
             if (intake.isIntakeOn()) {
                 intake.turn_off_intake();
@@ -76,45 +82,29 @@ public class wbteleop extends OpMode {
             }
         }
 
-        if (gamepad2.triangleWasPressed() && !shooting) {
-            intake.turn_off_intake();
-            depo.turn_on_deposit();
-            shooting = true;
-            shotStep = 0;
-            shotTimer.reset();
-        }
-
-        if (shooting) {
-            if (shotStep == 0 && shotTimer.seconds() >= warmup_seconds) {
-                lifters.leftUp();
-                shotStep = 1;
-                shotTimer.reset();
-            } else if (shotStep == 1 && shotTimer.seconds() >= up_hold_seconds) {
-                lifters.leftDown();
-                shotStep = 2;
-                shotTimer.reset();
-            } else if (shotStep == 2 && shotTimer.seconds() >= down_wait_seconds) {
-                lifters.backUp();
-                shotStep = 3;
-                shotTimer.reset();
-            } else if (shotStep == 3 && shotTimer.seconds() >= up_hold_seconds) {
-                lifters.backDown();
-                shotStep = 4;
-                shotTimer.reset();
-            } else if (shotStep == 4 && shotTimer.seconds() >= down_wait_seconds) {
-                lifters.rightUp();
-                shotStep = 5;
-                shotTimer.reset();
-            } else if (shotStep == 5 && shotTimer.seconds() >= up_hold_seconds) {
-                lifters.rightDown();
-                shotStep = 6;
-                shotTimer.reset();
-            } else if (shotStep == 6 && shotTimer.seconds() >= down_wait_seconds) {
-                shooting = false;
-                shotStep = 0;
-                depo.turn_off_deposit();
+        if (gamepad2.triangleWasPressed() ) {
+            if (depo.isDepositOn()){
+               depo.turn_off_deposit();
+            }
+            else{
+                depo.turn_on_deposit();
             }
         }
+        if(gamepad2.crossWasPressed()){
+            depo.turn_on_deposit();
+            timer.start("depo");
+        }
+        if(timer.checkSeconds("depo",0.5)){
+            lifters.backUp();
+        }
+        if(timer.checkSecondsLast("depo",1)){
+            lifters.backDown();
+            depo.turn_off_deposit();
+        }
+
+
+
+
 
         telemetry.addData("intake on", intake.isIntakeOn());
         telemetry.addData("depo on", depo.isDepositOn());
