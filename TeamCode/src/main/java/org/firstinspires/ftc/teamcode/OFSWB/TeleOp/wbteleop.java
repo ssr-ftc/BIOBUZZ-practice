@@ -24,6 +24,8 @@ public class wbteleop extends OpMode {
     private lifters lifters;
     private double speedScale = 0.8;
 
+    private double xvelocity = -1000;
+
     private ElapsedTime shotTimer = new ElapsedTime();
     Timer timer;
     private int shotStep = 0;
@@ -90,24 +92,36 @@ public class wbteleop extends OpMode {
                 depo.turn_on_deposit();
             }
         }
-        if(gamepad2.crossWasPressed()){
-            depo.turn_on_deposit();
+        if (gamepad2.dpadUpWasPressed()){
+            xvelocity -= 100;
+        }
+        if (gamepad2.dpadDownWasPressed()){
+            xvelocity += 100;
+        }
+        if(gamepad2.crossWasPressed()){//start shooting
+            depo.set_target_velocity(xvelocity);
             timer.start("depo");
+
         }
         if(timer.checkSeconds("depo",0.5)){
+            lifters.rightUp();
+        }
+        if(timer.checkSeconds("depo",0.8)){
+            lifters.rightDown();
             lifters.backUp();
         }
-        if(timer.checkSecondsLast("depo",1)){
+        if(timer.checkSeconds("depo",1.1)){
             lifters.backDown();
+            lifters.leftUp();
+        }
+        if(timer.checkSecondsLast("depo",1.4)){
+            lifters.allDown();
             depo.turn_off_deposit();
         }
 
 
-
-
-
         telemetry.addData("intake on", intake.isIntakeOn());
         telemetry.addData("depo on", depo.isDepositOn());
-        telemetry.addData("shooting", shooting);
+        telemetry.addData("xvelocity", xvelocity);
     }
 }
