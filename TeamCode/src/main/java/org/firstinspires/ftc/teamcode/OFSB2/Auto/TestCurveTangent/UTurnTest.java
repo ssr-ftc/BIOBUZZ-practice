@@ -2,7 +2,6 @@ package org.firstinspires.ftc.teamcode.OFSB2.Auto.TestCurveTangent;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierCurve;
-import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
@@ -23,7 +22,7 @@ public class UTurnTest extends OpMode {
     private PathState pathState;
 
     private final Pose startingCoordinate = new Pose(102, 11, Math.toRadians(90)); //94, 10
-    private final Pose endingCoordinate = new Pose (47, 45, Math.toRadians(270)); //47, 45
+    private final Pose endingCoordinate = new Pose(47, 45, Math.toRadians(270)); //47, 45
 
     private PathChain start_finish;
 
@@ -34,10 +33,10 @@ public class UTurnTest extends OpMode {
         start_finish = follower.pathBuilder(precision)
                 .addPath(new BezierCurve(startingCoordinate,
                         new Pose(107, 128), //100,121
-                        new Pose (72, 135), // 81, 137
-                        new Pose (42 , 131), // 44, 132
+                        new Pose(72, 135), // 81, 137
+                        new Pose(42, 131), // 44, 132
                         endingCoordinate))
-                .setVelocityConstraint(30)
+                //.setVelocityConstraint(30)
                 .setTangentHeadingInterpolation()
                 .build();
     }
@@ -75,7 +74,7 @@ public class UTurnTest extends OpMode {
 
         buildPaths();
         follower.setPose(startingCoordinate);
-        
+
         pathState = PathState.START_TO_FINISH;
     }
 
@@ -98,4 +97,5 @@ public class UTurnTest extends OpMode {
         telemetry.addData("Path time", pathTimer.getElapsedTimeSeconds());
         telemetry.update();
     }
+
 }
