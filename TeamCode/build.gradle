@@ -26,4 +26,5 @@ android {
 dependencies {
     implementation project(':FtcRobotController')
     implementation 'com.github.IamAki123:EasyATL:1.2.2' //for github project trial
+    implementation 'com.github.IamAki123:EasyOBJD:1.0.2'
 }
