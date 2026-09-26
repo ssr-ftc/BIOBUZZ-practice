@@ -1,16 +1,18 @@
 package org.firstinspires.ftc.teamcode.OFSB2.Auto.OffSeason.TestCurveTangent;
 
-import com.pedropathing.math.Pose;
-import com.pedropathing.paths.Path;
-import com.pedropathing.api.Paths;
-import com.pedropathing.utils.Timer;
+import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.BezierCurve;
+import com.pedropathing.geometry.Pose;
+import com.pedropathing.paths.PathChain;
+import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import org.firstinspires.ftc.teamcode.OFSB2.Subsystems.CustomFollower;
+
+import org.firstinspires.ftc.teamcode.OFSB2.Auto.Constants;
 
 @Autonomous(name = "UTurnTest", group = "Autonomous")
 public class UTurnTest extends OpMode {
-    private CustomFollower follower;
+    private Follower follower;
     private Timer pathTimer, opModeTimer;
 
     public enum PathState {
@@ -20,40 +22,46 @@ public class UTurnTest extends OpMode {
 
     private PathState pathState;
 
-    private final Pose startingCoordinate = new Pose(102, 11, Math.toRadians(90)); //94, 10
-    private final Pose endingCoordinate = new Pose (47, 45, Math.toRadians(270)); //47, 45
+    private final Pose startingCoordinate = new Pose(102, 11, Math.toRadians(90));
+    private final Pose endingCoordinate = new Pose(47, 45, Math.toRadians(270));
 
-    private Path start_finish;
+    private PathChain start_finish;
 
     public void buildPaths() {
-        start_finish = com.pedropathing.api.Paths.curve(startingCoordinate,
-                        new Pose(107, 128, 0), //100,121
-                        new Pose (72, 135, 0), // 81, 137
-                        new Pose (42 , 131, 0), // 44, 132
-                        endingCoordinate)
-                .tangent();
+        start_finish = follower.pathBuilder()
+                .addPath(
+                        new BezierCurve(
+                                startingCoordinate,
+                                new Pose(107, 128),
+                                new Pose(72, 135),
+                                new Pose(42, 131),
+                                endingCoordinate
+                        )
+                )
+                .setTangentHeadingInterpolation()
+                .build();
     }
+
     public void statePathUpdate() {
         switch (pathState) {
             case START_TO_FINISH:
-                follower.autoAcceleration(0.7, 80.0);
-                follower.pedro.follow(start_finish);
+                follower.followPath(start_finish);
                 setPathState(PathState.DONE);
                 break;
             case DONE:
-                if (!follower.pedro.isBusy()) {
+                if (!follower.isBusy()) {
                     telemetry.addLine("finished it");
                 }
                 break;
             default:
-                telemetry.addLine("error somewehre in the code");
+                telemetry.addLine("error somewhere in the code");
                 break;
         }
     }
 
     public void setPathState(PathState newState) {
         pathState = newState;
-        pathTimer.reset();
+        pathTimer.resetTimer();
     }
 
     @Override
@@ -61,18 +69,17 @@ public class UTurnTest extends OpMode {
         pathTimer = new Timer();
         opModeTimer = new Timer();
 
-        follower = new CustomFollower(hardwareMap, telemetry);
-        follower.pedro.holdEnd.set(true);
+        follower = Constants.createFollower(hardwareMap);
 
         buildPaths();
-        follower.pedro.setPose(startingCoordinate);
+        follower.setPose(startingCoordinate);
 
         pathState = PathState.START_TO_FINISH;
     }
 
     @Override
     public void start() {
-        opModeTimer.reset();
+        opModeTimer.resetTimer();
         setPathState(pathState);
     }
 
@@ -82,12 +89,14 @@ public class UTurnTest extends OpMode {
         statePathUpdate();
 
         telemetry.addData("State", pathState);
-        telemetry.addData("T Value", follower.pedro.parametricCompletion());
-        Pose pose = follower.pedro.pose();
-        telemetry.addData("X", pose.x());
-        telemetry.addData("Y", pose.y());
-        telemetry.addData("Heading (Deg)", Math.toDegrees(pose.heading()));
-        telemetry.addData("Path time", pathTimer.seconds());
+        telemetry.addData("T Value", follower.getCurrentTValue());
+        Pose pose = follower.getPose();
+        if (pose != null) {
+            telemetry.addData("X", pose.getX());
+            telemetry.addData("Y", pose.getY());
+            telemetry.addData("Heading (Deg)", Math.toDegrees(pose.getHeading()));
+        }
+        telemetry.addData("Path time", pathTimer.getElapsedTimeSeconds());
         telemetry.update();
     }
 }

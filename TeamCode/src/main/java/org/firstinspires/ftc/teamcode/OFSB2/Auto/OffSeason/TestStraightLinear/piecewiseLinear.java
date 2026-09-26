@@ -1,18 +1,19 @@
 package org.firstinspires.ftc.teamcode.OFSB2.Auto.OffSeason.TestStraightLinear;
 
-import com.pedropathing.math.Pose;
-import com.pedropathing.paths.Path;
-import com.pedropathing.paths.interpolator.Interpolator;
-import com.pedropathing.utils.Timer;
+import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.BezierLine;
+import com.pedropathing.geometry.Pose;
+import com.pedropathing.paths.PathChain;
+import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
-import org.firstinspires.ftc.teamcode.OFSB2.Subsystems.CustomFollower;
+import org.firstinspires.ftc.teamcode.OFSB2.Auto.Constants;
 
 @Autonomous(name = "piecewiseLinear", group = "Autonomous")
 public class piecewiseLinear extends OpMode {
 
-    private CustomFollower follower;
+    private Follower follower;
     private Timer pathTimer, opModeTimer;
 
     public enum PathState {
@@ -23,42 +24,33 @@ public class piecewiseLinear extends OpMode {
 
     private PathState pathState;
 
-    private final Pose startingCoordinate =
-            new Pose(129, 13, Math.toRadians(135));
+    private final Pose startingCoordinate = new Pose(129, 13, Math.toRadians(135));
+    private final Pose path1complete = new Pose(13, 129, Math.toRadians(135));
 
-    private final Pose path1complete =
-            new Pose(13, 129, Math.toRadians(135));
-
-    private Path startFinish;
+    private PathChain startFinish;
 
     public void buildPaths() {
-        startFinish = com.pedropathing.api.Paths.line(startingCoordinate, path1complete)
-                .heading(Interpolator.piecewise().until(1, Interpolator.tangent));
+        startFinish = follower.pathBuilder()
+                .addPath(new BezierLine(startingCoordinate, path1complete))
+                .setTangentHeadingInterpolation()
+                .build();
     }
 
     public void statePathUpdate() {
         switch (pathState) {
             case START:
-                follower.pedro.follow(startFinish);
-
-                    follower.acceleration(0, 0.5, 0, 1);
-                    follower.acceleration(0.5, 1, 1, 0);
-
-                    setPathState(PathState.FOLLOWING);
-
-
+                follower.followPath(startFinish);
+                setPathState(PathState.FOLLOWING);
                 break;
 
             case FOLLOWING:
-
-                if (!follower.pedro.isBusy()) {
+                if (!follower.isBusy()) {
                     setPathState(PathState.DONE);
                 }
-
                 break;
 
             case DONE:
-                    telemetry.addLine("Fully Linear Piecewise Loop Finished!");
+                telemetry.addLine("Fully Linear Piecewise Loop Finished!");
                 break;
 
             default:
@@ -69,7 +61,7 @@ public class piecewiseLinear extends OpMode {
 
     public void setPathState(PathState newState) {
         pathState = newState;
-        pathTimer.reset();
+        pathTimer.resetTimer();
     }
 
     @Override
@@ -77,18 +69,17 @@ public class piecewiseLinear extends OpMode {
         pathTimer = new Timer();
         opModeTimer = new Timer();
 
-        follower = new CustomFollower(hardwareMap, telemetry);
-        follower.pedro.holdEnd.set(true);
+        follower = Constants.createFollower(hardwareMap);
 
         buildPaths();
-        follower.pedro.setPose(startingCoordinate);
+        follower.setPose(startingCoordinate);
 
         pathState = PathState.START;
     }
 
     @Override
     public void start() {
-        opModeTimer.reset();
+        opModeTimer.resetTimer();
         setPathState(pathState);
     }
 
@@ -98,15 +89,14 @@ public class piecewiseLinear extends OpMode {
         statePathUpdate();
 
         telemetry.addData("State", pathState);
-        telemetry.addData("T Value", follower.pedro.parametricCompletion());
-        Pose pose = follower.pedro.pose();
-        telemetry.addData("X", pose.x());
-        telemetry.addData("Y", pose.y());
-        telemetry.addData(
-                "Heading (Deg)",
-                Math.toDegrees(pose.heading())
-        );
-        telemetry.addData("Path time", pathTimer.seconds());
+        telemetry.addData("T Value", follower.getCurrentTValue());
+        Pose pose = follower.getPose();
+        if (pose != null) {
+            telemetry.addData("X", pose.getX());
+            telemetry.addData("Y", pose.getY());
+            telemetry.addData("Heading (Deg)", Math.toDegrees(pose.getHeading()));
+        }
+        telemetry.addData("Path time", pathTimer.getElapsedTimeSeconds());
         telemetry.update();
     }
 }

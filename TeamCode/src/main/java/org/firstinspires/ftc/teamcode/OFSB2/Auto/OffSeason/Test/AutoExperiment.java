@@ -1,19 +1,14 @@
 package org.firstinspires.ftc.teamcode.OFSB2.Auto.OffSeason.Test;
 
-import com.pedropathing.math.Pose;
-import com.pedropathing.paths.Path;
-import com.pedropathing.utils.Timer;
-import com.pedropathing.api.Paths;
+import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.BezierLine;
+import com.pedropathing.geometry.Pose;
+import com.pedropathing.paths.PathChain;
+import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
-import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
-import com.qualcomm.robotcore.hardware.NormalizedRGBA;
-import com.qualcomm.robotcore.hardware.PIDFCoefficients;
-
 import org.firstinspires.ftc.teamcode.OFSB2.Auto.Constants;
-import org.firstinspires.ftc.teamcode.OFSB2.Subsystems.CustomFollower;
 
 @Autonomous(name = "AutoExperiment", group = "Autonomous")
 public class AutoExperiment extends OpMode {
@@ -22,13 +17,7 @@ public class AutoExperiment extends OpMode {
     boolean pathStarted;
     boolean pathsBuilt = false;
 
-    // --- MECHANISM HARDWARE ACTIVE (COMMENTED OUT) ---
-    // DcMotorEx shooter;
-    // DcMotor intake;
-    // DcMotorEx leftPusher;
-    // DcMotorEx rightPusher;
-
-    CustomFollower follower;
+    Follower follower;
     Timer pathTimer;
     Timer timer;
     StateMachine pathState;
@@ -52,7 +41,7 @@ public class AutoExperiment extends OpMode {
     private Pose preloadPose2, intakePose2, buffer, launchPose2;
     private Pose preloadPose3, intakePose3, launchPose3;
     private Pose finishPose;
-    private Path driveStartPosShootPos, shootToPrePickup, INTAKE,
+    private PathChain driveStartPosShootPos, shootToPrePickup, INTAKE,
             LAUNCH_PICKUP_1, SHOOT_TO_PREPICKUP2, INTAKEPOS2,
             Buffer, LAUNCHPOSE2, PRELOADPOSE3,
             INTAKEPOSE3, LAUNCHPOSE3, FINISH;
@@ -61,13 +50,9 @@ public class AutoExperiment extends OpMode {
     public void init() {
         pathState = StateMachine.DRIVE_STARPOS_SHOOT_POS;
 
-        follower = new CustomFollower(hardwareMap, telemetry);
-        follower.pedro.holdEnd.set(true);
+        follower = Constants.createFollower(hardwareMap);
         pathTimer = new Timer();
-        timer = new Timer(); // Kept for pathing
-
-        // --- MECHANISM MAPPING ACTIVE (COMMENTED OUT) ---
-        // ... (Skipped mechanism init for brevity, same as your code) ...
+        timer = new Timer();
 
         pathStarted = false;
     }
@@ -81,30 +66,24 @@ public class AutoExperiment extends OpMode {
 
     @Override
     public void loop() {
-        // This stays follower.update() because CustomFollower handles it
         follower.update();
         statePathUpdate();
 
-        // handleIntake(); // Sensor / Intake logic active (COMMENTED OUT)
-
         telemetry.addData("STATE", pathState);
 
-        // ADDED .pedro HERE
-        Pose pose = follower.pedro.pose();
+        Pose pose = follower.getPose();
         if (pose != null) {
-            telemetry.addData("x", pose.x());
-            telemetry.addData("y", pose.y());
-            telemetry.addData("heading", pose.heading());
+            telemetry.addData("x", pose.getX());
+            telemetry.addData("y", pose.getY());
+            telemetry.addData("heading", pose.getHeading());
         }
 
-        // ADDED .pedro HERE
-        telemetry.addData("followerBusy", follower.pedro.isBusy());
-        telemetry.addData("pathTimer", pathTimer.seconds());
-        telemetry.addData("Timer", timer.seconds());
+        telemetry.addData("followerBusy", follower.isBusy());
+        telemetry.addData("pathTimer", pathTimer.getElapsedTimeSeconds());
+        telemetry.addData("Timer", timer.getElapsedTimeSeconds());
         telemetry.update();
     }
 
-    /* ---------------- INITIALIZE POSES ---------------- */
     private void InitializePoseValues() {
         if (gamepad1.y) {
             InitializePoseValues_GamePad_Y();
@@ -131,8 +110,7 @@ public class AutoExperiment extends OpMode {
 
         buildPaths();
 
-        // ADDED .pedro HERE
-        follower.pedro.setPose(startPose);
+        follower.setPose(startPose);
         pathsBuilt = true;
     }
 
@@ -201,58 +179,78 @@ public class AutoExperiment extends OpMode {
     }
 
     private void buildPaths() {
-        // 0. Common Path: Start -> Shoot Preloads
-        driveStartPosShootPos = Paths.line(startPose, shootPose)
-                .linear(startPose.heading(), shootPose.heading());
+        driveStartPosShootPos = follower.pathBuilder()
+                .addPath(new BezierLine(startPose, shootPose))
+                .setLinearHeadingInterpolation(startPose.getHeading(), shootPose.getHeading())
+                .build();
 
         if (selectedGamePadY || selectedGamePadB) {
-            // 2. First Ball -> Shoot
-            INTAKE = Paths.line(shootPose, intakePose)
-                    .linear(shootPose.heading(), intakePose.heading());
+            INTAKE = follower.pathBuilder()
+                    .addPath(new BezierLine(shootPose, intakePose))
+                    .setLinearHeadingInterpolation(shootPose.getHeading(), intakePose.getHeading())
+                    .build();
 
-            // 3. Shoot -> Second Ball
-            LAUNCH_PICKUP_1 = Paths.line(intakePose, launchPose1)
-                    .linear(intakePose.heading(), launchPose1.heading());
+            LAUNCH_PICKUP_1 = follower.pathBuilder()
+                    .addPath(new BezierLine(intakePose, launchPose1))
+                    .setLinearHeadingInterpolation(intakePose.getHeading(), launchPose1.getHeading())
+                    .build();
 
-            // 5. Shoot -> Third Ball
-            SHOOT_TO_PREPICKUP2 = Paths.line(launchPose1, preloadPose2)
-                    .linear(launchPose1.heading(), preloadPose2.heading());
+            SHOOT_TO_PREPICKUP2 = follower.pathBuilder()
+                    .addPath(new BezierLine(launchPose1, preloadPose2))
+                    .setLinearHeadingInterpolation(launchPose1.getHeading(), preloadPose2.getHeading())
+                    .build();
 
-            INTAKEPOS2 = Paths.line(preloadPose2, intakePose2)
-                    .linear(preloadPose2.heading(), intakePose2.heading());
+            INTAKEPOS2 = follower.pathBuilder()
+                    .addPath(new BezierLine(preloadPose2, intakePose2))
+                    .setLinearHeadingInterpolation(preloadPose2.getHeading(), intakePose2.getHeading())
+                    .build();
 
-            Buffer = Paths.line(intakePose2, buffer)
-                    .linear(intakePose2.heading(), buffer.heading());
+            Buffer = follower.pathBuilder()
+                    .addPath(new BezierLine(intakePose2, buffer))
+                    .setLinearHeadingInterpolation(intakePose2.getHeading(), buffer.getHeading())
+                    .build();
 
-            LAUNCHPOSE2 = Paths.line(buffer, launchPose2)
-                    .linear(buffer.heading(), launchPose2.heading());
+            LAUNCHPOSE2 = follower.pathBuilder()
+                    .addPath(new BezierLine(buffer, launchPose2))
+                    .setLinearHeadingInterpolation(buffer.getHeading(), launchPose2.getHeading())
+                    .build();
 
-            PRELOADPOSE3 = Paths.line(launchPose2, preloadPose3)
-                    .linear(launchPose2.heading(), preloadPose3.heading());
+            PRELOADPOSE3 = follower.pathBuilder()
+                    .addPath(new BezierLine(launchPose2, preloadPose3))
+                    .setLinearHeadingInterpolation(launchPose2.getHeading(), preloadPose3.getHeading())
+                    .build();
 
-            INTAKEPOSE3 = Paths.line(preloadPose3, intakePose3)
-                    .linear(preloadPose3.heading(), intakePose3.heading());
+            INTAKEPOSE3 = follower.pathBuilder()
+                    .addPath(new BezierLine(preloadPose3, intakePose3))
+                    .setLinearHeadingInterpolation(preloadPose3.getHeading(), intakePose3.getHeading())
+                    .build();
 
-            LAUNCHPOSE3 = Paths.line(intakePose3, launchPose3)
-                    .linear(intakePose3.heading(), launchPose3.heading());
+            LAUNCHPOSE3 = follower.pathBuilder()
+                    .addPath(new BezierLine(intakePose3, launchPose3))
+                    .setLinearHeadingInterpolation(intakePose3.getHeading(), launchPose3.getHeading())
+                    .build();
 
-            FINISH = Paths.line(launchPose3, finishPose)
-                    .linear(launchPose3.heading(), finishPose.heading());
+            FINISH = follower.pathBuilder()
+                    .addPath(new BezierLine(launchPose3, finishPose))
+                    .setLinearHeadingInterpolation(launchPose3.getHeading(), finishPose.getHeading())
+                    .build();
 
         } else {
-            FINISH = Paths.line(shootPose, finishPose)
-                    .linear(shootPose.heading(), finishPose.heading());
+            FINISH = follower.pathBuilder()
+                    .addPath(new BezierLine(shootPose, finishPose))
+                    .setLinearHeadingInterpolation(shootPose.getHeading(), finishPose.getHeading())
+                    .build();
         }
     }
 
     private void statePathUpdate() {
         switch (pathState) {
             case DRIVE_STARPOS_SHOOT_POS:
-                timer.reset();
+                timer.resetTimer();
                 boolean isSmallTriangle = !selectedGamePadY && !selectedGamePadB;
                 startPath(driveStartPosShootPos);
 
-                if (!follower.pedro.isBusy()) {
+                if (!follower.isBusy()) {
                     if (isSmallTriangle) {
                         setPathState(StateMachine.FINISH);
                     } else {
@@ -263,70 +261,70 @@ public class AutoExperiment extends OpMode {
 
             case SHOOT_TO_PREPICKUP:
                 startPath(shootToPrePickup);
-                if (!follower.pedro.isBusy()) {
+                if (!follower.isBusy()) {
                     setPathState(StateMachine.INTAKE);
                 }
                 break;
 
             case INTAKE:
                 startPath(INTAKE);
-                if (!follower.pedro.isBusy()) {
+                if (!follower.isBusy()) {
                     setPathState(StateMachine.LAUNCH_PICKUP_1);
                 }
                 break;
 
             case LAUNCH_PICKUP_1:
                 startPath(LAUNCH_PICKUP_1);
-                if (!follower.pedro.isBusy()) {
+                if (!follower.isBusy()) {
                     setPathState(StateMachine.SHOOT_TO_PREPICKUP2);
                 }
                 break;
 
             case SHOOT_TO_PREPICKUP2:
                 startPath(SHOOT_TO_PREPICKUP2);
-                if (!follower.pedro.isBusy()) {
+                if (!follower.isBusy()) {
                     setPathState(StateMachine.INTAKE2);
                 }
                 break;
 
             case INTAKE2:
                 startPath(INTAKEPOS2);
-                if (!follower.pedro.isBusy()) {
+                if (!follower.isBusy()) {
                     setPathState(StateMachine.BUFFER);
                 }
                 break;
 
             case BUFFER:
                 startPath(Buffer);
-                if (!follower.pedro.isBusy()) {
+                if (!follower.isBusy()) {
                     setPathState(StateMachine.LAUNCH_PICKUP_2);
                 }
                 break;
 
             case LAUNCH_PICKUP_2:
                 startPath(LAUNCHPOSE2);
-                if (!follower.pedro.isBusy()) {
+                if (!follower.isBusy()) {
                     setPathState(StateMachine.SHOOT_TO_PREPICKUP3);
                 }
                 break;
 
             case SHOOT_TO_PREPICKUP3:
                 startPath(PRELOADPOSE3);
-                if (!follower.pedro.isBusy()) {
+                if (!follower.isBusy()) {
                     setPathState(StateMachine.INTAKE3);
                 }
                 break;
 
             case INTAKE3:
                 startPath(INTAKEPOSE3);
-                if (!follower.pedro.isBusy()) {
+                if (!follower.isBusy()) {
                     setPathState(StateMachine.LAUNCH_PICKUP_3);
                 }
                 break;
 
             case LAUNCH_PICKUP_3:
                 startPath(LAUNCHPOSE3);
-                if (!follower.pedro.isBusy()) {
+                if (!follower.isBusy()) {
                     setPathState(StateMachine.FINISH);
                 }
                 break;
@@ -341,17 +339,17 @@ public class AutoExperiment extends OpMode {
         }
     }
 
-    private void startPath(Path path) {
-        if (!pathStarted) {
-            follower.pedro.follow(path);
+    private void startPath(PathChain path) {
+        if (!pathStarted && path != null) {
+            follower.followPath(path);
             pathStarted = true;
-            pathTimer.reset();
+            pathTimer.resetTimer();
         }
     }
 
     private void setPathState(StateMachine newState) {
         pathState = newState;
         pathStarted = false;
-        pathTimer.reset();
+        pathTimer.resetTimer();
     }
 }

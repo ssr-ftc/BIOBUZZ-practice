@@ -2,14 +2,16 @@ package org.firstinspires.ftc.teamcode.OFSB2.Auto.OffSeason.Test;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
-import com.pedropathing.math.Pose;
-import com.pedropathing.paths.Path;
-import com.pedropathing.utils.Timer;
-import com.pedropathing.api.Paths;
+import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.BezierCurve;
+import com.pedropathing.geometry.BezierLine;
+import com.pedropathing.geometry.Pose;
+import com.pedropathing.paths.PathChain;
+import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
-import org.firstinspires.ftc.teamcode.OFSB2.Subsystems.CustomFollower;
+import org.firstinspires.ftc.teamcode.OFSB2.Auto.Constants;
 
 @Autonomous(name = "AutoExperimentCurve", group = "Autonomous")
 public class AutoExperimentCurve extends OpMode {
@@ -18,7 +20,7 @@ public class AutoExperimentCurve extends OpMode {
     boolean pathStarted;
     boolean pathsBuilt = false;
 
-    CustomFollower follower;
+    Follower follower;
     Timer pathTimer;
     Timer timer;
     StateMachine pathState;
@@ -37,7 +39,7 @@ public class AutoExperimentCurve extends OpMode {
     }
 
     private Pose startPose, shootPose, intakePose, launchPose1, intakePose2, launchPose2, intakePose3, launchPose3, gatePose, launchGatePose, finishPose;
-    private Path driveStartPosShootPos, INTAKE,
+    private PathChain driveStartPosShootPos, INTAKE,
             LAUNCH_PICKUP_1, INTAKEPOSE2, LAUNCHPOSE2,
             INTAKEPOSE3, LAUNCHPOSE3, GATEPOSE, LAUNCHGATEPOSE, FINISH;
 
@@ -48,8 +50,7 @@ public class AutoExperimentCurve extends OpMode {
 
         pathState = StateMachine.DRIVE_STARPOS_SHOOT_POS;
 
-        follower = new CustomFollower(hardwareMap, telemetry);
-        follower.pedro.holdEnd.set(true);
+        follower = Constants.createFollower(hardwareMap);
         pathTimer = new Timer();
         timer = new Timer();
 
@@ -72,16 +73,16 @@ public class AutoExperimentCurve extends OpMode {
 
         telemetry.addData("STATE", pathState);
 
-        Pose pose = follower.pedro.pose();
+        Pose pose = follower.getPose();
         if (pose != null) {
-            telemetry.addData("x", pose.x());
-            telemetry.addData("y", pose.y());
-            telemetry.addData("heading", pose.heading());
+            telemetry.addData("x", pose.getX());
+            telemetry.addData("y", pose.getY());
+            telemetry.addData("heading", pose.getHeading());
         }
 
-        telemetry.addData("followerBusy", follower.pedro.isBusy());
-        telemetry.addData("pathTimer", pathTimer.seconds());
-        telemetry.addData("Timer", timer.seconds());
+        telemetry.addData("followerBusy", follower.isBusy());
+        telemetry.addData("pathTimer", pathTimer.getElapsedTimeSeconds());
+        telemetry.addData("Timer", timer.getElapsedTimeSeconds());
 
         telemetry.update();
     }
@@ -108,7 +109,7 @@ public class AutoExperimentCurve extends OpMode {
 
         buildPaths();
 
-        follower.pedro.setPose(startPose);
+        follower.setPose(startPose);
         pathsBuilt = true;
     }
 
@@ -166,51 +167,73 @@ public class AutoExperimentCurve extends OpMode {
     }
 
     private void buildPaths() {
-        driveStartPosShootPos = Paths.line(startPose, shootPose)
-                .linear(startPose.heading(), shootPose.heading());
+        driveStartPosShootPos = follower.pathBuilder()
+                .addPath(new BezierLine(startPose, shootPose))
+                .setLinearHeadingInterpolation(startPose.getHeading(), shootPose.getHeading())
+                .build();
 
         if (selectedGamePadY || selectedGamePadB) {
-            INTAKE = Paths.line(shootPose, intakePose)
-                    .linear(shootPose.heading(), intakePose.heading());
+            INTAKE = follower.pathBuilder()
+                    .addPath(new BezierLine(shootPose, intakePose))
+                    .setLinearHeadingInterpolation(shootPose.getHeading(), intakePose.getHeading())
+                    .build();
 
-            LAUNCH_PICKUP_1 = Paths.line(intakePose, launchPose1)
-                    .linear(intakePose.heading(), launchPose1.heading());
+            LAUNCH_PICKUP_1 = follower.pathBuilder()
+                    .addPath(new BezierLine(intakePose, launchPose1))
+                    .setLinearHeadingInterpolation(intakePose.getHeading(), launchPose1.getHeading())
+                    .build();
 
-            INTAKEPOSE2 = Paths.curve(launchPose1, new Pose(40.4777, 70.7287), intakePose2)
-                    .linear(launchPose1.heading(), intakePose2.heading());
+            INTAKEPOSE2 = follower.pathBuilder()
+                    .addPath(new BezierCurve(launchPose1, new Pose(40.4777, 70.7287), intakePose2))
+                    .setLinearHeadingInterpolation(launchPose1.getHeading(), intakePose2.getHeading())
+                    .build();
 
-            LAUNCHPOSE2 = Paths.curve(intakePose2, new Pose(40.4777, 58.7287), launchPose2)
-                    .linear(intakePose2.heading(), launchPose2.heading());
+            LAUNCHPOSE2 = follower.pathBuilder()
+                    .addPath(new BezierCurve(intakePose2, new Pose(40.4777, 58.7287), launchPose2))
+                    .setLinearHeadingInterpolation(intakePose2.getHeading(), launchPose2.getHeading())
+                    .build();
 
-            INTAKEPOSE3 = Paths.curve(launchPose2, new Pose(45.7339, 52.5583), intakePose3)
-                    .linear(launchPose2.heading(), intakePose3.heading());
+            INTAKEPOSE3 = follower.pathBuilder()
+                    .addPath(new BezierCurve(launchPose2, new Pose(45.7339, 52.5583), intakePose3))
+                    .setLinearHeadingInterpolation(launchPose2.getHeading(), intakePose3.getHeading())
+                    .build();
 
-            LAUNCHPOSE3 = Paths.curve(intakePose3, new Pose(45.7339, 34.5583), launchPose3)
-                    .linear(intakePose3.heading(), launchPose3.heading());
+            LAUNCHPOSE3 = follower.pathBuilder()
+                    .addPath(new BezierCurve(intakePose3, new Pose(45.7339, 34.5583), launchPose3))
+                    .setLinearHeadingInterpolation(intakePose3.getHeading(), launchPose3.getHeading())
+                    .build();
 
-            GATEPOSE = Paths.line(launchPose3, gatePose)
-                    .linear(launchPose3.heading(), gatePose.heading());
+            GATEPOSE = follower.pathBuilder()
+                    .addPath(new BezierLine(launchPose3, gatePose))
+                    .setLinearHeadingInterpolation(launchPose3.getHeading(), gatePose.getHeading())
+                    .build();
 
-            LAUNCHGATEPOSE = Paths.line(gatePose, launchGatePose)
-                    .linear(gatePose.heading(), launchGatePose.heading());
+            LAUNCHGATEPOSE = follower.pathBuilder()
+                    .addPath(new BezierLine(gatePose, launchGatePose))
+                    .setLinearHeadingInterpolation(gatePose.getHeading(), launchGatePose.getHeading())
+                    .build();
 
-            FINISH = Paths.line(gatePose, finishPose)
-                    .linear(launchPose3.heading(), finishPose.heading());
+            FINISH = follower.pathBuilder()
+                    .addPath(new BezierLine(gatePose, finishPose))
+                    .setLinearHeadingInterpolation(launchPose3.getHeading(), finishPose.getHeading())
+                    .build();
 
         } else {
-            FINISH = Paths.line(shootPose, finishPose)
-                    .linear(shootPose.heading(), finishPose.heading());
+            FINISH = follower.pathBuilder()
+                    .addPath(new BezierLine(shootPose, finishPose))
+                    .setLinearHeadingInterpolation(shootPose.getHeading(), finishPose.getHeading())
+                    .build();
         }
     }
 
     private void statePathUpdate() {
         switch (pathState) {
             case DRIVE_STARPOS_SHOOT_POS:
-                timer.reset();
+                timer.resetTimer();
                 boolean isSmallTriangle = !selectedGamePadY && !selectedGamePadB;
                 startPath(driveStartPosShootPos);
 
-                if (!follower.pedro.isBusy()) {
+                if (!follower.isBusy()) {
                     if (isSmallTriangle) {
                         setPathState(StateMachine.FINISH);
                     } else {
@@ -221,56 +244,56 @@ public class AutoExperimentCurve extends OpMode {
 
             case INTAKE:
                 startPath(INTAKE);
-                if (!follower.pedro.isBusy()) {
+                if (!follower.isBusy()) {
                     setPathState(StateMachine.LAUNCH_PICKUP_1);
                 }
                 break;
 
             case LAUNCH_PICKUP_1:
                 startPath(LAUNCH_PICKUP_1);
-                if (!follower.pedro.isBusy()) {
+                if (!follower.isBusy()) {
                     setPathState(StateMachine.INTAKE2);
                 }
                 break;
 
             case INTAKE2:
                 startPath(INTAKEPOSE2);
-                if (!follower.pedro.isBusy()) {
+                if (!follower.isBusy()) {
                     setPathState(StateMachine.LAUNCH_PICKUP_2);
                 }
                 break;
 
             case LAUNCH_PICKUP_2:
                 startPath(LAUNCHPOSE2);
-                if (!follower.pedro.isBusy()) {
+                if (!follower.isBusy()) {
                     setPathState(StateMachine.INTAKE3);
                 }
                 break;
 
             case INTAKE3:
                 startPath(INTAKEPOSE3);
-                if (!follower.pedro.isBusy()) {
+                if (!follower.isBusy()) {
                     setPathState(StateMachine.LAUNCH_PICKUP_3);
                 }
                 break;
 
             case LAUNCH_PICKUP_3:
                 startPath(LAUNCHPOSE3);
-                if (!follower.pedro.isBusy()) {
+                if (!follower.isBusy()) {
                     setPathState(StateMachine.GATE);
                 }
                 break;
 
             case GATE:
                 startPath(GATEPOSE);
-                if (!follower.pedro.isBusy()) {
+                if (!follower.isBusy()) {
                     setPathState(StateMachine.LAUNCH_GATE);
                 }
                 break;
 
             case LAUNCH_GATE:
                 startPath(LAUNCHGATEPOSE);
-                if (!follower.pedro.isBusy()) {
+                if (!follower.isBusy()) {
                     setPathState(StateMachine.FINISH);
                 }
                 break;
@@ -285,17 +308,17 @@ public class AutoExperimentCurve extends OpMode {
         }
     }
 
-    private void startPath(Path path) {
-        if (!pathStarted) {
-            follower.pedro.follow(path);
+    private void startPath(PathChain path) {
+        if (!pathStarted && path != null) {
+            follower.followPath(path);
             pathStarted = true;
-            pathTimer.reset();
+            pathTimer.resetTimer();
         }
     }
 
     private void setPathState(StateMachine newState) {
         pathState = newState;
         pathStarted = false;
-        pathTimer.reset();
+        pathTimer.resetTimer();
     }
 }
