@@ -1,7 +1,7 @@
 package org.firstinspires.ftc.teamcode.OFSB2.Auto.OffSeason.Test;
 
-import com.acmerobotics.dashboard.FtcDashboard;
-import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
+import com.bylazar.telemetry.JoinedTelemetry;
+import com.bylazar.telemetry.PanelsTelemetry;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
@@ -45,8 +45,7 @@ public class AutoExperimentWithTangentLine extends OpMode {
 
     @Override
     public void init() {
-        telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
-        FtcDashboard.getInstance().setTelemetryTransmissionInterval(25);
+        telemetry = new JoinedTelemetry(telemetry, PanelsTelemetry.INSTANCE.getFtcTelemetry());
 
         pathState = StateMachine.DRIVE_STARPOS_SHOOT_POS;
 
