@@ -10,7 +10,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 import org.firstinspires.ftc.teamcode.OFSB2.Auto.Constants;
 
-@Autonomous(name = "piecewiseLinear", group = "Autonomous")
+@Autonomous(name = "piecewiseLinear OffSeason", group = "Autonomous")
 public class piecewiseLinear extends OpMode {
 
     private Follower follower;
