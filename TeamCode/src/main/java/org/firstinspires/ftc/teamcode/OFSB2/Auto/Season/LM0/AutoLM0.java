@@ -84,34 +84,36 @@ public class AutoLM0 extends OpMode {
 
     private void handleDriveToShoot() {
         follower.followPath(startToShoot, true);
-        setAutoState(AutoState.SHOOTTOSAMPLE1);
+        if (!follower.isBusy()) {
+            setAutoState(AutoState.SHOOTTOSAMPLE1);
+        }
     }
 
     private void handleShootToSample1() {
-        if (!follower.isBusy()) {
             follower.followPath(shootToSample1, true);
-            setAutoState(AutoState.SAMPLE1TOSHOOT2);
+            if (!follower.isBusy()) {
+                setAutoState(AutoState.SAMPLE1TOSHOOT2);
         }
     }
 
     private void handleSample1ToShoot2() {
-        if (!follower.isBusy()) {
             follower.followPath(sample1Toshoot2, true);
-            setAutoState(AutoState.SHOOT2TOSAMPLE2);
+            if (!follower.isBusy()) {
+                setAutoState(AutoState.SHOOT2TOSAMPLE2);
         }
     }
 
     private void handleShoot2ToSample2() {
-        if (!follower.isBusy()) {
             follower.followPath(shoot2ToSample2, true);
-            setAutoState(AutoState.SAMPLE2TOSHOOT3);
+            if (!follower.isBusy()) {
+                setAutoState(AutoState.SAMPLE2TOSHOOT3);
         }
     }
 
     private void handleSample2ToShoot3() {
-        if (!follower.isBusy()) {
             follower.followPath(sample2ToShoot3, true);
-            setAutoState(AutoState.DONE);
+            if (!follower.isBusy()) {
+                setAutoState(AutoState.DONE);
         }
     }
 
@@ -147,8 +149,7 @@ public class AutoLM0 extends OpMode {
                 .addPath(shootToSampleCurve)
                 .setHeadingInterpolation(HeadingInterpolator.piecewise(
                         new HeadingInterpolator.PiecewiseNode(0.0, 0.86, HeadingInterpolator.tangent),
-                        new HeadingInterpolator.PiecewiseNode(0.86, 1.0, HeadingInterpolator.linear(tangentAt086, Math.toRadians(-50)))
-                ))
+                        new HeadingInterpolator.PiecewiseNode(0.86, 1.0, HeadingInterpolator.linear(tangentAt086, Math.toRadians(-50)))))
                 .build();
 
         BezierCurve sample1ToShoot2Curve = new BezierCurve(sample1, new Pose(121.20243902439023, 41.75365853658536, 0), new Pose(85.65365853658535, 23.400000000000002, 0), shoot2);
@@ -164,8 +165,7 @@ public class AutoLM0 extends OpMode {
                 .addPath(shoot2ToSample2Line)
                 .setHeadingInterpolation(HeadingInterpolator.piecewise(
                         new HeadingInterpolator.PiecewiseNode(0.0, 0.5, HeadingInterpolator.linear(shoot2StartHeading, 0)),
-                        new HeadingInterpolator.PiecewiseNode(0.5, 1.0, HeadingInterpolator.linear(0, shoot2LineEndHeading))
-                ))
+                        new HeadingInterpolator.PiecewiseNode(0.5, 1.0, HeadingInterpolator.linear(0, shoot2LineEndHeading))))
                 .build();
 
         sample2ToShoot3 = follower.pathBuilder()
