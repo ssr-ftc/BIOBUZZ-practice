@@ -131,6 +131,12 @@ public class AprilTagWebcam {
         return null;
     }
 
+    public void setDecimation(float decimation) {
+        if (aprilTagProcessor != null) {
+            aprilTagProcessor.setDecimation(decimation);
+        }
+    }
+
     public void stop() {
         if (visionPortal != null) {
             visionPortal.close();
