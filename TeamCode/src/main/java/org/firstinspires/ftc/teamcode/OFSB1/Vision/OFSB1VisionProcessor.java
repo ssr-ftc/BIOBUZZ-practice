@@ -14,6 +14,32 @@ import org.openftc.easyopencv.OpenCvPipeline;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Detects POLLEN balls - the official 2026-27 BIOBUZZ scoring element
+ * (AndyMark am-5851: yellow, 2.8in +/- 0.1in diameter, 0.055 lbs, material
+ * similar to the DECODE-era Artifacts) - using HSV color thresholding +
+ * contour analysis. NOTE: it is not confirmed whether the official Pollen
+ * ball has surface holes the way earlier practice balls did; the
+ * hole-filling step below is harmless either way, since it's a no-op on a
+ * solid ball.
+ *
+ * Detections are published sorted left-to-right (Ball #1 = leftmost).
+ *
+ * NOTE: the Hough-circle "splitter" that used to pull apart merged/occluded
+ * blobs has been removed. Every blob is now scored with plain contour math
+ * (circularity + fill ratio) and accepted or rejected as a single ball. This
+ * means two touching/overlapping balls will now register as ONE (probably
+ * bad) detection instead of two - if that matters for your game, the
+ * splitter is the piece to bring back.
+ *
+ * IMPORTANT: The HSV range below is a reasonable starting point for bright
+ * yellow plastic under typical indoor gym lighting - it is NOT an official
+ * published spec (FIRST/AndyMark only publish "Color: Yellow", not a
+ * Pantone/HSV/RGB value, and manufacturing/lighting variance would make a
+ * fixed number unreliable anyway). Tune it with FTC Dashboard/Panels
+ * against a real Pollen ball under your actual field lighting rather than
+ * trusting these numbers blind.
+ */
 public class OFSB1VisionProcessor extends OpenCvPipeline {
 
     public enum ArtifactColor { YELLOW }
@@ -105,6 +131,7 @@ public class OFSB1VisionProcessor extends OpenCvPipeline {
 
     // Working mats (allocated once, reused every frame - avoids GC churn)
     private final Mat blurred = new Mat();
+    private final Mat rgbMat = new Mat();
     private final Mat hsvMat = new Mat();
     private final Mat yellowMask = new Mat();
     private final Mat morphKernel = Imgproc.getStructuringElement(
@@ -123,7 +150,18 @@ public class OFSB1VisionProcessor extends OpenCvPipeline {
             // Blur before thresholding - reduces mask noise/speckling that
             // otherwise fragments a single ball into multiple small blobs.
             Imgproc.GaussianBlur(input, blurred, new Size(7, 7), 0);
-            Imgproc.cvtColor(blurred, hsvMat, Imgproc.COLOR_RGB2HSV);
+            // EasyOpenCV hands processFrame() a 4-channel RGBA Mat, not
+            // 3-channel RGB (this differs from desktop/OpenCV-Python,
+            // which is BGR). OpenCV has no single "RGBA2HSV" conversion
+            // code, so this has to go through an intermediate step: drop
+            // the alpha channel (RGBA2RGB) before converting to HSV
+            // (RGB2HSV). Skipping the first step and calling COLOR_RGB2HSV
+            // directly on a 4-channel Mat throws a channel-count assertion
+            // on every frame - silently caught below and stashed in
+            // lastError - meaning the mask, and every detection, never got
+            // built at all.
+            Imgproc.cvtColor(blurred, rgbMat, Imgproc.COLOR_RGBA2RGB);
+            Imgproc.cvtColor(rgbMat, hsvMat, Imgproc.COLOR_RGB2HSV);
             Core.inRange(hsvMat, yellowLower, yellowUpper, yellowMask);
 
             // OPEN (erode->dilate) clears small noise specks.
