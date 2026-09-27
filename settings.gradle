@@ -1,2 +1,4 @@
 include ':FtcRobotController'
 include ':TeamCode'
+// Local EasyATL module is disabled while testing JitPack:
+// include ':EasyATL'
