@@ -10,7 +10,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 import org.firstinspires.ftc.teamcode.OFSB2.Auto.Constants;
 
-@Autonomous(name = "UTurnTest", group = "Autonomous")
+@Autonomous(name = "UTurnTest OffSeason", group = "Autonomous")
 public class UTurnTest extends OpMode {
     private Follower follower;
     private Timer pathTimer, opModeTimer;
