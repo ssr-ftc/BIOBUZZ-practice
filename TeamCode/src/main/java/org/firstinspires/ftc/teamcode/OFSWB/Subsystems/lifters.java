@@ -39,48 +39,10 @@ public class lifters {
         timer.reset();
         leftUp();
     }
-
-    // Call this every loop() cycle. It checks elapsed time and advances the
-    // sequence step by step, without blocking anything else.
-    public void update() {
-        if (!sequenceRunning) return;
-
-        if (sequenceStep == 1 && timer.seconds() >= UP_HOLD_SECONDS) {
-            leftDown();
-            sequenceStep = 2;
-            timer.reset();
-        } else if (sequenceStep == 2 && timer.seconds() >= DOWN_WAIT_SECONDS) {
-            backUp();
-            sequenceStep = 3;
-            timer.reset();
-        } else if (sequenceStep == 3 && timer.seconds() >= UP_HOLD_SECONDS) {
-            backDown();
-            sequenceStep = 4;
-            timer.reset();
-        } else if (sequenceStep == 4 && timer.seconds() >= DOWN_WAIT_SECONDS) {
-            rightUp();
-            sequenceStep = 5;
-            timer.reset();
-        } else if (sequenceStep == 5 && timer.seconds() >= UP_HOLD_SECONDS) {
-            rightDown();
-            sequenceStep = 6;
-            timer.reset();
-        } else if (sequenceStep == 6 && timer.seconds() >= DOWN_WAIT_SECONDS) {
-            sequenceRunning = false;
-            sequenceStep = 0;
-        }
-    }
-
-    public boolean isSequenceRunning() {
-        return sequenceRunning;
-    }
-
     public void allDown() {
         leftDown();
         backDown();
         rightDown();
-        sequenceRunning = false;
-        sequenceStep = 0;
     }
 
     public void leftUp() { liftLeft.setPosition(LEFT_UP); }
@@ -89,5 +51,32 @@ public class lifters {
     public void backDown() { liftBack.setPosition(BACK_DOWN); }
     public void rightUp() { liftRight.setPosition(RIGHT_UP); }
     public void rightDown() { liftRight.setPosition(RIGHT_DOWN); }
+    public boolean leftisup(){
+        if (liftLeft.getPosition()>(LEFT_UP-0.1)){
+            return true;
+        }
+        else{
+            return false;
+        }
+    }
+    public boolean backisup(){
+        if (liftBack.getPosition()>BACK_UP-0.1){
+            return true;
+        }
+        else{
+            return false;
+        }
+    }
+    public boolean rightisup(){
+        if (liftRight.getPosition()>RIGHT_UP-0.1){
+            return true;
+        }
+        else{
+            return false;
+        }
+    }
 }
+
+
+
 //hi
