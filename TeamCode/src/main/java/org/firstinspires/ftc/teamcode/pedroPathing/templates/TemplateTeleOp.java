@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.templates;
 
+import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.follower;
+
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -7,23 +9,19 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
-/**
- * Template iterative TeleOp using PedroPathing-style lifecycle methods.
- *
- * This uses init(), init_loop(), start(), loop(), and stop() instead of LinearOpMode.
- */
+
 @TeleOp(name = "Template Pedro TeleOp", group = "Templates")
 public class TemplateTeleOp extends OpMode {
 
-//    private Follower follower;//this is pedropathing follower
+    private Follower follower;//this is pedropathing follower
     private TemplateSubsystem subsystem;
     private double speedScale = 0.8;
 
 
     @Override
     public void init() {//this is called once when the driver presses init
-//        follower = Constants.createFollower(hardwareMap);
-//        follower.setStartingPose(new Pose(0, 0, 0));
+        follower = Constants.createFollower(hardwareMap);
+        follower.setStartingPose(new Pose(0, 0, 0));
 
         subsystem = new TemplateSubsystem(hardwareMap);
 
@@ -42,13 +40,13 @@ public class TemplateTeleOp extends OpMode {
 
     @Override
     public void start() {//this is called once when the driver presses start
-//        follower.startTeleopDrive();
+        follower.startTeleopDrive();
     }
 
     @Override
     public void loop() {//this is called repeatedly during the op mode
-//        follower.update();
-//        driveWithPedro();
+        follower.update();
+        driveWithPedro();
         sendTelemetry();
     }
 
@@ -65,7 +63,7 @@ public class TemplateTeleOp extends OpMode {
         double strafe = -gamepad1.left_stick_x * speedScale;
         double turn = -gamepad1.right_stick_x * speedScale;
 
-//        follower.setTeleOpDrive(forward, strafe, turn, true);
+        follower.setTeleOpDrive(forward, strafe, turn, true);
     }
 
 

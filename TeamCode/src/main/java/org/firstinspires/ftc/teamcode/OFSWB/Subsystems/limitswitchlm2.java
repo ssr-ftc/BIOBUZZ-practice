@@ -15,4 +15,5 @@ public class limitswitchlm2 {
     public double getValue() {
         return sensor.getValue();
     }
+
 }

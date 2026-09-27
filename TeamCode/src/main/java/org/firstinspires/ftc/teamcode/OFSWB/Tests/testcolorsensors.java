@@ -1,14 +1,8 @@
-package org.firstinspires.ftc.teamcode.OFSWB.TeleOp;
+package org.firstinspires.ftc.teamcode.OFSWB.Tests;
 
-import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.ColorSensor;
-import com.qualcomm.robotcore.hardware.DcMotor;
-
-import org.firstinspires.ftc.teamcode.OFSWB.Constants;
-import org.firstinspires.ftc.teamcode.OFSWB.Subsystems.OFSWBSubsystem;
 
 /**
  * TeleOp for Off Season Bot 1 (OFSWB).
