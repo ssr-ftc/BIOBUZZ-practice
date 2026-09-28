@@ -106,15 +106,22 @@ public class wbteleop extends OpMode {
         if(timer.checkSeconds("depo",0.5)){
             lifters.rightUp();
         }
-        if(timer.checkSeconds("depo",0.8)){
+        if(timer.checkSeconds("depo",1.0)){
             lifters.rightDown();
+        }
+        if(timer.checkSeconds("depo",1.5)){
             lifters.backUp();
         }
-        if(timer.checkSeconds("depo",1.1)){
+        if(timer.checkSeconds("depo",2.0)){
             lifters.backDown();
+        }
+        if(timer.checkSeconds("depo",2.5)){
             lifters.leftUp();
         }
-        if(timer.checkSecondsLast("depo",1.4)){
+        if(timer.checkSeconds("depo",3.0)){
+            lifters.leftDown();
+        }
+        if(timer.checkSecondsLast("depo",3.5)){
             lifters.allDown();
             depo.turn_off_deposit();
         }
