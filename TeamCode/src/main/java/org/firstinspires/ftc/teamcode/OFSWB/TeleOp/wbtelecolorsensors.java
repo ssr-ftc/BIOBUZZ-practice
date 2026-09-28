@@ -14,7 +14,7 @@ import org.firstinspires.ftc.teamcode.OFSWB.Subsystems.lifters;
 import org.firstinspires.ftc.teamcode.OFSWB.Subsystems.turret;
 import org.firstinspires.ftc.teamcode.Timer;
 
-@TeleOp(name = "Shakthi TeleOp", group = "tests")
+@TeleOp(name = "Outreach TeleOp", group = "tests")
 public class wbtelecolorsensors extends OpMode {
 
     private DcMotor lfmotor;
@@ -80,6 +80,7 @@ public class wbtelecolorsensors extends OpMode {
         depoonoff();
         changeVelo();
         intakingstuff();
+        turretstuff();
         telemetrystuff();
     }
 
@@ -152,7 +153,6 @@ public class wbtelecolorsensors extends OpMode {
             }
         }
     }
-
     public void turretstuff() {
         if (gamepad2.dpad_right) {
             turret.move1degright();
