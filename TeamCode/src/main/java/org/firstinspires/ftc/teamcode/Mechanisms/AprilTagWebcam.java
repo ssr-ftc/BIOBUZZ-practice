@@ -11,6 +11,7 @@ import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.GainCon
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.vision.VisionPortal;
+import org.firstinspires.ftc.vision.apriltag.AprilTagLibrary;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 
@@ -42,16 +43,32 @@ public class AprilTagWebcam {
     private boolean cameraSettingsApplied = false;
 
     public void init(HardwareMap hwMap, Telemetry telemetry) {
+        init(hwMap, telemetry, null);
+    }
+
+    /**
+     * @param tagLibrary season tag library used for pose. Null keeps the SDK
+     *                   default library (current behavior for existing OpModes).
+     *                   BIOBUZZ passes its own library because SDK 11.1's
+     *                   built-in library is still the DECODE set, which does
+     *                   not know HIVE tag sizes and therefore returns no pose.
+     */
+    public void init(HardwareMap hwMap, Telemetry telemetry, AprilTagLibrary tagLibrary) {
         this.telemetry = telemetry;
-        aprilTagProcessor = new AprilTagProcessor.Builder()
+        AprilTagProcessor.Builder processorBuilder = new AprilTagProcessor.Builder()
                 .setDrawTagID(true)
                 .setDrawTagOutline(true)
                 .setDrawAxes(true)
                 .setDrawCubeProjection(true)
                 // INCH, not CM - the telemetry labels below and all robot
                 // geometry math (camera offsets, stop distances) are inches.
-                .setOutputUnits(DistanceUnit.INCH, AngleUnit.DEGREES)
-                .build();
+                .setOutputUnits(DistanceUnit.INCH, AngleUnit.DEGREES);
+        if (tagLibrary != null) {
+            processorBuilder
+                    .setTagFamily(AprilTagProcessor.TagFamily.TAG_36h11)
+                    .setTagLibrary(tagLibrary);
+        }
+        aprilTagProcessor = processorBuilder.build();
         aprilTagProcessor.setDecimation(DECIMATION);
 
         VisionPortal.Builder builder = new VisionPortal.Builder();
@@ -107,6 +124,11 @@ public class AprilTagWebcam {
 
     public List<AprilTagDetection> getDetectedTags() {
         return detectedTags;
+    }
+
+    public boolean isStreaming() {
+        return visionPortal != null
+                && visionPortal.getCameraState() == VisionPortal.CameraState.STREAMING;
     }
 
     public void displayDetectionTelemetry(AprilTagDetection detectedId) {
