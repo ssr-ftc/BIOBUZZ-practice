@@ -4,8 +4,6 @@ import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
-import com.pedropathing.math.MathFunctions;
-import com.pedropathing.paths.HeadingInterpolator;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -16,17 +14,18 @@ import org.firstinspires.ftc.teamcode.OFSB2.Auto.Constants;
 @Autonomous(name = "AutoLM0", group = "Season")
 public class AutoLM0 extends OpMode {
     private Follower follower;
-    Pose start, shoot, sample1, shoot2, sample2, shoot3;
-    private PathChain startToShoot, shootToSample1, sample1Toshoot2, shoot2ToSample2, sample2ToShoot3;
+    Pose start, sample1, shoot, sample2, done;
+    private PathChain startToSample1, sample1ToShoot, shootToSample2, sample2ToDone;
 
     private Timer pathTimer, opModeTimer;
 
+    boolean isBlue, isRed;
+
     private enum AutoState {
-        DRIVETOSHOOT,
-        SHOOTTOSAMPLE1,
-        SAMPLE1TOSHOOT2,
-        SHOOT2TOSAMPLE2,
-        SAMPLE2TOSHOOT3,
+        STARTTOSAMPLE1,
+        SAMPLE1TOSHOOT,
+        SHOOTTOSAMPLE2,
+        SAMPLE2TODONE,
         DONE
     }
 
@@ -37,16 +36,19 @@ public class AutoLM0 extends OpMode {
         pathTimer = new Timer();
         opModeTimer = new Timer();
         follower = Constants.createFollower(hardwareMap);
-        poses();
-        buildPaths();
-        follower.setPose(start);
-        setAutoState(AutoState.DRIVETOSHOOT);
+        autoState = AutoState.STARTTOSAMPLE1;
+
+        telemetry.addLine("Ready. Press Y for Blue or A for Red.");
+    }
+
+    @Override
+    public void init_loop() {
+        gamepadSide();
     }
 
     @Override
     public void start() {
         opModeTimer.resetTimer();
-        setAutoState(autoState);
     }
 
     @Override
@@ -56,122 +58,135 @@ public class AutoLM0 extends OpMode {
         updateTelemetry();
     }
 
+    // --- THE SINGLE STATE MACHINE ---
     private void updateAutoState() {
+        // If the robot is currently driving a path, wait here and do nothing
+        if (follower.isBusy()) {
+            return;
+        }
+
+        // When the current path finishes, trigger the next path and update the state to match
         switch (autoState) {
-            case DRIVETOSHOOT:
-                handleDriveToShoot();
+            case STARTTOSAMPLE1:
+                // Finished startToSample1 -> drive sample1ToShoot
+                follower.followPath(startToSample1, true);
+                setPathState(AutoState.SAMPLE1TOSHOOT);
                 break;
-            case SHOOTTOSAMPLE1:
-                handleShootToSample1();
+
+            case SAMPLE1TOSHOOT:
+                // Finished sample1ToShoot -> drive shootToSample2
+                follower.followPath(sample1ToShoot, true);
+                setPathState(AutoState.SHOOTTOSAMPLE2);
                 break;
-            case SAMPLE1TOSHOOT2:
-                handleSample1ToShoot2();
+
+            case SHOOTTOSAMPLE2:
+                // Finished shootToSample2 -> drive sample2ToDone
+                follower.followPath(shootToSample2, true);
+                setPathState(AutoState.SAMPLE2TODONE);
                 break;
-            case SHOOT2TOSAMPLE2:
-                handleShoot2ToSample2();
+
+            case SAMPLE2TODONE:
+                // Finished sample2ToDone
+                follower.followPath(sample2ToDone, true);
+                setPathState(AutoState.DONE);
                 break;
-            case SAMPLE2TOSHOOT3:
-                handleSample2ToShoot3();
-                break;
+
             case DONE:
-                handleDone();
+                telemetry.addLine("Finished everything!");
                 break;
+
             default:
-                telemetry.addLine("State machine not working");
                 break;
         }
     }
 
-    private void handleDriveToShoot() {
-        follower.followPath(startToShoot, true);
-        if (!follower.isBusy()) {
-            setAutoState(AutoState.SHOOTTOSAMPLE1);
-        }
-    }
-
-    private void handleShootToSample1() {
-            follower.followPath(shootToSample1, true);
-            if (!follower.isBusy()) {
-                setAutoState(AutoState.SAMPLE1TOSHOOT2);
-        }
-    }
-
-    private void handleSample1ToShoot2() {
-            follower.followPath(sample1Toshoot2, true);
-            if (!follower.isBusy()) {
-                setAutoState(AutoState.SHOOT2TOSAMPLE2);
-        }
-    }
-
-    private void handleShoot2ToSample2() {
-            follower.followPath(shoot2ToSample2, true);
-            if (!follower.isBusy()) {
-                setAutoState(AutoState.SAMPLE2TOSHOOT3);
-        }
-    }
-
-    private void handleSample2ToShoot3() {
-            follower.followPath(sample2ToShoot3, true);
-            if (!follower.isBusy()) {
-                setAutoState(AutoState.DONE);
-        }
-    }
-
-    private void handleDone() {
-        if (!follower.isBusy()) {
-            telemetry.addLine("Finished everything!");
-        }
-    }
-
-    private void setAutoState(AutoState newState) {
+    // Helper method to set the state and reset the timer cleanly
+    private void setPathState(AutoState newState) {
         autoState = newState;
         pathTimer.resetTimer();
     }
 
     private void poses() {
-        start = new Pose(83.6920731707317, 134.18341568737495, Math.toRadians(270));
-        shoot = new Pose(84.29999999999998, 115.72317073170733, Math.toRadians(270));
-        sample1 = new Pose(133.01585365853657, 133.9451219512195, Math.toRadians(90));
-        shoot2 = new Pose(80.15975609756097, 23.434146341463418);
-        sample2 = new Pose(92.00853658536587, 7.939024390243908, Math.toRadians(-50));
-        shoot3 = shoot2;
+        if (isBlue) {
+            start = new Pose(84.35853658536585, 134.31463414634146, Math.toRadians(0));
+            sample1 = new Pose(126.23658536585364, 134.70487804878047, Math.toRadians(0));
+            shoot = new Pose(90.10487804878049, 36.74390243902439, Math.toRadians(-90));
+            sample2 = new Pose(100.72334963325183, 16.883481424056274, Math.toRadians(-90));
+            done = new Pose(138.7166915141034, 33.84915618104835, Math.toRadians(180));
+        }
+
+        else if (isRed) {
+            start = new Pose(59.64146341463415, 9.68536585365854, Math.toRadians(180));
+            sample1 = new Pose(17.76341463414636, 9.29512195121953, Math.toRadians(180));
+            shoot = new Pose(53.89512195121951, 107.25609756097561, Math.toRadians(90));
+            sample2 = new Pose(43.27665036674817, 127.11651857594373, Math.toRadians(90));
+            done = new Pose(5.283308485896602, 110.15084381895165, Math.toRadians(0));
+
+        }
     }
 
     private void buildPaths() {
-        startToShoot = follower.pathBuilder()
-                .addPath(new BezierLine(start, shoot))
-                .setLinearHeadingInterpolation(start.getHeading(), shoot.getHeading())
-                .build();
+        if (isBlue) {
+            startToSample1 = follower.pathBuilder()
+                    .addPath(new BezierLine(start, sample1))
+                    .setLinearHeadingInterpolation(start.getHeading(), sample1.getHeading())
+                    .build();
 
-        BezierCurve shootToSampleCurve = new BezierCurve(shoot, new Pose(83.63780487804877, 95.71707317073171, 0), new Pose(131.0951219512195, 105.77682926829266, 0), sample1);
-        double tangentAt086 = shootToSampleCurve.getDerivative(0.86).getTheta();
-        shootToSample1 = follower.pathBuilder()
-                .addPath(shootToSampleCurve)
-                .setHeadingInterpolation(HeadingInterpolator.piecewise(
-                        new HeadingInterpolator.PiecewiseNode(0.0, 0.86, HeadingInterpolator.tangent),
-                        new HeadingInterpolator.PiecewiseNode(0.86, 1.0, HeadingInterpolator.linear(tangentAt086, Math.toRadians(-50)))))
-                .build();
+            sample1ToShoot = follower.pathBuilder()
+                    .addPath(new BezierCurve(sample1, new Pose(125.05243902439025, 65.78780487804879), new Pose(112.61829268292684, 29.90365853658537), shoot))
+                    .setLinearHeadingInterpolation(sample1.getHeading(), shoot.getHeading())
+                    .build();
 
-        BezierCurve sample1ToShoot2Curve = new BezierCurve(sample1, new Pose(121.20243902439023, 41.75365853658536, 0), new Pose(85.65365853658535, 23.400000000000002, 0), shoot2);
-        sample1Toshoot2 = follower.pathBuilder()
-                .addPath(sample1ToShoot2Curve)
-                .setHeadingInterpolation(HeadingInterpolator.tangent.reverse())
-                .build();
+            shootToSample2 = follower.pathBuilder()
+                    .addPath(new BezierCurve(shoot, new Pose(94.88536585365854, 25.947560975609758), sample2))
+                    .setLinearHeadingInterpolation(shoot.getHeading(), sample2.getHeading())
+                    .build();
 
-        BezierLine shoot2ToSample2Line = new BezierLine(shoot2, sample2);
-        double shoot2StartHeading = MathFunctions.normalizeAngle(sample1ToShoot2Curve.getDerivative(1.0).getTheta() + Math.PI);
-        double shoot2LineEndHeading = shoot2ToSample2Line.getDerivative(1.0).getTheta();
-        shoot2ToSample2 = follower.pathBuilder()
-                .addPath(shoot2ToSample2Line)
-                .setHeadingInterpolation(HeadingInterpolator.piecewise(
-                        new HeadingInterpolator.PiecewiseNode(0.0, 0.5, HeadingInterpolator.linear(shoot2StartHeading, 0)),
-                        new HeadingInterpolator.PiecewiseNode(0.5, 1.0, HeadingInterpolator.linear(0, shoot2LineEndHeading))))
-                .build();
+            sample2ToDone = follower.pathBuilder()
+                    .addPath(new BezierCurve(sample2, new Pose(98.33658536585365, 38.026829268292694), done))
+                    .setLinearHeadingInterpolation(sample2.getHeading(), done.getHeading())
+                    .build();
+        }
+        else if(isRed) {
+            startToSample1 = follower.pathBuilder()
+                    .addPath(new BezierLine(start, sample1))
+                    .setLinearHeadingInterpolation(start.getHeading(), sample1.getHeading())
+                    .build();
 
-        sample2ToShoot3 = follower.pathBuilder()
-                .addPath(new BezierLine(sample2, shoot3))
-                .setHeadingInterpolation(HeadingInterpolator.tangent.reverse())
-                .build();
+            sample1ToShoot = follower.pathBuilder()
+                    .addPath(new BezierCurve(sample1, new Pose(18.94756097560975, 78.21219512195121), new Pose(31.38170731707316, 114.09634146341463), shoot))
+                    .setLinearHeadingInterpolation(sample1.getHeading(), shoot.getHeading())
+                    .build();
+
+            shootToSample2 = follower.pathBuilder()
+                    .addPath(new BezierCurve(shoot, new Pose(49.11463414634146, 118.05243902439024), sample2))
+                    .setLinearHeadingInterpolation(shoot.getHeading(), sample2.getHeading())
+                    .build();
+
+            sample2ToDone = follower.pathBuilder()
+                    .addPath(new BezierCurve(sample2, new Pose(45.66341463414635, 105.97317073170731), done))
+                    .setLinearHeadingInterpolation(sample2.getHeading(), done.getHeading())
+                    .build();
+        }
+    }
+
+    public void gamepadSide() {
+        if (gamepad1.y) {
+            isBlue = true;
+            isRed = false;
+            poses();
+            buildPaths();
+            follower.setPose(start);
+            telemetry.addData("Selected", "BLUE");
+        }
+        else if(gamepad1.a) {
+            isRed = true;
+            isBlue = false;
+            poses();
+            buildPaths();
+            follower.setPose(start);
+            telemetry.addData("Selected", "RED");
+        }
     }
 
     private void updateTelemetry() {
@@ -180,7 +195,7 @@ public class AutoLM0 extends OpMode {
         if (pose != null) {
             telemetry.addData("x", pose.getX());
             telemetry.addData("y", pose.getY());
-            telemetry.addData("heading", pose.getHeading());
+            telemetry.addData("heading (deg)", Math.toDegrees(pose.getHeading()));
         }
         telemetry.addData("path time", pathTimer.getElapsedTimeSeconds());
     }
