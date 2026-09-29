@@ -13,6 +13,19 @@ import java.util.List;
  */
 public final class HivePoseEstimator {
 
+    // Tags whose position disagrees with the cluster's median by more than
+    // this are excluded before averaging - protects against one bad read
+    // (glare, partial occlusion, a bad viewing angle on just that tag)
+    // pulling the fused pose off, especially when only 2-3 tags are visible.
+    private static final double OUTLIER_REJECT_DISTANCE_INCHES = 6.0;
+
+    // Beyond this range, a tag's positional accuracy degrades enough that it
+    // should count less toward the fused pose, even if decisionMargin says
+    // the detector is confident it found the tag - margin measures "did we
+    // find the tag correctly," not "is the resulting pose still precise at
+    // this distance." TUNE this against your actual field/tag size.
+    private static final double RELIABLE_RANGE_INCHES = 48.0;
+
     private HivePoseEstimator() {
     }
 
@@ -37,11 +50,48 @@ public final class HivePoseEstimator {
         }
         Arrays.sort(visibleIds);
 
+        double marginSum = 0;
+
+        // First pass: collect every tag with a usable pose. We need the
+        // full set before we can compute a median for outlier rejection.
+        List<AprilTagDetection> withPose = new ArrayList<>();
+        for (AprilTagDetection tag : tags) {
+            marginSum += tag.decisionMargin;
+            if (tag.metadata == null || tag.ftcPose == null) {
+                continue;
+            }
+            AprilTagPoseFtc pose = tag.ftcPose;
+            if (!Double.isFinite(pose.x) || !Double.isFinite(pose.y) || !Double.isFinite(pose.z)) {
+                continue;
+            }
+            withPose.add(tag);
+        }
+
+        double meanMargin = tags.isEmpty() ? 0 : marginSum / tags.size();
+
+        // Median x/y across all pose-bearing tags, used only to detect a
+        // tag whose reading is far from where the rest agree it should be.
+        // With 1-2 tags there's nothing meaningful to reject against, so
+        // outlier filtering only kicks in at 3+.
+        double medianX = Double.NaN;
+        double medianY = Double.NaN;
+        if (withPose.size() >= 3) {
+            double[] xs = new double[withPose.size()];
+            double[] ys = new double[withPose.size()];
+            for (int i = 0; i < withPose.size(); i++) {
+                xs[i] = withPose.get(i).ftcPose.x;
+                ys[i] = withPose.get(i).ftcPose.y;
+            }
+            Arrays.sort(xs);
+            Arrays.sort(ys);
+            medianX = xs[xs.length / 2];
+            medianY = ys[ys.length / 2];
+        }
+
         double weightSum = 0;
         double xSum = 0;
         double ySum = 0;
         double zSum = 0;
-        double marginSum = 0;
         int poseTags = 0;
 
         double yawSin = 0;
@@ -54,19 +104,35 @@ public final class HivePoseEstimator {
         int facingUpVotes = 0;
         int facingDownVotes = 0;
 
-        for (AprilTagDetection tag : tags) {
-            marginSum += tag.decisionMargin;
-            if (tag.metadata == null || tag.ftcPose == null) {
-                continue;
-            }
+        for (AprilTagDetection tag : withPose) {
             AprilTagPoseFtc pose = tag.ftcPose;
-            if (!Double.isFinite(pose.x) || !Double.isFinite(pose.y) || !Double.isFinite(pose.z)) {
-                continue;
+
+            // Outlier rejection - skip a tag whose position disagrees with
+            // the cluster median by more than the threshold. Only active
+            // when we have enough tags (3+) that a median is meaningful.
+            if (Double.isFinite(medianX) && Double.isFinite(medianY)) {
+                double distFromMedian = Math.hypot(pose.x - medianX, pose.y - medianY);
+                if (distFromMedian > OUTLIER_REJECT_DISTANCE_INCHES) {
+                    continue;
+                }
             }
 
             // decisionMargin is the detector's own quality score. A clean tag
             // pulls the fused point harder than a tag that barely decoded.
-            double weight = Math.max(tag.decisionMargin, 1.0);
+            double marginWeight = Math.max(tag.decisionMargin, 1.0);
+
+            // Range-based down-weighting - a distant tag's pose is less
+            // precise even at high decisionMargin, so it should count less
+            // than a close tag with the same margin. Falls off linearly
+            // past RELIABLE_RANGE_INCHES rather than being hard-cut, so a
+            // single far tag still contributes something when it's all
+            // that's visible.
+            double range = pose.range;
+            double rangeFactor = (Double.isFinite(range) && range > RELIABLE_RANGE_INCHES)
+                    ? RELIABLE_RANGE_INCHES / range
+                    : 1.0;
+
+            double weight = marginWeight * rangeFactor;
             weightSum += weight;
             xSum += weight * pose.x;
             ySum += weight * pose.y;
@@ -88,7 +154,6 @@ public final class HivePoseEstimator {
             }
         }
 
-        double meanMargin = tags.isEmpty() ? 0 : marginSum / tags.size();
         if (poseTags == 0 || weightSum <= 0) {
             return HiveCell.detected(
                     cluster,
