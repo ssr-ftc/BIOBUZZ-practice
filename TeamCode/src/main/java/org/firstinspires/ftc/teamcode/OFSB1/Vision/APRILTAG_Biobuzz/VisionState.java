@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.OFSB1.Vision.biobuzz;
+package org.firstinspires.ftc.teamcode.OFSB1.Vision.APRILTAG_Biobuzz;
 
 /**
  * What TeleOp is allowed to read after each vision update.

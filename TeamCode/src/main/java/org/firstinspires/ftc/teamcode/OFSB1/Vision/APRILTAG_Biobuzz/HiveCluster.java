@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.OFSB1.Vision.biobuzz;
+package org.firstinspires.ftc.teamcode.OFSB1.Vision.APRILTAG_Biobuzz;
 
 /**
  * One physical HIVE CELL, identified by its four AprilTags.

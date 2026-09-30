@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.OFSB1.Vision.biobuzz;
+package org.firstinspires.ftc.teamcode.OFSB1.Vision.APRILTAG_Biobuzz;
 
 /**
  * Every number that should be tuned on the real HIVE lives here.

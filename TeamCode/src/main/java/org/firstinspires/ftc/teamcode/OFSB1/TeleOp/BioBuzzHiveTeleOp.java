@@ -7,12 +7,12 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.OFSB1.Constants;
 import org.firstinspires.ftc.teamcode.OFSB1.Subsystems.OFSB1Subsystem;
-import org.firstinspires.ftc.teamcode.OFSB1.Vision.biobuzz.Alliance;
-import org.firstinspires.ftc.teamcode.OFSB1.Vision.biobuzz.AllianceConfig;
-import org.firstinspires.ftc.teamcode.OFSB1.Vision.biobuzz.BioBuzzVision;
-import org.firstinspires.ftc.teamcode.OFSB1.Vision.biobuzz.ShootingTarget;
-import org.firstinspires.ftc.teamcode.OFSB1.Vision.biobuzz.VisionAssist;
-import org.firstinspires.ftc.teamcode.OFSB1.Vision.biobuzz.VisionState;
+import org.firstinspires.ftc.teamcode.OFSB1.Vision.APRILTAG_Biobuzz.Alliance;
+import org.firstinspires.ftc.teamcode.OFSB1.Vision.APRILTAG_Biobuzz.AllianceConfig;
+import org.firstinspires.ftc.teamcode.OFSB1.Vision.APRILTAG_Biobuzz.BioBuzzVision;
+import org.firstinspires.ftc.teamcode.OFSB1.Vision.APRILTAG_Biobuzz.ShootingTarget;
+import org.firstinspires.ftc.teamcode.OFSB1.Vision.APRILTAG_Biobuzz.VisionAssist;
+import org.firstinspires.ftc.teamcode.OFSB1.Vision.APRILTAG_Biobuzz.VisionState;
 
 /**
  * BIOBUZZ TeleOp. Driving matches OFSB1 TeleOp. HIVE vision only supplies
