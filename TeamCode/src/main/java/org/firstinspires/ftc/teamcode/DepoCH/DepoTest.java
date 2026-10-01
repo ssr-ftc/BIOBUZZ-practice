@@ -19,7 +19,7 @@ public class DepoTest extends OpMode {
 
 
     @Override
-    public void init() {follower = Constants.createFollower(hardwareMap);
+    public void init() {
         depo1 = hardwareMap.get(DcMotorEx.class, "depo1");
         depo2 = hardwareMap.get(DcMotorEx.class, "depo2");
     }
@@ -42,7 +42,7 @@ public class DepoTest extends OpMode {
             depo1.setPower(0);
         }
         if (gamepad1.left_bumper) {
-            depo2.setPower(power);
+            depo2.setPower(-power);
         } else {
             depo2.setPower(0);
         }
