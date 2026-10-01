@@ -8,11 +8,23 @@ import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.CRServo;
 
+import org.firstinspires.ftc.teamcode.OFSB2.Subsystems.turret;
+
+import org.firstinspires.ftc.teamcode.OFSB2.Subsystems.intake;
 import org.firstinspires.ftc.teamcode.OFSB2.Auto.Constants;
 
 @Autonomous(name = "AutoLM0", group = "Season")
 public class AutoLM0 extends OpMode {
+
+    private DcMotorEx depo, depo1, depo2;
+    private Servo lift_left, turret, //turret2,
+    launch_amgle;
+    private CRServo turret_servo;
     private Follower follower;
     Pose start, sample1, shoot, sample2, done;
     private PathChain startToSample1, sample1ToShoot, shootToSample2, sample2ToDone;
@@ -29,10 +41,25 @@ public class AutoLM0 extends OpMode {
         DONE
     }
 
+    private enum ShootState {
+        INTAKE,
+        SHOOT,
+        TURRET,
+        KICK;
+    }
+
     private AutoState autoState;
+    private ShootState shootState;
+    public void subsystems() {
+        intake intake = new intake(hardwareMap);
+        turret turret = new turret(hardwareMap);
+
+    }
 
     @Override
     public void init() {
+        subsystems();
+        hardwareMap();
         pathTimer = new Timer();
         opModeTimer = new Timer();
         follower = Constants.createFollower(hardwareMap);
@@ -56,6 +83,9 @@ public class AutoLM0 extends OpMode {
         follower.update();
         updateAutoState();
         updateTelemetry();
+    }
+
+    public void hardwareMap() {
     }
 
     // --- THE SINGLE STATE MACHINE ---
@@ -97,6 +127,13 @@ public class AutoLM0 extends OpMode {
 
             default:
                 break;
+        }
+    }
+
+    private void updateShootState() {
+        switch (shootState) {
+            case TURRET:
+
         }
     }
 
