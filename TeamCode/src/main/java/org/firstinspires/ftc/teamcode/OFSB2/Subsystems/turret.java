@@ -1,9 +1,8 @@
 package org.firstinspires.ftc.teamcode.OFSB2.Subsystems;
 
-import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
-@Config
+
 public class turret {
     public Servo servoturret;
     public turret(HardwareMap hardwareMap) {
