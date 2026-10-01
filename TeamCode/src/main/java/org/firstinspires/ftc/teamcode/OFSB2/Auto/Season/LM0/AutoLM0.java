@@ -58,7 +58,6 @@ public class AutoLM0 extends OpMode {
 
     @Override
     public void init() {
-        subsystems();
         hardwareMap();
         pathTimer = new Timer();
         opModeTimer = new Timer();
@@ -86,6 +85,7 @@ public class AutoLM0 extends OpMode {
     }
 
     public void hardwareMap() {
+        subsystems();
     }
 
     // --- THE SINGLE STATE MACHINE ---
@@ -133,7 +133,9 @@ public class AutoLM0 extends OpMode {
     private void updateShootState() {
         switch (shootState) {
             case TURRET:
-
+                turret.setPosition(0);
+                break;
+            case INTAKE:
         }
     }
 
