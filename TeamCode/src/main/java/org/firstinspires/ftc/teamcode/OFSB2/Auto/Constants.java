@@ -1,6 +1,6 @@
 package org.firstinspires.ftc.teamcode.OFSB2.Auto;
 
-import com.pedropathing.control.FilteredPIDFCoefficients;
+/* import com.pedropathing.control.FilteredPIDFCoefficients;
 
 import com.pedropathing.control.FilteredPIDFCoefficients;
 import com.pedropathing.control.PIDFCoefficients;
@@ -156,8 +156,9 @@ public class Constants {
                 .build();
     }
 }
+*/
 
- /*import com.pedropathing.control.PIDFCoefficients;
+import com.pedropathing.control.PIDFCoefficients;
 import com.pedropathing.control.PredictiveBrakingCoefficients;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.follower.FollowerConstants;
@@ -268,10 +269,10 @@ public class Constants {
 
     public static MecanumConstants driveConstants = new MecanumConstants()
             .maxPower(1)
-            .rightFrontMotorName("rf")
-            .rightRearMotorName("rr")
-            .leftRearMotorName("lr")
-            .leftFrontMotorName("lf")
+            .rightFrontMotorName("rfmotor")
+            .rightRearMotorName("rbmotor")
+            .leftRearMotorName("lbmotor")
+            .leftFrontMotorName("lfmotor")
             .leftFrontMotorDirection(DcMotorSimple.Direction.REVERSE)
             .leftRearMotorDirection(DcMotorSimple.Direction.REVERSE)
             .rightFrontMotorDirection(DcMotorSimple.Direction.FORWARD)
@@ -310,7 +311,7 @@ public class Constants {
                 .build();
     }
 }
-*/
+
 
 /* import com.pedropathing.control.FilteredPIDFCoefficients;
  import com.pedropathing.control.PIDFCoefficients;
