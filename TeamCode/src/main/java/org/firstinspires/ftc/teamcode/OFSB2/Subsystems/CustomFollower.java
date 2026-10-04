@@ -3,6 +3,10 @@ package org.firstinspires.ftc.teamcode.OFSB2.Subsystems;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.Pose;
+import com.pedropathing.paths.Path;
+import com.pedropathing.paths.PathBuilder;
+import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.teamcode.OFSB2.Auto.Constants;
@@ -114,5 +118,46 @@ public class CustomFollower {
             telemetry.addData("Current Velocity", liveV);
             telemetry.addData("Current Set Power Scale", liveP);
         }
+    }
+
+    // --- DELEGATED PEDRO FOLLOWER METHODS ---
+    public boolean isBusy() {
+        return pedro.isBusy();
+    }
+
+    public void followPath(PathChain pathChain, boolean holdEnd) {
+        pedro.followPath(pathChain, holdEnd);
+    }
+
+    public void followPath(PathChain pathChain) {
+        pedro.followPath(pathChain);
+    }
+
+    public void followPath(Path path, boolean holdEnd) {
+        pedro.followPath(path, holdEnd);
+    }
+
+    public void followPath(Path path) {
+        pedro.followPath(path);
+    }
+
+    public PathBuilder pathBuilder() {
+        return pedro.pathBuilder();
+    }
+
+    public void setPose(Pose pose) {
+        pedro.setPose(pose);
+    }
+
+    public Pose getPose() {
+        return pedro.getPose();
+    }
+
+    public void setMaxPower(double power) {
+        pedro.setMaxPower(power);
+    }
+
+    public double getCurrentTValue() {
+        return pedro.getCurrentTValue();
     }
 }

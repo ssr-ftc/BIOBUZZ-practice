@@ -1,5 +1,11 @@
 package org.firstinspires.ftc.teamcode.OFSB2.Auto.Season.LM0;
 
+import com.pedropathing.ivy.Scheduler;
+import static com.pedropathing.ivy.Scheduler.schedule;
+import static com.pedropathing.ivy.groups.Groups.sequential;
+import static com.pedropathing.ivy.pedro.PedroCommands.*;
+
+
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
@@ -14,24 +20,26 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.CRServo;
 
 import org.firstinspires.ftc.teamcode.OFSB2.Subsystems.turret;
-
 import org.firstinspires.ftc.teamcode.OFSB2.Subsystems.intake;
 import org.firstinspires.ftc.teamcode.OFSB2.Auto.Constants;
+import org.firstinspires.ftc.teamcode.OFSB2.Subsystems.CustomFollower;
+//import static com.pedropathing.ivy.pedro.PedroCommands.*;
+
 
 @Autonomous(name = "AutoLM0", group = "Season")
 public class AutoLM0 extends OpMode {
 
     private DcMotorEx depo, depo1, depo2;
     private Servo lift_left, //turret2,
-    launch_amgle;
+            launch_amgle;
     private CRServo turret_servo;
-    private Follower follower;
+    private CustomFollower follower;
     Pose start, sample1, shoot, sample2, done;
     private PathChain startToSample1, sample1ToShoot, shootToSample2, sample2ToDone;
 
     private Timer pathTimer, opModeTimer;
 
-    boolean isBlue, isRed;
+    boolean isBlue, isRed, isSmallBlue, isSmallRed, isBlueSample, isRedSample;
     intake intake;
     turret turret;
 
@@ -54,19 +62,19 @@ public class AutoLM0 extends OpMode {
     private ShootState shootState;
     public void subsystems() {
         //intake = new intake(hardwareMap);
-       // turret = new turret(hardwareMap);
-
+        // turret = new turret(hardwareMap);
     }
 
     @Override
     public void init() {
+        Scheduler.reset();
         subsystems();
         pathTimer = new Timer();
         opModeTimer = new Timer();
-        follower = Constants.createFollower(hardwareMap);
-        autoState = AutoState.STARTTOSAMPLE1;
-
-        telemetry.addLine("Ready. Press Y for Blue or A for Red.");
+        follower = new CustomFollower(hardwareMap, telemetry);
+        telemetry.addLine("Ready. Press Y for Blue, A for Red.");
+        telemetry.addLine("Press X for Small Blue, B for Small Red.");
+        telemetry.addLine("Press D-pad UP for Blue Sample, D-pad DOWN for Red Sample.");
     }
 
     @Override
@@ -77,6 +85,7 @@ public class AutoLM0 extends OpMode {
     @Override
     public void start() {
         opModeTimer.resetTimer();
+        pathTimer.resetTimer();
     }
 
     @Override
@@ -84,38 +93,43 @@ public class AutoLM0 extends OpMode {
         follower.update();
         updateAutoState();
         updateTelemetry();
+        updateShootState();
     }
 
     // --- THE SINGLE STATE MACHINE ---
     private void updateAutoState() {
-        // If the robot is currently driving a path, wait here and do nothing
         if (follower.isBusy()) {
             return;
         }
 
-        // When the current path finishes, trigger the next path and update the state to match
         switch (autoState) {
             case STARTTOSAMPLE1:
-                //setShootState(ShootState.TURRET);
-                // Finished startToSample1 -> drive sample1ToShoot
-                if (pathTimer.getElapsedTimeSeconds() > 0.5) setShootState(ShootState.INTAKE); follower.followPath(startToSample1, true); setPathState(AutoState.SAMPLE1TOSHOOT);
+                //follower.acceleration();
+                if (pathTimer.getElapsedTimeSeconds() > 0.5) {
+                    setShootState(ShootState.INTAKE);
+                    follower.followPath(startToSample1, true);
+                    setPathState(AutoState.SAMPLE1TOSHOOT);
+                }
                 break;
 
             case SAMPLE1TOSHOOT:
-                // Finished sample1ToShoot -> drive shootToSample2
                 follower.followPath(sample1ToShoot, true);
                 setPathState(AutoState.SHOOTTOSAMPLE2);
                 break;
 
             case SHOOTTOSAMPLE2:
-                // Finished shootToSample2 -> drive sample2ToDone
                 follower.followPath(shootToSample2, true);
                 setPathState(AutoState.SAMPLE2TODONE);
                 break;
 
             case SAMPLE2TODONE:
-                // Finished sample2ToDone
-                follower.followPath(sample2ToDone, true);
+                if (isBlue || isRed || isBlueSample || isRedSample) {
+                    follower.followPath(sample2ToDone, true);
+                }
+                else {
+                    // This executes for Small paths AND the Sample paths
+                    follower.followPath(startToSample1, true);
+                }
                 setPathState(AutoState.DONE);
                 break;
 
@@ -138,7 +152,6 @@ public class AutoLM0 extends OpMode {
         }
     }
 
-    // Helper method to set the state and reset the timer cleanly
     private void setPathState(AutoState newState) {
         autoState = newState;
         pathTimer.resetTimer();
@@ -155,15 +168,27 @@ public class AutoLM0 extends OpMode {
             shoot = new Pose(90.10487804878049, 36.74390243902439, Math.toRadians(-90));
             sample2 = new Pose(100.72334963325183, 16.883481424056274, Math.toRadians(-90));
             done = new Pose(138.7166915141034, 33.84915618104835, Math.toRadians(180));
-        }
-
-        else if (isRed) {
+        } else if (isRed) {
             start = new Pose(59.64146341463415, 9.68536585365854, Math.toRadians(180));
             sample1 = new Pose(17.76341463414636, 9.29512195121953, Math.toRadians(180));
             shoot = new Pose(53.89512195121951, 107.25609756097561, Math.toRadians(90));
             sample2 = new Pose(43.27665036674817, 127.11651857594373, Math.toRadians(90));
             done = new Pose(5.283308485896602, 110.15084381895165, Math.toRadians(0));
-
+        } else if (isSmallBlue) {
+            start = new Pose(80.21707317073172, 9.035365853658533, Math.toRadians(90));
+            done = new Pose(139.17439024390245, 41.521951219512204, Math.toRadians(180));
+        } else if (isSmallRed) {
+            start = new Pose(63.78292682926828, 134.96463414634147, Math.toRadians(270));
+            done = new Pose(4.82560975609755, 102.4780487804878, Math.toRadians(0));
+        } else if (isBlueSample) {
+            start = new Pose(80.2171, 9.0354, Math.toRadians(-90));
+            sample1 = new Pose(94.3909, 16.2493, Math.toRadians(-90));
+            done = new Pose(139.1744, 29.522, Math.toRadians(180));
+        } else if (isRedSample) {
+            // Exact mathematical 144-reflection of the Blue Sample poses
+            start = new Pose(63.7829, 134.9646, Math.toRadians(90));
+            sample1 = new Pose(49.6091, 127.7507, Math.toRadians(90));
+            done = new Pose(4.8256, 114.4780, Math.toRadians(0));
         }
     }
 
@@ -210,24 +235,92 @@ public class AutoLM0 extends OpMode {
                     .setLinearHeadingInterpolation(sample2.getHeading(), done.getHeading())
                     .build();
         }
+        else if(isSmallBlue) {
+            startToSample1 = follower.pathBuilder()
+                    .addPath(new BezierCurve(start, new Pose(73.47804878048782, 23.213414634146346), done))
+                    .setLinearHeadingInterpolation(start.getHeading(), done.getHeading())
+                    .build();
+
+        }
+        else if(isSmallRed) {
+            startToSample1 = follower.pathBuilder()
+                    .addPath(new BezierCurve(start, new Pose(70.52195121951218, 120.78658536585365), done))
+                    .setLinearHeadingInterpolation(start.getHeading(), done.getHeading())
+                    .build();
+        }
+        else if(isBlueSample) {
+            shootToSample2 = follower.pathBuilder()
+                    .addPath(new BezierCurve(start, new Pose(88.3183, 28.3902), sample1))
+                    .setLinearHeadingInterpolation(start.getHeading(), sample1.getHeading())
+                    .build();
+
+            sample2ToDone = follower.pathBuilder()
+                   .addPath(new BezierLine(sample1, done))
+                   .setLinearHeadingInterpolation(sample1.getHeading(), done.getHeading())
+                   .build();
+        }
+        else if(isRedSample) {
+            shootToSample2 = follower.pathBuilder()
+                    // Exactly reflected control point (144 - X, 144 - Y)
+                    .addPath(new BezierCurve(start, new Pose(55.6817, 115.6098), sample1))
+                    .setLinearHeadingInterpolation(start.getHeading(), sample1.getHeading())
+                    .build();
+
+            sample2ToDone = follower.pathBuilder()
+                    .addPath(new BezierLine(sample1, done))
+                    .setLinearHeadingInterpolation(sample1.getHeading(), done.getHeading())
+                    .build();
+        }
     }
 
     public void gamepadSide() {
         if (gamepad1.y) {
-            isBlue = true;
-            isRed = false;
+            isBlue = true; isRed = false; isSmallBlue = false; isSmallRed = false; isBlueSample = false; isRedSample = false;
             poses();
             buildPaths();
             follower.setPose(start);
+            autoState = AutoState.STARTTOSAMPLE1;
             telemetry.addData("Selected", "BLUE");
         }
         else if(gamepad1.a) {
-            isRed = true;
-            isBlue = false;
+            isRed = true; isBlue = false; isSmallBlue = false; isSmallRed = false; isBlueSample = false; isRedSample = false;
             poses();
             buildPaths();
             follower.setPose(start);
+            autoState = AutoState.STARTTOSAMPLE1;
             telemetry.addData("Selected", "RED");
+        }
+        else if(gamepad1.x) {
+            isSmallBlue = true; isBlue = false; isRed = false; isSmallRed = false; isBlueSample = false; isRedSample = false;
+            poses();
+            buildPaths();
+            follower.setPose(start);
+            autoState = AutoState.SAMPLE2TODONE;
+            telemetry.addData("Selected", "SMALL BLUE");
+        }
+        else if(gamepad1.b) {
+            isSmallRed = true; isSmallBlue = false; isBlue = false; isRed = false; isBlueSample = false; isRedSample = false;
+            poses();
+            buildPaths();
+            follower.setPose(start);
+            autoState = AutoState.SAMPLE2TODONE;
+            telemetry.addData("Selected", "SMALL RED");
+        }
+        else if(gamepad1.dpad_up) {
+            isBlueSample = true; isBlue = false; isRed = false; isSmallBlue = false; isSmallRed = false; isRedSample = false;
+            poses();
+            buildPaths();
+            follower.setPose(start);
+            autoState = AutoState.SHOOTTOSAMPLE2;
+            telemetry.addData("Selected", "BLUE SAMPLE");
+        }
+        else if(gamepad1.dpad_down) {
+            isRedSample = true; isBlue = false; isRed = false; isSmallBlue = false; isSmallRed = false; isBlueSample = false;
+            poses();
+            buildPaths();
+            follower.setPose(start);
+            autoState = AutoState.SHOOTTOSAMPLE2;
+            telemetry.addData("Selected", "RED SAMPLE");
         }
     }
 
