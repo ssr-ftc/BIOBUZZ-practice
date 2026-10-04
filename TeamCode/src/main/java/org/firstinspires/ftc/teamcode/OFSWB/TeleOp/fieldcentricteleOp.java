@@ -1,33 +1,31 @@
 package org.firstinspires.ftc.teamcode.OFSWB.TeleOp;
 
+import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.OFSWB.Subsystems.intake;
 import org.firstinspires.ftc.teamcode.OFSWB.Subsystems.depo;
 import org.firstinspires.ftc.teamcode.OFSWB.Subsystems.colorsensors;
-
 import org.firstinspires.ftc.teamcode.OFSWB.Subsystems.lifters;
 import org.firstinspires.ftc.teamcode.OFSWB.Subsystems.turret;
 import org.firstinspires.ftc.teamcode.Timer;
 
-@TeleOp(name = "Outreach TeleOp", group = "tests")
-public class wbtelecolorsensors extends OpMode {
+import org.firstinspires.ftc.teamcode.OFSWB.Constants;
 
-    private DcMotor lfmotor;
-    private DcMotor lbmotor;
-    private DcMotor rfmotor;
-    private DcMotor rbmotor;
+@TeleOp(name = "Field Centric TeleOp", group = "tests")
+public class fieldcentricteleOp extends OpMode {
+
+    private Follower follower;
 
     private intake intake;
     private depo depo;
     private lifters lifters;
     private colorsensors colorsensors;
     private turret turret;
-    private double speedScale = 0.8;
+    private double speedScale = 0;
     private double xvelocity = -1800;
 
     private ElapsedTime shotTimer = new ElapsedTime();
@@ -40,24 +38,17 @@ public class wbtelecolorsensors extends OpMode {
     private static final double down_wait_seconds = 0.6;
     int ballCount;
 
-
     @Override
     public void init() {
-        lfmotor = hardwareMap.get(DcMotor.class, "lfmotor");
-        lbmotor = hardwareMap.get(DcMotor.class, "lbmotor");
-        rfmotor = hardwareMap.get(DcMotor.class, "rfmotor");
-        rbmotor = hardwareMap.get(DcMotor.class, "rbmotor");
-
-        lfmotor.setDirection(DcMotorSimple.Direction.REVERSE);
-        lbmotor.setDirection(DcMotorSimple.Direction.REVERSE);
-        rfmotor.setDirection(DcMotorSimple.Direction.FORWARD);
-        rbmotor.setDirection(DcMotorSimple.Direction.FORWARD);
+        // Initialize Follower via Constants.createFollower()
+        follower = Constants.createFollower(hardwareMap);
+        follower.setStartingPose(new Pose(0, 0, 0));
 
         intake = new intake(hardwareMap);
         depo = new depo(hardwareMap);
         lifters = new lifters(hardwareMap);
-        colorsensors= new colorsensors(hardwareMap);
-        turret= new turret((hardwareMap));
+        colorsensors = new colorsensors(hardwareMap);
+        turret = new turret(hardwareMap);
         timer = new Timer();
         timer.createNew("intake");
         timer.createNew("depo");
@@ -65,10 +56,10 @@ public class wbtelecolorsensors extends OpMode {
 
     @Override
     public void start() {
+        follower.startTeleopDrive(); // Required for PedroPathing TeleOp
         lifters.allDown();
         turret.setservotodegree(0);
     }
-
 
     @Override
     public void loop() {
@@ -91,12 +82,10 @@ public class wbtelecolorsensors extends OpMode {
         telemetry.addData("ball count", ballCount);
     }
 
-
     public void shootingfunction() {
-        if(gamepad2.crossWasPressed()){//start shooting
+        if(gamepad2.crossWasPressed()){ // start shooting
             depo.set_target_velocity(xvelocity);
             timer.start("depo");
-
         }
         if (timer.checkSeconds("depo", 0.5)) {
             lifters.rightUp();
@@ -121,6 +110,7 @@ public class wbtelecolorsensors extends OpMode {
             depo.turn_off_deposit();
         }
     }
+
     public void depoonoff(){
         if (gamepad2.triangleWasPressed() ) {
             if (depo.isDepositOn()){
@@ -131,6 +121,7 @@ public class wbtelecolorsensors extends OpMode {
             }
         }
     }
+
     private void changeVelo(){
         if (gamepad2.dpadUpWasPressed()){
             xvelocity -= 100;
@@ -139,6 +130,7 @@ public class wbtelecolorsensors extends OpMode {
             xvelocity += 100;
         }
     }
+
     public void intakingstuff(){
         ballCount = colorsensors.countBalls();
         if (intake.isIntakeOn() && ballCount >= 3) {
@@ -153,6 +145,7 @@ public class wbtelecolorsensors extends OpMode {
             }
         }
     }
+
     public void turretstuff() {
         if (gamepad2.dpad_right) {
             turret.move1degright();
@@ -161,14 +154,26 @@ public class wbtelecolorsensors extends OpMode {
             turret.move1degleft();
         }
     }
-    private void driveMecanum() {
-        double forward = -gamepad1.left_stick_y * speedScale;
-        double strafe = gamepad1.left_stick_x * speedScale;
-        double turn = gamepad1.right_stick_x * speedScale;
 
-        lfmotor.setPower(forward + strafe + turn);
-        lbmotor.setPower(forward - strafe + turn);
-        rfmotor.setPower(forward - strafe - turn);
-        rbmotor.setPower(forward + strafe - turn);
+    private void driveMecanum() {
+        double forward = -gamepad1.left_stick_y;
+        double strafe = gamepad1.left_stick_x;
+        double turn = -gamepad1.right_stick_x; // <-- Added negative sign here to fix the turning direction
+
+        // Deadzones to ignore controller stick drift (prevents going diagonal)
+        if (Math.abs(forward) < 0.1) forward = 0;
+        if (Math.abs(strafe) < 0.1) strafe = 0;
+        if (Math.abs(turn) < 0.1) turn = 0;
+
+        if (follower != null){
+            // Field Centric Heading Reset Button
+            if (gamepad1.options) {
+                follower.setPose(new Pose(follower.getPose().getX(), follower.getPose().getY(), 0));
+            }
+
+            // 'false' makes it field-centric drive
+            follower.setTeleOpDrive(forward, strafe, turn, false);
+            follower.update();
+        }
     }
 }

@@ -24,8 +24,7 @@ public class wbteleop extends OpMode {
     private lifters lifters;
     private double speedScale = 0.8;
 
-    private double xvelocity = -1000;
-
+    private double xvelocity = -1800; 
     private ElapsedTime shotTimer = new ElapsedTime();
     Timer timer;
     private int shotStep = 0;
