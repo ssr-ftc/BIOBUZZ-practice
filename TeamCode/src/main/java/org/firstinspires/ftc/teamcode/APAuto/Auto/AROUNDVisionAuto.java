@@ -21,12 +21,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
+
 @Autonomous(name = "AROUNDVisionAuto", group = "Autonomous")
 public class AROUNDVisionAuto extends OpMode {
     private Follower follower;
     private Timer pathTimer, opModeTimer;
     private AprilTagReader aprilTags;
     private List<HiveCell> hiveCells = Collections.emptyList();
+    private boolean wasShootable = false;
 
 
     public enum PathState {
@@ -37,9 +39,7 @@ public class AROUNDVisionAuto extends OpMode {
         END_PATH_3,
         DONE
     }
-
     private AROUNDVisionAuto.PathState pathState;
-
 
     private final Pose startingCoordinate = new Pose(56, 9, Math.toRadians(-180));
     private final Pose endPath1 = new Pose(27, 9, Math.toRadians(-180));
@@ -207,6 +207,12 @@ public class AROUNDVisionAuto extends OpMode {
                     headingFromRobotDegrees(cameraX, cameraY)));
         }
         telemetry.addData("Shootable", anyShootable ? "Yes" : "No");
+
+        if (anyShootable && !wasShootable) {
+            gamepad1.rumbleBlips(2);
+        }
+        wasShootable = anyShootable;
+
         telemetry.update();
     }
 

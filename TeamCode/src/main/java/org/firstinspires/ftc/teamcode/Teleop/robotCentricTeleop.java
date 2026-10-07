@@ -42,6 +42,7 @@ public class robotCentricTeleop extends OpMode {
         double speedShift = 0.7;
         if (gamepad1.right_trigger > 0.1) {
             speedShift = 0.25;
+            gamepad1.rumbleBlips(1);
         }
         //double currentPower = Math.abs(gamepad1.left_stick_y) * speedShift;
 

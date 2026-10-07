@@ -27,6 +27,7 @@ public class UNDERVisionAuto extends OpMode {
     private Timer pathTimer, opModeTimer;
     private AprilTagReader aprilTags;
     private List<HiveCell> hiveCells = Collections.emptyList();
+    private boolean wasShootable = false;
 
     public enum PathState {
         STARTING_COORDINATE,
@@ -200,6 +201,12 @@ public class UNDERVisionAuto extends OpMode {
                     headingFromRobotDegrees(cameraX, cameraY)));
         }
         telemetry.addData("Shootable", anyShootable ? "Yes" : "No");
+
+        if (anyShootable && !wasShootable) {
+            gamepad1.rumbleBlips(2);
+        }
+        wasShootable = anyShootable;
+
         telemetry.update();
     }
 
