@@ -104,9 +104,9 @@ public class AutoLM0 extends OpMode {
 
         switch (autoState) {
             case STARTTOSAMPLE1:
-                //follower.acceleration();
                 if (pathTimer.getElapsedTimeSeconds() > 0.5) {
                     setShootState(ShootState.INTAKE);
+                    follower.acceleration(0.75, 1.0, 1.0, 0.75);
                     follower.followPath(startToSample1, true);
                     setPathState(AutoState.SAMPLE1TOSHOOT);
                 }

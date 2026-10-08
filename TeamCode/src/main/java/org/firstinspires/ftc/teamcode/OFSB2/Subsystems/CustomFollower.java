@@ -95,7 +95,7 @@ public class CustomFollower {
                     pedro.setMaxPower(smoothPower);
 
                 } else if (currentT > rampEndT) {
-                    pedro.setMaxPower(rampEndPower);
+                    pedro.setMaxPower(1.0);
                     isRamping = false;
                 }
             }
@@ -126,18 +126,30 @@ public class CustomFollower {
     }
 
     public void followPath(PathChain pathChain, boolean holdEnd) {
+        if (!isRamping) {
+            pedro.setMaxPower(1.0);
+        }
         pedro.followPath(pathChain, holdEnd);
     }
 
     public void followPath(PathChain pathChain) {
+        if (!isRamping) {
+            pedro.setMaxPower(1.0);
+        }
         pedro.followPath(pathChain);
     }
 
     public void followPath(Path path, boolean holdEnd) {
+        if (!isRamping) {
+            pedro.setMaxPower(1.0);
+        }
         pedro.followPath(path, holdEnd);
     }
 
     public void followPath(Path path) {
+        if (!isRamping) {
+            pedro.setMaxPower(1.0);
+        }
         pedro.followPath(path);
     }
 
