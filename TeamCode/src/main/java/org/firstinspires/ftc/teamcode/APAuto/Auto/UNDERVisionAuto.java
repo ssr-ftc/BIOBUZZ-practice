@@ -44,7 +44,7 @@ public class UNDERVisionAuto extends OpMode {
     private final Pose startingCoordinate = new Pose(56, 9, Math.toRadians(-180));
     private final Pose endPath1 = new Pose(27, 9, Math.toRadians(-180));
     private final Pose endPath2 = new Pose(11.5, 9, Math.toRadians(-180));
-    private final Pose endPath3 = new Pose(52, 114.5, Math.toRadians(114));
+    private final Pose endPath3 = new Pose(53, 113.5, Math.toRadians(114));
     private final Pose endPath4 = new Pose(11, 109, Math.toRadians(0));  //11.109
 
 
@@ -66,9 +66,9 @@ public class UNDERVisionAuto extends OpMode {
                         new Pose(59, 107), //58,104
 
                          */
-                        new Pose(61.5, 12), //61.5, 12
-                        new Pose(48.5, 27.5), //39,27.5
-                        new Pose(63.5, 109), //65.5, 109
+                        new Pose(76, 6), //66, 6
+                        new Pose(48, 57), //54,57
+                        new Pose(59, 110.5), //55, 110/5
                         endPath3))
                 .setHeadingInterpolation(HeadingInterpolator.piecewise(
                         HeadingInterpolator.PiecewiseNode.linear(0, 0.313, endPath2.getHeading(), Math.toRadians(63)),
@@ -189,7 +189,7 @@ public class UNDERVisionAuto extends OpMode {
             double cameraY = cell.relativeY
                     - BioBuzzVisionConfig.CAMERA_FORWARD_OF_CENTER_INCHES
                     - BioBuzzVisionConfig.OPENING_FORWARD_OF_TAGS_INCHES;
-            double cameraZ = cell.relativeZ - BioBuzzVisionConfig.OPENING_ABOVE_TAGS_INCHES;
+            double cameraZ =  cell.relativeZ - BioBuzzVisionConfig.OPENING_ABOVE_TAGS_INCHES;
             telemetry.addLine(String.format(
                     Locale.US,
                     "%s  %s  SHOOTABLE %s  tags %s  camera %.1f in  heading %.1f deg",
@@ -203,7 +203,7 @@ public class UNDERVisionAuto extends OpMode {
         telemetry.addData("Shootable", anyShootable ? "Yes" : "No");
 
         if (anyShootable && !wasShootable) {
-            gamepad1.rumbleBlips(2);
+            gamepad1.rumbleBlips(3);
         }
         wasShootable = anyShootable;
 

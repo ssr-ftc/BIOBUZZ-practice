@@ -44,7 +44,7 @@ public class AROUNDVisionAuto extends OpMode {
     private final Pose startingCoordinate = new Pose(56, 9, Math.toRadians(-180));
     private final Pose endPath1 = new Pose(27, 9, Math.toRadians(-180));
     private final Pose endPath2 = new Pose(11.5, 9, Math.toRadians(-180));
-    private final Pose endPath3 = new Pose(46, 112.5, Math.toRadians(116));
+    private final Pose endPath3 = new Pose(46, 111.5, Math.toRadians(116));
     private final Pose endPath4 = new Pose(11, 109, Math.toRadians(90));
 
 
@@ -85,7 +85,7 @@ public class AROUNDVisionAuto extends OpMode {
 
         switch (pathState) {
             case STARTING_COORDINATE:
-                if (timeElapsed > 2) {
+                if (timeElapsed > 1) {
                     follower.followPath(start_path1, true);
                     setPathState(PathState.END_PATH_1);
                 }
@@ -108,7 +108,7 @@ public class AROUNDVisionAuto extends OpMode {
                 }
                 break;
             case END_PATH_3:
-                if (pathTimer.getElapsedTimeSeconds() > 4) {
+                if (pathTimer.getElapsedTimeSeconds() > 2) {
                     follower.followPath(path3_path4, true);
                     setPathState(PathState.DONE);
                 }
@@ -209,7 +209,7 @@ public class AROUNDVisionAuto extends OpMode {
         telemetry.addData("Shootable", anyShootable ? "Yes" : "No");
 
         if (anyShootable && !wasShootable) {
-            gamepad1.rumbleBlips(2);
+            gamepad1.rumbleBlips(3);
         }
         wasShootable = anyShootable;
 
