@@ -34,6 +34,7 @@ public class wbtelecolorsensors extends OpMode {
     Timer timer;
     private int shotStep = 0;
     private boolean shooting = false;
+    private boolean shootingActive = false; // true only while the lifter sequence is allowed to run
 
     private static final double warmup_seconds = 0.75;
     private static final double up_hold_seconds = 0.4;
@@ -96,35 +97,42 @@ public class wbtelecolorsensors extends OpMode {
         if(gamepad2.crossWasPressed()){//start shooting
             depo.set_target_velocity(xvelocity);
             timer.start("depo");
-
+            shootingActive = true;
         }
+
+        // If the shot was stopped (or has finished), don't let the timeline touch the lifters
+        if (!shootingActive) return;
+
         if (timer.checkSeconds("depo", 0.5)) {
             lifters.rightUp();
         }
-        if (timer.checkSeconds("depo", 1.0)) {
+        if (timer.checkSeconds("depo", 0.8)) {
             lifters.rightDown();
         }
-        if (timer.checkSeconds("depo", 1.5)) {
+        if (timer.checkSeconds("depo", 1.1)) {
             lifters.backUp();
         }
-        if (timer.checkSeconds("depo", 2.0)) {
+        if (timer.checkSeconds("depo", 1.4)) {
             lifters.backDown();
         }
-        if (timer.checkSeconds("depo", 2.5)) {
+        if (timer.checkSeconds("depo", 1.7)) {
             lifters.leftUp();
         }
-        if (timer.checkSeconds("depo", 3.0)) {
+        if (timer.checkSeconds("depo", 2.0)) {
             lifters.leftDown();
         }
-        if (timer.checkSecondsLast("depo", 3.5)) {
+        if (timer.checkSecondsLast("depo", 2.3)) {
             lifters.allDown();
             depo.turn_off_deposit();
+            shootingActive = false;
         }
     }
     public void depoonoff(){
         if (gamepad2.triangleWasPressed() ) {
-            if (depo.isDepositOn()){
+            if (depo.isDepositOn() || shootingActive){
+                shootingActive = false;
                 depo.turn_off_deposit();
+                lifters.allDown();
             }
             else{
                 depo.turn_on_deposit();
