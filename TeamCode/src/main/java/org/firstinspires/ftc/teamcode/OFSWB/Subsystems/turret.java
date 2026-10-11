@@ -26,5 +26,14 @@ public class turret {
         if (servovalueindegreees() < 180) {
             setservotodegree(servovalueindegreees() + 1);
         }
+    }public void moveleft(int deg) {
+        if(servovalueindegreees()+deg>-180){
+            setservotodegree(servovalueindegreees() - deg);
+        }
+    }
+    public void moveright(int deg) {
+        if (servovalueindegreees()+deg < 180) {
+            setservotodegree(servovalueindegreees() + deg);
+        }
     }
 }
