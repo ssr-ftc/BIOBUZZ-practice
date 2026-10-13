@@ -1,9 +1,9 @@
 package org.firstinspires.ftc.teamcode.OFSB2.Auto.Season.LM0;
 
-import com.pedropathing.ivy.Scheduler;
-import static com.pedropathing.ivy.Scheduler.schedule;
-import static com.pedropathing.ivy.groups.Groups.sequential;
-import static com.pedropathing.ivy.pedro.PedroCommands.*;
+//import com.pedropathing.ivy.Scheduler;
+//import static com.pedropathing.ivy.Scheduler.schedule;
+//import static com.pedropathing.ivy.groups.Groups.sequential;
+//import static com.pedropathing.ivy.pedro.PedroCommands.*;
 
 
 import com.pedropathing.follower.Follower;
@@ -15,7 +15,7 @@ import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.HardwareMap;
+//import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.CRServo;
 
@@ -67,7 +67,7 @@ public class AutoLM0 extends OpMode {
 
     @Override
     public void init() {
-        Scheduler.reset();
+        //Scheduler.reset();
         subsystems();
         pathTimer = new Timer();
         opModeTimer = new Timer();
