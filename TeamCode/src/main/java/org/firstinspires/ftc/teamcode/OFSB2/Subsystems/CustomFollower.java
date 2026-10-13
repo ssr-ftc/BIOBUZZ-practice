@@ -69,22 +69,12 @@ public class CustomFollower {
             if (isAutoCalculating) {
 
                 // Calculate a future T-value to look ahead on the path
-                // Math.min ensures we don't accidentally ask for a point past the end of the curve
                 double lookaheadT = Math.min(1.0, currentT + lookaheadAmount);
-
-                // Get the curvature of the path at that FUTURE point
                 double curvature = pedro.getCurrentPath().getCurvature(lookaheadT);
-
-                // Convert curvature to radius
                 double radius = (Math.abs(curvature) < 0.00001) ? 10000.0 : Math.abs(1.0 / curvature);
-
-                // The Physics Equation: v = sqrt(mu * g * R)
                 double maxSafeSpeed = Math.sqrt(mu * gravity * radius);
-
-                // Convert safe speed into a power percentage (0.0 to 1.0)
                 double dynamicPowerLimit = maxSafeSpeed / robotMaxSpeed;
 
-                // Clamp it so we never send more than 100% power to Pedro
                 pedro.setMaxPower(Math.min(1.0, dynamicPowerLimit));
 
                 // 1B. OR RUN MANUAL RAMPING ENGINE
@@ -94,10 +84,16 @@ public class CustomFollower {
                     double smoothPower = rampStartPower + (progress * (rampEndPower - rampStartPower));
                     pedro.setMaxPower(smoothPower);
 
-                } else if (currentT > rampEndT) {
+                } else if (currentT >= rampEndT) {
                     pedro.setMaxPower(1.0);
                     isRamping = false;
                 }
+            }
+        } else {
+            // Path finished: Reset ramping state & restore 100% max power immediately
+            if (isRamping) {
+                pedro.setMaxPower(1.0);
+                isRamping = false;
             }
         }
 

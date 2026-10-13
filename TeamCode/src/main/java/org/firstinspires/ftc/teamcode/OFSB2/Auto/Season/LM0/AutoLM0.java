@@ -93,7 +93,7 @@ public class AutoLM0 extends OpMode {
         follower.update();
         updateAutoState();
         updateTelemetry();
-        updateShootState();
+        //updateShootState();
     }
 
     // --- THE SINGLE STATE MACHINE ---
