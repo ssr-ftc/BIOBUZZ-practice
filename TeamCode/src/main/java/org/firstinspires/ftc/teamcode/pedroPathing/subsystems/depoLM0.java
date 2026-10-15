@@ -11,7 +11,6 @@ public class depoLM0 {
     private DcMotor top;
     private DcMotorEx bottom;
     private boolean running = false;
-    public static double POWER = 0.7;
 
     public depoLM0(HardwareMap hardwareMap) {
         top = hardwareMap.get(DcMotor.class, "depo");
@@ -51,7 +50,7 @@ public class depoLM0 {
         top.setPower(power);
     }
     public void turn_on_deposit() {
-        targetVelocity = -1000;
+        targetVelocity = 800;
     }
     public void turn_off_deposit() {
         targetVelocity = 0;
