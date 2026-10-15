@@ -1,0 +1,6 @@
+- [ ] Add calibration variables to `testTeleop.java`
+- [ ] Implement `start()` calibration logic
+- [ ] Update `loop()` with deadzones and PS4 axis filtering
+- [ ] Update Mecanum power calculations with normalization
+- [ ] Add diagnostic telemetry
+- [ ] Verify changes with user
