@@ -4,10 +4,11 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 
 
 public class depoLM0 {
-    private DcMotor top;
+    private DcMotorEx top;
     private DcMotorEx bottom;
     private boolean running = false;
 
@@ -33,7 +34,7 @@ public class depoLM0 {
     }
 
     public depoLM0(HardwareMap hardwareMap) {
-        top = hardwareMap.get(DcMotor.class, "depo");
+        top = hardwareMap.get(DcMotorEx.class, "depo");
         bottom = hardwareMap.get(DcMotorEx.class, "depo1");
 
         top.setDirection(DcMotorSimple.Direction.FORWARD);
@@ -41,12 +42,13 @@ public class depoLM0 {
 
         top.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         bottom.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        bottom.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         top.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         bottom.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         pid = new PIDFController(p, i, d, kF);
+       // top.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(p, i, d, kF));
+        bottom.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(p, i, d, kF));
     }
 
     PIDFController pid;
@@ -70,7 +72,7 @@ public class depoLM0 {
     }
 
     public void turn_on_deposit() {
-        targetVelocity = 800;
+        targetVelocity = 500;
     }
 
     public void turn_off_deposit() {

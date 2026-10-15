@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.pedroPathing.teleop;
+package org.firstinspires.ftc.teamcode.pedroPathing.TeleOp;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
@@ -75,6 +75,7 @@ public class LM0TeleOp extends OpMode {
     }
 
     private void runDepo() {
+        depo.run_using_pid();
         if (gamepad1.aWasPressed()) {
             if (depo.isDepositOn()) {
                 depo.turn_off_deposit();
@@ -82,7 +83,6 @@ public class LM0TeleOp extends OpMode {
                 depo.turn_on_deposit();
             }
         }
-        depo.run_using_pid();
     }
 
     private void sendTelemetry() {
