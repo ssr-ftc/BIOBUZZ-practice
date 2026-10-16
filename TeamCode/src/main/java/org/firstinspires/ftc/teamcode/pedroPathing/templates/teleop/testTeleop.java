@@ -21,7 +21,7 @@ public class testTeleop extends OpMode {
     @Override
     public void init() {
         follower = Constants.createFollower(hardwareMap);
-        intake = hardwareMap.get(DcMotorEx.class, "inter");
+        intake = hardwareMap.get(DcMotorEx.class, "intake");
         follower.setStartingPose(startPose);
 
         prefs = hardwareMap.appContext.getSharedPreferences("RobotData", android.content.Context.MODE_PRIVATE);
@@ -95,7 +95,6 @@ public class testTeleop extends OpMode {
 
     public String fuelLevel() {
         double voltage = hardwareMap.voltageSensor.iterator().next().getVoltage();
-
         if (voltage > 8 && voltage <= 8.6) return "Empty";
         else if (voltage > 8.6 && voltage <= 9.2) return "Empty";
         else if (voltage > 9.2 && voltage <= 9.8) return "Empty";
