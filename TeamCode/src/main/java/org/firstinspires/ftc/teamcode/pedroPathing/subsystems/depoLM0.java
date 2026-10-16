@@ -1,13 +1,16 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.subsystems;
 
+import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-
+import com.qualcomm.robotcore.hardware.Servo;
+@Config
 public class depoLM0 {
     private DcMotorEx top;
     private DcMotorEx bottom;
+    public Servo hatch;
 
     public static class PIDFController {
         public double p, i, d, kF;
@@ -51,8 +54,25 @@ public class depoLM0 {
         top.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         bottom.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
+        hatch = hardwareMap.get(Servo.class,"hatch");
+
         pid = new PIDFController(p, i, d, kF);
     }
+    public void start(){
+        pid.p=p;
+        pid.i=i;
+        pid.d=d;
+        pid.kF=kF;
+      //  hatch_close();
+        turn_off_deposit();
+    }
+    public void updatePID(){
+        pid.p=p;
+        pid.i=i;
+        pid.d=d;
+        pid.kF=kF;
+    }
+
 
     PIDFController pid;
     public double power;
@@ -62,6 +82,8 @@ public class depoLM0 {
     public static double kF = 0.0004001;
     public static double ON_VELOCITY = 550; // change the deposit speed here
     public static double targetVelocity = 0;
+    public static double hatchopen = 0.66;
+    public static double hatchclose = 0.54;
 
     public void set_target_velocity(double x) {
         targetVelocity = x;
@@ -92,6 +114,21 @@ public class depoLM0 {
         top.setPower(0);
         bottom.setPower(0);
     }
+
+    public boolean ishatchopen(){
+        boolean x = hatch.getPosition() > (hatchclose + 0.04);
+        return x;
+    }
+
+
+
+    public void hatch_open(){
+            hatch.setPosition(hatchopen);
+    }
+public void hatch_close(){
+        hatch.setPosition(hatchclose);
+    }
+
 
     public double getVelocity() {
         return bottom.getVelocity();
