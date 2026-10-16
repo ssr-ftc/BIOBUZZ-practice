@@ -4,18 +4,16 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.hardware.PIDFCoefficients;
-
 
 public class depoLM0 {
     private DcMotorEx top;
     private DcMotorEx bottom;
-    private boolean running = false;
 
     public static class PIDFController {
         public double p, i, d, kF;
         private double lastError = 0;
         private double integralSum = 0;
+        private static final double MAX_INTEGRAL = 1000; // tune; limits windup
 
         public PIDFController(double p, double i, double d, double kF) {
             this.p = p;
@@ -24,9 +22,15 @@ public class depoLM0 {
             this.kF = kF;
         }
 
+        public void reset() {
+            integralSum = 0;
+            lastError = 0;
+        }
+
         public double calculate(double current, double target) {
             double error = target - current;
             integralSum += error;
+            integralSum = Math.max(-MAX_INTEGRAL, Math.min(MAX_INTEGRAL, integralSum));
             double derivative = error - lastError;
             lastError = error;
             return (p * error) + (i * integralSum) + (d * derivative) + (kF * target);
@@ -42,13 +46,12 @@ public class depoLM0 {
 
         top.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         bottom.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        bottom.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER); // needed so power works and velocity still reads
 
         top.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         bottom.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         pid = new PIDFController(p, i, d, kF);
-       // top.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(p, i, d, kF));
-        bottom.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(p, i, d, kF));
     }
 
     PIDFController pid;
@@ -57,35 +60,48 @@ public class depoLM0 {
     public static double i = 0.00047;
     public static double d = 0.000035;
     public static double kF = 0.0004001;
-
+    public static double ON_VELOCITY = 550; // change the deposit speed here
     public static double targetVelocity = 0;
 
-    public void set_target_velocity(double x){
+    public void set_target_velocity(double x) {
         targetVelocity = x;
     }
 
-    public void run_using_pid(){
+    public void run_using_pid() {
+        if (targetVelocity == 0) {
+            power = 0;
+            top.setPower(0);
+            bottom.setPower(0);
+            return;
+        }
         power = pid.calculate(bottom.getVelocity(), targetVelocity);
         power = Math.max(-1, Math.min(1, power));
-        bottom.setPower(power);
         top.setPower(power);
+        bottom.setPower(power);
     }
 
     public void turn_on_deposit() {
-        targetVelocity = 500;
+        pid.reset();
+        targetVelocity = ON_VELOCITY;
     }
 
     public void turn_off_deposit() {
         targetVelocity = 0;
+        pid.reset();
+        power = 0;
+        top.setPower(0);
+        bottom.setPower(0);
     }
 
-    private void setPower(double power) {
-        top.setPower(power);
-        bottom.setPower(power);
+    public double getVelocity() {
+        return bottom.getVelocity();
     }
+    public double getTopVelocity() {
+        return top.getVelocity();
+    }
+
 
     public boolean isDepositOn() {
         return targetVelocity != 0;
     }
-
 }

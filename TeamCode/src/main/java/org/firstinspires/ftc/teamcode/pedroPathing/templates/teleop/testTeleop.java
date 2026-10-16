@@ -21,7 +21,7 @@ public class testTeleop extends OpMode {
     @Override
     public void init() {
         follower = Constants.createFollower(hardwareMap);
-        intake = hardwareMap.get(DcMotorEx.class, "inter");
+        intake = hardwareMap.get(DcMotorEx.class, "intake");
         follower.setStartingPose(startPose);
 
         prefs = hardwareMap.appContext.getSharedPreferences("RobotData", android.content.Context.MODE_PRIVATE);

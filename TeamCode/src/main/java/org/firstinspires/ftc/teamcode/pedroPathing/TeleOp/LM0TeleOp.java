@@ -48,7 +48,6 @@ public class LM0TeleOp extends OpMode {
     public void stop() {
         intake.turn_off_intake();
         depo.turn_off_deposit();
-        depo.run_using_pid();
     }
 
     private void driveWithPedro() {
@@ -83,12 +82,17 @@ public class LM0TeleOp extends OpMode {
                 depo.turn_on_deposit();
             }
         }
+
     }
 
     private void sendTelemetry() {
         telemetry.addData("Intake", intake.isIntakeOn() ? "ON" : "OFF");
         telemetry.addData("Intake power", intake.getMotorPower());
         telemetry.addData("Deposit", depo.isDepositOn() ? "ON" : "OFF");
+        telemetry.addData("Target velocity", depoLM0.targetVelocity);
+        telemetry.addData("Bottom velocity", depo.getVelocity());
+        telemetry.addData("Top velocity", depo.getTopVelocity());
+        telemetry.addData("Error", depoLM0.targetVelocity - depo.getVelocity());
         telemetry.addData("Deposit power", depo.power);
         telemetry.update();
     }
