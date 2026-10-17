@@ -80,7 +80,7 @@ public class depoLM0 {
     public static double i = 0.00047;
     public static double d = 0.000035;
     public static double kF = 0.0004001;
-    public static double ON_VELOCITY = 550; // change the deposit speed here
+    public static double ON_VELOCITY = 1470; // change the deposit speed here (prev 550)
     public static double targetVelocity = 0;
     public static double hatchopen = 0.66;
     public static double hatchclose = 0.54;
@@ -96,7 +96,7 @@ public class depoLM0 {
             bottom.setPower(0);
             return;
         }
-        power = pid.calculate(bottom.getVelocity(), targetVelocity);
+        power = pid.calculate(top.getVelocity(), targetVelocity);
         power = Math.max(-1, Math.min(1, power));
         top.setPower(power);
         bottom.setPower(power);

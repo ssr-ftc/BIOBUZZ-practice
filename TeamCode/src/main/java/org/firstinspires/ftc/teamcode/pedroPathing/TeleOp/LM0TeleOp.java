@@ -73,11 +73,6 @@ public class LM0TeleOp extends OpMode {
             intake.turn_off_intake();
         }
 
-//        if (gamepad1.dpad_up) {
-//            intake.flower_up();
-//        } else if (gamepad1.dpad_down) {
-//            intake.flower_down();
-//        }
     }
 
     private void openhatch(){
@@ -100,6 +95,11 @@ public class LM0TeleOp extends OpMode {
                 depo.turn_on_deposit();
             }
         }
+        if (gamepad1.dpad_up) {
+            depoLM0.ON_VELOCITY +=10;
+        } else if (gamepad1.dpad_down) {
+            depoLM0.ON_VELOCITY -=10;
+        }
 
     }
 
@@ -107,9 +107,7 @@ public class LM0TeleOp extends OpMode {
         telemetry.addData("Intake", intake.isIntakeOn() ? "ON" : "OFF");
         telemetry.addData("Intake power", intake.getMotorPower());
         telemetry.addData("Deposit", depo.isDepositOn() ? "ON" : "OFF");
-        telemetry.addData("Target velocity", depoLM0.targetVelocity);
-        telemetry.addData("Bottom velocity", depo.getVelocity());
-        telemetry.addData("Top velocity", depo.getTopVelocity());
+        telemetry.addData("Target velocity", depoLM0.ON_VELOCITY);
         telemetry.addData("Error", depoLM0.targetVelocity - depo.getVelocity());
         telemetry.addData("Deposit power", depo.power);
         telemetry.update();
