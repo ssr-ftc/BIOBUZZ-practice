@@ -18,20 +18,16 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.intakeLM0;
 public class LM0TeleOp extends OpMode {
 
     private Follower follower;
-    FtcDashboard dashboard = FtcDashboard.getInstance();
+
     private intakeLM0 intake;
     private depoLM0 depo;
-    private double speedScale = 0.8;
-    public static double target;
-    public static double cur;
-
+    private double speedScale = 1;
     @Override
     public void init() {
         follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(new Pose(0, 0, 0));
         intake = new intakeLM0(hardwareMap);
         depo = new depoLM0(hardwareMap);
-        Telemetry telemetry = new MultipleTelemetry(this.telemetry, dashboard.getTelemetry());
         telemetry.addLine("LM0 TeleOp initialized");
         telemetry.update();
     }
@@ -51,21 +47,8 @@ public class LM0TeleOp extends OpMode {
         runDepo();
         //  openhatch();
         sendTelemetry();
-        cur = depo.getVelocity();
-        target = depoLM0.targetVelocity;
 
         if(gamepad1.squareWasPressed()) depo.updatePID();
-        telemetry.addData("Intake", intake.isIntakeOn() ? "ON" : "OFF");
-        telemetry.addData("Intake power", intake.getMotorPower());
-        telemetry.addData("Deposit", depo.isDepositOn() ? "ON" : "OFF");
-        telemetry.addData("Target velocity", depoLM0.targetVelocity);
-        telemetry.addData("Bottom velocity", depo.getVelocity());
-        telemetry.addData("Top velocity", depo.getTopVelocity());
-        telemetry.addData("Error", depoLM0.targetVelocity - depo.getVelocity());
-        telemetry.addData("Deposit power", depo.power);
-        telemetry.addData("cur",cur);
-        telemetry.addData("target",target);
-        telemetry.update();
     }
 
     @Override
@@ -121,7 +104,15 @@ public class LM0TeleOp extends OpMode {
     }
 
     private void sendTelemetry() {
-
+        telemetry.addData("Intake", intake.isIntakeOn() ? "ON" : "OFF");
+        telemetry.addData("Intake power", intake.getMotorPower());
+        telemetry.addData("Deposit", depo.isDepositOn() ? "ON" : "OFF");
+        telemetry.addData("Target velocity", depoLM0.targetVelocity);
+        telemetry.addData("Bottom velocity", depo.getVelocity());
+        telemetry.addData("Top velocity", depo.getTopVelocity());
+        telemetry.addData("Error", depoLM0.targetVelocity - depo.getVelocity());
+        telemetry.addData("Deposit power", depo.power);
+        telemetry.update();
     }
 }
 //hi
