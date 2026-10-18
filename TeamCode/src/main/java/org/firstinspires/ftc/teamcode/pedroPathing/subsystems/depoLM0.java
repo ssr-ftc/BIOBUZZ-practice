@@ -63,7 +63,7 @@ public class depoLM0 {
         pid.i=i;
         pid.d=d;
         pid.kF=kF;
-      //  hatch_close();
+        close_hatch();
         turn_off_deposit();
     }
     public void updatePID(){
@@ -79,11 +79,11 @@ public class depoLM0 {
     public static double p = 0.00346;
     public static double i = 0.00047;
     public static double d = 0.000035;
-    public static double kF = 0.0004001;
+    public static double kF = 0.0004501;
     public static double ON_VELOCITY = 1470; // change the deposit speed here (prev 550)
-    public static double targetVelocity = 0;
-    public static double hatchopen = 0.66;
-    public static double hatchclose = 0.54;
+    private static double targetVelocity = 0;
+    public static double hatchopen = 0.63;
+    public static double hatchclose = 0.51;
 
     public void set_target_velocity(double x) {
         targetVelocity = x;
@@ -120,18 +120,28 @@ public class depoLM0 {
         return x;
     }
 
+    public boolean reachedvelocity(){
+        boolean x;
+        if (targetVelocity != 0){
+            x = getVelocity() >= targetVelocity-20;
+        } else {
+            x = false;
+        }
+        return x;
+    }
 
 
-    public void hatch_open(){
+
+    public void open_hatch(){
             hatch.setPosition(hatchopen);
     }
-public void hatch_close(){
+public void close_hatch(){
         hatch.setPosition(hatchclose);
     }
 
 
     public double getVelocity() {
-        return bottom.getVelocity();
+        return top.getVelocity();
     }
     public double getTopVelocity() {
         return top.getVelocity();

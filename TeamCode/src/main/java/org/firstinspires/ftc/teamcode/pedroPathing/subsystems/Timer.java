@@ -19,7 +19,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  *
  * timers = new Timer();
  *
- * 4. Create as many timers as needed indide start() method like this
+ * 4. Create as many timers as needed inside start() method like this
  *
  * timers.createNew("intake");
  * timers.createNew("depo");

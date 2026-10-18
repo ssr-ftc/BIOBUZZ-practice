@@ -48,6 +48,9 @@ public class intakeLM0 {
     public boolean isIntakeOn() {
         return intakeMotor.getPower() != 0;
     }
+    public boolean isOuttaking() {
+        return intakeMotor.getPower() > 0;
+    }
 
     public double getMotorPower() {
         return intakeMotor.getPower();
