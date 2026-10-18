@@ -34,17 +34,17 @@ public class carDashboard {
         allTimeFeet += deltaFeet;
         lastPose = follower.getPose();
 
-        telemetry.addLine("-----Fuel-----");
+        telemetry.addLine("-----------------FUEL-----------------");
         telemetry.addData("Fuel Level", fuelLevel());
-        telemetry.addLine("                            ");
-        telemetry.addLine("-----Distance-----");
+        telemetry.addLine("                 ");
+        telemetry.addLine("----------------DISTSNCE--------------");
         telemetry.addData("IPS", "%.2f", follower.getVelocity().getMagnitude());
         telemetry.addData("Feet Traveled In Session", "%.2f ft", tripFeet);
         telemetry.addData("All-Time Feet Traveled", "%.2f ft", allTimeFeet);
         telemetry.addLine("                            ");
-        telemetry.addLine("-----Navigation-----");
+        telemetry.addLine("---------------NAVIGATION-------------");
         telemetry.addData("Compass", getCompass());
-        telemetry.update();
+        telemetry.addLine("                            ");
     }
     public String fuelLevel() {
         double voltage = hardwareMap.voltageSensor.iterator().next().getVoltage();
