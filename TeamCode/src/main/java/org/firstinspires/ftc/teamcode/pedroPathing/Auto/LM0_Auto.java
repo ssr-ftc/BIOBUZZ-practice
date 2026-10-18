@@ -6,7 +6,6 @@ package org.firstinspires.ftc.teamcode.pedroPathing.Auto;
 //import static com.pedropathing.ivy.pedro.PedroCommands.*;
 
 
-import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
@@ -27,7 +26,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.CustomFollower;
 
 
 @Autonomous(name = "AutoLM0", group = "Season")
-public class LM0 extends OpMode {
+public class LM0_Auto extends OpMode {
 
     private DcMotorEx depo, depo1, depo2;
     private Servo lift_left, //turret2,

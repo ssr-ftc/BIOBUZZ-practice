@@ -19,6 +19,7 @@ public class CustomFollower {
     // --- MANUAL RAMPING VARIABLES ---
     private boolean isRamping = false;
     private double rampStartT, rampEndT, rampStartPower, rampEndPower;
+    private Path rampPath = null; // The specific path the ramp is locked onto
 
     // --- AUTO-PHYSICS VARIABLES ---
     private boolean isAutoCalculating = false;
@@ -43,6 +44,7 @@ public class CustomFollower {
         this.rampEndT = endT;
         this.rampStartPower = startPower;
         this.rampEndPower = endPower;
+        this.rampPath = null; // Unlock so the ramp locks onto the next active path
 
         this.isRamping = true; // Turn the manual math engine ON
         this.isAutoCalculating = false; // Turn the physics engine OFF
@@ -79,21 +81,33 @@ public class CustomFollower {
 
                 // 1B. OR RUN MANUAL RAMPING ENGINE
             } else if (isRamping) {
-                if (currentT >= rampStartT && currentT <= rampEndT) {
-                    double progress = (currentT - rampStartT) / (rampEndT - rampStartT);
+                Path activePath = pedro.getCurrentPath();
+
+                // Lock onto the first path we see after acceleration() was called
+                if (rampPath == null) {
+                    rampPath = activePath;
+                }
+
+                if (activePath != rampPath) {
+                    // Pedro moved on to the next path in the chain, so the ramp is over
+                    endRamp();
+
+                } else if (currentT < rampStartT) {
+                    pedro.setMaxPower(1.0);
+
+                } else if (currentT <= rampEndT) {
+                    double progress = (currentT - rampStartT) / Math.max(1e-6, rampEndT - rampStartT);
                     double smoothPower = rampStartPower + (progress * (rampEndPower - rampStartPower));
                     pedro.setMaxPower(smoothPower);
 
-                } else if (currentT >= rampEndT) {
-                    pedro.setMaxPower(1.0);
-                    isRamping = false;
+                } else {
+                    endRamp();
                 }
             }
         } else {
             // Path finished: Reset ramping state & restore 100% max power immediately
             if (isRamping) {
-                pedro.setMaxPower(1.0);
-                isRamping = false;
+                endRamp();
             }
         }
 
@@ -116,36 +130,46 @@ public class CustomFollower {
         }
     }
 
+    // --- RAMP HELPERS ---
+    private void endRamp() {
+        pedro.setMaxPower(1.0);
+        isRamping = false;
+        rampPath = null;
+    }
+
+    private void prepareToFollow() {
+        // A ramp that already locked onto a path belongs to a path that has
+        // finished (or is being replaced), so end it.
+        // A ramp set by acceleration() just before this call hasn't locked yet
+        // (rampPath == null), so it is kept for the path about to start.
+        if (isRamping && rampPath != null) {
+            endRamp();
+        }
+        pedro.setMaxPower(1.0);
+    }
+
     // --- DELEGATED PEDRO FOLLOWER METHODS ---
     public boolean isBusy() {
         return pedro.isBusy();
     }
 
     public void followPath(PathChain pathChain, boolean holdEnd) {
-        if (!isRamping) {
-            pedro.setMaxPower(1.0);
-        }
+        prepareToFollow();
         pedro.followPath(pathChain, holdEnd);
     }
 
     public void followPath(PathChain pathChain) {
-        if (!isRamping) {
-            pedro.setMaxPower(1.0);
-        }
+        prepareToFollow();
         pedro.followPath(pathChain);
     }
 
     public void followPath(Path path, boolean holdEnd) {
-        if (!isRamping) {
-            pedro.setMaxPower(1.0);
-        }
+        prepareToFollow();
         pedro.followPath(path, holdEnd);
     }
 
     public void followPath(Path path) {
-        if (!isRamping) {
-            pedro.setMaxPower(1.0);
-        }
+        prepareToFollow();
         pedro.followPath(path);
     }
 
