@@ -8,7 +8,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.depoLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.intakeLM0;
 
-@TeleOp(name = "realLM0Teleop", group = "TeleOp")
+@TeleOp(name = "LM0Teleop", group = "TeleOp")
 public class LM0Teleop extends OpMode {
     private Follower follower;
     private final Pose startPose = new Pose(0, 0, 0);
