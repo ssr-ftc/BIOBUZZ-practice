@@ -55,18 +55,15 @@ public class drivePractice extends OpMode {
             speedShift = 0.25;
             gamepad1.rumbleBlips(1);
         }
-
         if (gamepad1.options) {
             follower.setPose(new Pose(0, 0, Math.toRadians(0)));
         }
-
         follower.setTeleOpDrive(
                 -gamepad1.left_stick_y * speedShift,
                 -gamepad1.left_stick_x * speedShift,
                 -gamepad1.right_stick_x * speedShift * 0.8,
                 true
         );
-
         follower.update();
     }
     public void useIntake() {
