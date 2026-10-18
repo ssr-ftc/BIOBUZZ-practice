@@ -8,7 +8,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @TeleOp(name = "trashTeleop", group = "TeleOp")
-public class testTeleop extends OpMode {
+public class trashTeleop extends OpMode {
     private Follower follower;
     private final Pose startPose = new Pose(0, 0, 0);
     private DcMotorEx intake;
