@@ -70,7 +70,6 @@ public class drivePractice extends OpMode {
         allTimeFeet += deltaFeet;
         lastPose = follower.getPose();
     }
-
     public void useIntake() {
         if (gamepad2.right_bumper) {
             intake.setPower(1.00);
@@ -80,7 +79,6 @@ public class drivePractice extends OpMode {
             intake.setPower(0);
         }
     }
-
     public void useDepo() {
         if (gamepad2.right_trigger > 0.1) {
             depoUnder.setPower(1.00);
@@ -90,8 +88,6 @@ public class drivePractice extends OpMode {
             depoTop.setPower(0);
         }
     }
-
-
     public void telemetry() {
         telemetry.addLine("-----Fuel-----");
         telemetry.addData("Fuel Level", fuelLevel());
@@ -105,7 +101,6 @@ public class drivePractice extends OpMode {
         telemetry.addData("Compass", getCompass());
         telemetry.update();
     }
-
     public String fuelLevel() {
         double voltage = hardwareMap.voltageSensor.iterator().next().getVoltage();
         if (voltage > 8 && voltage <= 8.6) return "Empty";
@@ -122,7 +117,6 @@ public class drivePractice extends OpMode {
         else if (voltage < 8) return "Fried Battery...Throw Away";
         else return "Plug in New Battery";
     }
-
     public String getCompass() {
         double degrees = Math.toDegrees(follower.getPose().getHeading());
         while (degrees < 0) degrees += 360;
@@ -137,7 +131,6 @@ public class drivePractice extends OpMode {
         else if (degrees > 247.5 && degrees <= 292.5) return "E";
         else return "NE";
     }
-
     @Override
     public void stop() {
         prefs.edit().putFloat("allTimeOdo", (float)allTimeFeet).apply();
