@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.pedroPathing.Vision.Vision;
+package org.firstinspires.ftc.teamcode.pedroPathing.Vision.ObjectDetection;
 
 import org.opencv.core.Core;
 import org.opencv.core.Mat;

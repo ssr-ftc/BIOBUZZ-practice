@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.pedroPathing.Vision.Vision.APRILTAG_Biobuzz;
+package org.firstinspires.ftc.teamcode.pedroPathing.Vision.AprilTagStuff.APRILTAG_Biobuzz;
 
 /**
  * One HIVE CELL as seen this frame. Built only from tags that belong to

@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.pedroPathing.Vision.Vision.APRILTAG_Biobuzz;
+package org.firstinspires.ftc.teamcode.pedroPathing.Vision.AprilTagStuff.APRILTAG_Biobuzz;
 
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagPoseFtc;

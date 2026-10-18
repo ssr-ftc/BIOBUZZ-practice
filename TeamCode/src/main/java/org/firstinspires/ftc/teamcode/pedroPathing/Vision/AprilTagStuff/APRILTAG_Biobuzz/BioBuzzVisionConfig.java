@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.pedroPathing.Vision.Vision.APRILTAG_Biobuzz;
+package org.firstinspires.ftc.teamcode.pedroPathing.Vision.AprilTagStuff.APRILTAG_Biobuzz;
 
 /**
  * Every number that should be tuned on the real HIVE lives here.

@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.pedroPathing.Vision.TeleOp;
+package org.firstinspires.ftc.teamcode.pedroPathing.Vision.TeleOp__Vision;
 
 /*
  * Copyright (c) 2026 Akash Vijay Aradhya
