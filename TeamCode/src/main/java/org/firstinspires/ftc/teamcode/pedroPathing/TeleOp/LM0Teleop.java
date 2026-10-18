@@ -9,7 +9,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.depoLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.intakeLM0;
 
 @TeleOp(name = "realLM0Teleop", group = "TeleOp")
-public class realLM0Teleop extends OpMode {
+public class LM0Teleop extends OpMode {
     private Follower follower;
     private final Pose startPose = new Pose(0, 0, 0);
     private intakeLM0 intake;
@@ -68,11 +68,10 @@ public class realLM0Teleop extends OpMode {
     public void useIntake() {
         if (gamepad2.left_bumper) {
             intake.outtake();
-            /*
+
         } else if (intake.isOuttaking()) {
             intake.turn_off_intake();
 
-             */
         }
         if (gamepad2.rightBumperWasPressed()) {
             if (intake.isIntakeOn()) {
@@ -95,7 +94,6 @@ public class realLM0Teleop extends OpMode {
         if (timers.checkSecondsLast("depo", 2)){
             depo.turn_off_deposit();
             depo.close_hatch();
-
         }
     }
     public void telemtry() {
