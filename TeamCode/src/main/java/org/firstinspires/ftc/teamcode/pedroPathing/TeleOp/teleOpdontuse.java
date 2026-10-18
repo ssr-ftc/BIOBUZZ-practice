@@ -1,50 +1,96 @@
-package org.firstinspires.ftc.teamcode.pedroPathing.templates.teleop;
+package org.firstinspires.ftc.teamcode.pedroPathing.TeleOp;
 
-import android.content.Context;
-import android.content.SharedPreferences;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
-import com.qualcomm.robotcore.hardware.HardwareMap;
-import org.firstinspires.ftc.robotcore.external.Telemetry;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
-public class carDashboard {
-    private final HardwareMap hardwareMap;
-    private final Telemetry telemetry;
-    private final Follower follower;
+@TeleOp(name = "TeleOp (Don't Use)", group = "TeleOp")
+public class teleOpdontuse extends OpMode {
+    private Follower follower;
+    private final Pose startPose = new Pose(0, 0, 0);
+    private DcMotorEx intake;
 
     private Pose lastPose = new Pose(0, 0, 0);
     private double tripFeet = 0;
     private static double allTimeFeet = 0;
-    private final SharedPreferences prefs;
+    private android.content.SharedPreferences prefs;
 
-    public carDashboard(HardwareMap hardwareMap, Telemetry telemetry, Follower follower) {
-        this.hardwareMap = hardwareMap;
-        this.telemetry = telemetry;
-        this.follower = follower;
+    @Override
+    public void init() {
+        follower = Constants.createFollower(hardwareMap);
+        intake = hardwareMap.get(DcMotorEx.class, "intake");
+        follower.setStartingPose(startPose);
 
-        prefs = hardwareMap.appContext.getSharedPreferences("RobotData", Context.MODE_PRIVATE);
+        prefs = hardwareMap.appContext.getSharedPreferences("RobotData", android.content.Context.MODE_PRIVATE);
         allTimeFeet = prefs.getFloat("allTimeOdo", 0.0f);
     }
+
+    @Override
     public void start() {
+        follower.startTeleopDrive();
         lastPose = follower.getPose();
     }
-    public void update() {
+
+    @Override
+    public void loop() {
+        drive();
+        useIntake();
+        telemetry();
+    }
+
+    public void drive() {
+        double speedShift = 0.7;
+        if (gamepad1.right_trigger > 0.1) {
+            speedShift = 0.25;
+            gamepad1.rumbleBlips(1);
+        }
+
+        if (gamepad1.options) {
+            follower.setPose(new Pose(0, 0, Math.toRadians(0)));
+        }
+
+        follower.setTeleOpDrive(
+                -gamepad1.left_stick_y * speedShift,
+                -gamepad1.left_stick_x * speedShift,
+                -gamepad1.right_stick_x * speedShift * 0.8,
+                true
+        );
+
+        follower.update();
+
         double deltaFeet = follower.getPose().distanceFrom(lastPose) / 12.0;
         tripFeet += deltaFeet;
         allTimeFeet += deltaFeet;
         lastPose = follower.getPose();
+    }
 
-        telemetry.addLine("-----------------FUEL-----------------");
+    public void useIntake() {
+        if (gamepad1.right_bumper) {
+            intake.setPower(1.00);
+        } else if (gamepad1.left_bumper) {
+            intake.setPower(-1.00);
+        } else {
+            intake.setPower(0);
+        }
+    }
+
+
+
+    public void telemetry() {
+        telemetry.addLine("-----Fuel-----");
         telemetry.addData("Fuel Level", fuelLevel());
-        telemetry.addLine("                 ");
-        telemetry.addLine("----------------DISTSNCE--------------");
+        telemetry.addLine("                            ");
+        telemetry.addLine("-----Distance-----");
         telemetry.addData("IPS", "%.2f", follower.getVelocity().getMagnitude());
         telemetry.addData("Feet Traveled In Session", "%.2f ft", tripFeet);
         telemetry.addData("All-Time Feet Traveled", "%.2f ft", allTimeFeet);
         telemetry.addLine("                            ");
-        telemetry.addLine("---------------NAVIGATION-------------");
+        telemetry.addLine("-----Navigation-----");
         telemetry.addData("Compass", getCompass());
-        telemetry.addLine("                            ");
+        telemetry.update();
     }
     public String fuelLevel() {
         double voltage = hardwareMap.voltageSensor.iterator().next().getVoltage();
@@ -58,7 +104,7 @@ public class carDashboard {
         else if (voltage > 12.2 && voltage <= 12.8) return "80%";
         else if (voltage > 12.8 && voltage <= 13.4) return "Full";
         else if (voltage > 13.4 && voltage <= 14) return "Full";
-        else if (voltage > 14) return "Pristine like Sritan";
+        else if (voltage > 14) return "Pristine";
         else if (voltage < 8) return "Fried Battery...Throw Away";
         else return "Plug in New Battery";
     }
@@ -66,6 +112,7 @@ public class carDashboard {
         double degrees = Math.toDegrees(follower.getPose().getHeading());
         while (degrees < 0) degrees += 360;
         while (degrees >= 360) degrees -= 360;
+
         if (degrees > 337.5 || degrees <= 22.5)      return "N";
         else if (degrees > 22.5  && degrees <= 67.5)  return "NW";
         else if (degrees > 67.5  && degrees <= 112.5) return "W";
@@ -75,8 +122,8 @@ public class carDashboard {
         else if (degrees > 247.5 && degrees <= 292.5) return "E";
         else return "NE";
     }
-
+    @Override
     public void stop() {
-        prefs.edit().putFloat("allTimeOdo", (float) allTimeFeet).apply();
+        prefs.edit().putFloat("allTimeOdo", (float)allTimeFeet).apply();
     }
 }
