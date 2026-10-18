@@ -8,8 +8,8 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.depoLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.intakeLM0;
 
-@TeleOp(name = "drivePractice", group = "TeleOp")
-public class drivePractice extends OpMode {
+@TeleOp(name = "realLM0Teleop", group = "TeleOp")
+public class realLM0Teleop extends OpMode {
     private Follower follower;
     private final Pose startPose = new Pose(0, 0, 0);
     private intakeLM0 intake;
@@ -92,14 +92,14 @@ public class drivePractice extends OpMode {
             depo.open_hatch();
             intake.turn_on_intake();
         }
-        if (timers.checkSecondsLast("depo", 3)){
+        if (timers.checkSecondsLast("depo", 2)){
             depo.turn_off_deposit();
             depo.close_hatch();
 
         }
     }
     public void telemtry() {
-        telemetry.addLine("                 ");
+        telemetry.addLine( "                 ");
         telemetry.addLine("-------------CONTROLS---------------");
         telemetry.addLine("                          ");
         telemetry.addLine("Base driver:");
