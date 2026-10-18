@@ -29,19 +29,6 @@ public class drivePractice extends OpMode {
     public void start() {
         follower.startTeleopDrive();
         depo.start();
-        telemetry.addLine("--------CONTROLS--------");
-        telemetry.addLine("                          ");
-        telemetry.addLine("Base Driver:");
-        telemetry.addLine("Left Joystick = forward and backward (up-down)");
-        telemetry.addLine("Left Joystick = strafs (left-right");
-        telemetry.addLine("Right Trigger = Lowers speed by 70%");
-        telemetry.addLine("Three Lines = resets theCompass");
-        telemetry.addLine("                          ");
-        telemetry.addLine("Attachments:");
-        telemetry.addLine("Right Bumper = intake");
-        telemetry.addLine("Left Bumper = outtake");
-        telemetry.addLine("Right Trigger = shooter");
-        telemetry.addLine("DPad Up/Down = changes veclotiy");
         dashboard.start();
     }
 
@@ -50,7 +37,13 @@ public class drivePractice extends OpMode {
         drive();
         useIntake();
         useDepo();
+        telemetry.addData("Status", depo.isDepositOn() ? "ON" : "OFF");
+        telemetry.addData("Target Velocity", depoLM0.ON_VELOCITY);
+        telemetry.addData("Current Velocity", "%.1f", depo.getVelocity());
+        telemetry.addLine("                             ");
         dashboard.update();
+        telemtry();
+        telemetry.update();
     }
 
     public void drive() {
@@ -83,10 +76,9 @@ public class drivePractice extends OpMode {
             intake.setPower(0);
         }
     }
-
     public void useDepo() {
         depo.run_using_pid();
-        if (gamepad2.right_trigger > 0.3) {
+        if (gamepad2.aWasPressed()) {
             if (depo.isDepositOn()) {
                 depo.turn_off_deposit();
                 //depo.hatch_close();
@@ -100,7 +92,23 @@ public class drivePractice extends OpMode {
             depoLM0.ON_VELOCITY -= 10;
         }
     }
+    public void telemtry() {
+        telemetry.addLine("                 ");
+        telemetry.addLine("-------------CONTROLS---------------");
+        telemetry.addLine("                          ");
+        telemetry.addLine("Base Driver:");
+        telemetry.addLine("Left Joystick = forward and backward (up-down)");
+        telemetry.addLine("Left Joystick = strafs (left-right");
+        telemetry.addLine("Right Trigger = Lowers speed by 70%");
+        telemetry.addLine("Three Lines = resets theCompass");
+        telemetry.addLine("                          ");
+        telemetry.addLine("Attachments:");
+        telemetry.addLine("Right Bumper = intake");
+        telemetry.addLine("Left Bumper = outtake");
+        telemetry.addLine("A = shooter");
+        telemetry.addLine("DPad Up/Down = changes veclotiy");
 
+    }
     @Override
     public void stop() {
         dashboard.stop();

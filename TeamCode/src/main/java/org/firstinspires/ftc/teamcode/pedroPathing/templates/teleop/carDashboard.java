@@ -34,17 +34,17 @@ public class carDashboard {
         allTimeFeet += deltaFeet;
         lastPose = follower.getPose();
 
-        telemetry.addLine("-----Fuel-----");
+        telemetry.addLine("-----------------FUEL-----------------");
         telemetry.addData("Fuel Level", fuelLevel());
-        telemetry.addLine("                            ");
-        telemetry.addLine("-----Distance-----");
+        telemetry.addLine("                 ");
+        telemetry.addLine("----------------DISTSNCE--------------");
         telemetry.addData("IPS", "%.2f", follower.getVelocity().getMagnitude());
         telemetry.addData("Feet Traveled In Session", "%.2f ft", tripFeet);
         telemetry.addData("All-Time Feet Traveled", "%.2f ft", allTimeFeet);
         telemetry.addLine("                            ");
-        telemetry.addLine("-----Navigation-----");
+        telemetry.addLine("---------------NAVIGATION-------------");
         telemetry.addData("Compass", getCompass());
-        telemetry.update();
+        telemetry.addLine("                            ");
     }
     public String fuelLevel() {
         double voltage = hardwareMap.voltageSensor.iterator().next().getVoltage();
@@ -66,7 +66,6 @@ public class carDashboard {
         double degrees = Math.toDegrees(follower.getPose().getHeading());
         while (degrees < 0) degrees += 360;
         while (degrees >= 360) degrees -= 360;
-
         if (degrees > 337.5 || degrees <= 22.5)      return "N";
         else if (degrees > 22.5  && degrees <= 67.5)  return "NW";
         else if (degrees > 67.5  && degrees <= 112.5) return "W";
