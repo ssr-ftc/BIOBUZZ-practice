@@ -10,6 +10,8 @@ import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.depoLM0;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.intakeLM0;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
@@ -18,7 +20,9 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 public class autoUnderHive extends OpMode {
     private Follower follower;
     private Timer pathTimer, opModeTimer;
-    private DcMotorEx intake;
+    //private DcMotorEx intake;
+    private intakeLM0 intake;
+    private depoLM0 depo;
 
     public enum PathState {
         STARTING_COORDINATE,
@@ -89,14 +93,14 @@ public class autoUnderHive extends OpMode {
                 break;
             case END_PATH_1:
                 if (!follower.isBusy()) {
-                    intake.setPower(1.00);
+                    intake.turn_on_intake();
                     follower.followPath(path1_path2, 0.4, true);
-                    intake.setPower(0);
                     setPathState(PathState.END_PATH_2);
                 }
                 break;
             case END_PATH_2:
                 if (!follower.isBusy()) {
+                    intake.turn_off_intake();
                     follower.followPath(path2_path3, true);
                     setPathState(PathState.WAIT_AT_PATH2);
                 }
@@ -135,7 +139,9 @@ public class autoUnderHive extends OpMode {
         follower = Constants.createFollower(hardwareMap);
         follower.setCentripetalScaling(0.0015);
         follower.getConstants().setBEZIER_CURVE_SEARCH_LIMIT(100);
-        intake = hardwareMap.get(DcMotorEx.class, "intake");
+        //intake = hardwareMap.get(DcMotorEx.class, "intake");
+        intake = new intakeLM0(hardwareMap);
+        depo = new depoLM0(hardwareMap);
         buildPaths();
         follower.setPose(startingCoordinate);
         pathState = PathState.STARTING_COORDINATE;
@@ -144,6 +150,7 @@ public class autoUnderHive extends OpMode {
     public void start() {
         opModeTimer.resetTimer();
         setPathState(pathState);
+        intake.start();
     }
     @Override
     public void loop() {

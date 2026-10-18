@@ -1,5 +1,4 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.templates.teleop;
-
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
