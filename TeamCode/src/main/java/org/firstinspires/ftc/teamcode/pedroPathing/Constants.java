@@ -23,9 +23,7 @@ public class Constants {
             .headingPIDFCoefficients(new PIDFCoefficients(0.75,0,0.0275,0.01))
             //.headingPIDFCoefficients(new PIDFCoefficients(0.44, 0, 0, 0.02))
             .translationalPIDFCoefficients(new PIDFCoefficients(0.076, 0, 0.005, 0.027));
-            //.translationalPIDFCoefficients(new PIDFCoefficients(0.04, 0, 0.004, 0.027));
-
-
+    //.translationalPIDFCoefficients(new PIDFCoefficients(0.04, 0, 0.004, 0.027));
     public static MecanumConstants driveConstants = new MecanumConstants()
             .maxPower(1)
             .rightFrontMotorName("rf") //fr
@@ -58,8 +56,3 @@ public class Constants {
                 .build();
     }
 }
-//D: 0.004
-//F: 0.029
-//I: 0
-//P: 0.16
-
