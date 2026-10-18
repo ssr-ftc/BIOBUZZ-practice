@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.pedroPathing.templates.teleop;
+package org.firstinspires.ftc.teamcode.pedroPathing.TeleOp;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
@@ -7,8 +7,8 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
-@TeleOp(name = "testTeleop", group = "TeleOp")
-public class testTeleop extends OpMode {
+@TeleOp(name = "TeleOp (Don't Use)", group = "TeleOp")
+public class teleOpdontuse extends OpMode {
     private Follower follower;
     private final Pose startPose = new Pose(0, 0, 0);
     private DcMotorEx intake;

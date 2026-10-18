@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.pedroPathing.templates.teleop;
+package org.firstinspires.ftc.teamcode.pedroPathing.TeleOp;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -58,7 +58,7 @@ public class carDashboard {
         else if (voltage > 12.2 && voltage <= 12.8) return "80%";
         else if (voltage > 12.8 && voltage <= 13.4) return "Full";
         else if (voltage > 13.4 && voltage <= 14) return "Full";
-        else if (voltage > 14) return "Pristine";
+        else if (voltage > 14) return "Pristine like Sritan";
         else if (voltage < 8) return "Fried Battery...Throw Away";
         else return "Plug in New Battery";
     }

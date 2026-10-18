@@ -13,9 +13,9 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.depoLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.intakeLM0;
 
-@TeleOp(name = "LM0 TeleOp", group = "LM0")
+@TeleOp(name = "soloControllerTeleop", group = "LM0")
 //@Config
-public class LM0TeleOp extends OpMode {
+public class soloTeleop extends OpMode {
 
     private Follower follower;
 
