@@ -1,40 +1,29 @@
-# Implementation Plan - Flashing Green goBILDA LED Indicator When Target is Shootable
+# Implementation Plan - Move Dashboard Telemetry to `carDashboard.java`
 
-Implement visual green flashing LED indicator feedback on the goBILDA LED light (configured as Servo `"LED"`) when an AprilTag target is determined to be **SHOOTABLE** in `UNDERVisionAuto.java` and `AROUNDVisionAuto.java`.
-
-## User Review Required
-
-> [!IMPORTANT]
-> **Hardware Map Setup**:
-> This plan assumes your goBILDA LED driver is configured in your Driver Station Robot Configuration on a **Servo port** with the exact device name **`"LED"`**.
-
-> [!NOTE]
-> **PWM Green Color & Flashing**:
-> For Servo-based LED drivers (like REV Blinkin or goBILDA PWM LED modules), `0.725` corresponds to Green. To make it **flash green**, the code will alternate the servo position between `0.725` (Green) and `0.0` (Off) every 200ms whenever `anyShootable` is `true`. When not shootable, the LED turns off (`0.0`).
+Encapsulate all dashboard telemetry, battery fuel gauge, compass navigation, and session/all-time odometer tracking into the `carDashboard` utility class so any TeleOp OpMode can easily display dashboard telemetry with a single `dashboard.update()` call.
 
 ## Proposed Changes
 
-### Autonomous OpModes (`APAuto.Auto`)
+### TeleOp Utilities (`pedroPathing.templates.teleop`)
 
-#### [MODIFY] [UNDERVisionAuto.java](file:///C:/Users/krupa/StudioProjects/BIOBUZZ-practice/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/APAuto/Auto/UNDERVisionAuto.java)
-* Declare `private Servo led;` and initialize `led = hardwareMap.get(Servo.class, "LED");` in `init()`.
-* In `loop()`, when `anyShootable` is `true`, toggle `led.setPosition(0.725)` (Green) every 200ms using `System.currentTimeMillis()` to create a flashing green light effect.
-* When `anyShootable` is `false`, set `led.setPosition(0.0)` (Off).
+#### [MODIFY] [carDashboard.java](file:///C:/Users/krupa/StudioProjects/BIOBUZZ-practice/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedroPathing/templates/teleop/carDashboard.java)
+* Define the `carDashboard` class accepting `HardwareMap`, `Telemetry`, and `Follower` instances in its constructor.
+* Implement `start()`, `update()`, `fuelLevel()`, `getCompass()`, and `stop()` methods.
+* Automatically manage session feet traveled, all-time distance (persisted via `SharedPreferences`), speed (IPS), battery fuel level gauge, and compass direction.
 
-#### [MODIFY] [AROUNDVisionAuto.java](file:///C:/Users/krupa/StudioProjects/BIOBUZZ-practice/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/APAuto/Auto/AROUNDVisionAuto.java)
-* Declare `private Servo led;` and initialize `led = hardwareMap.get(Servo.class, "LED");` in `init()`.
-* In `loop()`, when `anyShootable` is `true`, toggle `led.setPosition(0.725)` (Green) every 200ms using `System.currentTimeMillis()`.
-* When `anyShootable` is `false`, set `led.setPosition(0.0)` (Off).
+#### [MODIFY] [drivePractice.java](file:///C:/Users/krupa/StudioProjects/BIOBUZZ-practice/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedroPathing/templates/teleop/drivePractice.java)
+* Instantiates `dashboard = new carDashboard(hardwareMap, telemetry, follower)` in `init()`.
+* Calls `dashboard.start()` in `start()`.
+* Calls `dashboard.update()` in `loop()` and `dashboard.stop()` in `stop()`.
+* Removes duplicate inline telemetry, odometer, and fuel gauge methods to keep `drivePractice` clean and concise.
 
 ---
 
 ## Verification Plan
 
 ### Automated Tests
-* Run `analyze_file` on `UNDERVisionAuto.java` and `AROUNDVisionAuto.java` to verify 0 compilation errors.
-* Build the project (`gradle_build("TeamCode:assembleDebug")`).
+* Run `analyze_file` on `carDashboard.java` and `drivePractice.java` to confirm 0 compilation errors.
 
 ### Manual Verification
-1. Verify the servo port in Driver Station configuration is named `"LED"`.
-2. Point the webcam at an AprilTag facing up (`FACING_UP`).
-3. Verify that the goBILDA LED light flashes green when `Shootable` is `YES` and turns off when `Shootable` is `NO`.
+* Run `drivePractice` TeleOp on the robot.
+* Confirm that battery fuel gauge, session feet, all-time feet, speed (IPS), and compass navigation display on the Driver Station telemetry screen.

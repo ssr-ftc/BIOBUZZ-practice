@@ -92,7 +92,6 @@ public class testTeleop extends OpMode {
         telemetry.addData("Compass", getCompass());
         telemetry.update();
     }
-
     public String fuelLevel() {
         double voltage = hardwareMap.voltageSensor.iterator().next().getVoltage();
         if (voltage > 8 && voltage <= 8.6) return "Empty";
@@ -109,7 +108,6 @@ public class testTeleop extends OpMode {
         else if (voltage < 8) return "Fried Battery...Throw Away";
         else return "Plug in New Battery";
     }
-
     public String getCompass() {
         double degrees = Math.toDegrees(follower.getPose().getHeading());
         while (degrees < 0) degrees += 360;
@@ -124,7 +122,6 @@ public class testTeleop extends OpMode {
         else if (degrees > 247.5 && degrees <= 292.5) return "E";
         else return "NE";
     }
-
     @Override
     public void stop() {
         prefs.edit().putFloat("allTimeOdo", (float)allTimeFeet).apply();
