@@ -11,6 +11,7 @@ public class depoLM0 {
     private DcMotorEx top;
     private DcMotorEx bottom;
     public Servo hatch;
+    public Servo cam;
 
     public static class PIDFController {
         public double p, i, d, kF;
@@ -55,6 +56,7 @@ public class depoLM0 {
         bottom.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         hatch = hardwareMap.get(Servo.class,"hatch");
+        cam = hardwareMap.get(Servo.class,"camera");
 
         pid = new PIDFController(p, i, d, kF);
     }
@@ -80,10 +82,16 @@ public class depoLM0 {
     public static double i = 0.00047;
     public static double d = 0.000035;
     public static double kF = 0.0004501;
-    public static double ON_VELOCITY = 1470; // change the deposit speed here (prev 550)
     private static double targetVelocity = 0;
+
+    //important constatnts below
+    public static double ON_VELOCITY = 1470; // change the deposit speed here (prev 550)
     public static double hatchopen = 0.63;
     public static double hatchclose = 0.51;
+    public static double cam_up = 0.2;
+    public static double cam_down = 0.8;
+    public static double camMiddle = 0.5;
+
 
     public void set_target_velocity(double x) {
         targetVelocity = x;
@@ -135,8 +143,17 @@ public class depoLM0 {
     public void open_hatch(){
             hatch.setPosition(hatchopen);
     }
-public void close_hatch(){
+    public void close_hatch(){
         hatch.setPosition(hatchclose);
+    }
+    public void setCam_up(){
+        cam.setPosition(cam_up);
+    }
+    public void setCam_down(){
+        hatch.setPosition(cam_down);
+    }
+    public void setCam_middle(){
+        cam.setPosition(camMiddle);
     }
 
 

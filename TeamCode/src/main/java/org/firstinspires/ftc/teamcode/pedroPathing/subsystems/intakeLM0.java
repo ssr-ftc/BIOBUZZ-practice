@@ -9,9 +9,9 @@ public class intakeLM0 {
 
 
     private DcMotor intakeMotor;
-    public Servo flowerintake;
-    public double floweruppos = 0.45; // not a real variable yet
-    public double flowerdownpos = 0.45; // not a real variable yet
+    private Servo flowerintake;
+    private double floweruppos = 0.99; // not a real variable yet
+    private double flowerdownpos = 0.08; // not a real variable yet
     private static final double intake_power = -1;
     private static final double outtake_power = 1;
 
@@ -23,7 +23,7 @@ public class intakeLM0 {
     }
     public void start(){
         turn_off_intake();
-//        flower_up();
+        flower_up();
     }
 
     public void flower_up(){
@@ -32,6 +32,9 @@ public class intakeLM0 {
 
     public void flower_down(){
         flowerintake.setPosition(flowerdownpos);
+    }
+    public boolean isFlowerDown(){
+        return flowerintake.getPosition() < floweruppos-0.1;
     }
     public void turn_on_intake() {
         intakeMotor.setPower(intake_power);
