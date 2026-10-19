@@ -24,8 +24,6 @@ public class TurretTest extends OpMode {
         telemetry.update();
     }
 
-
-
     @Override
     public void start() {//this is called once when the driver presses start
         servoturret.setPosition(0.5);
