@@ -59,6 +59,7 @@ public class depoLM0 {
     //important constatnts below
     public static double ON_VELOCITY = 1470; // change the deposit speed here (prev 550)
     public static double hatchopen = 0.65;
+    public static double hatchopen_2 = 0.43;
     public static double hatchclose = 0.54;
     public static double cam_up = 0.2;
     public static double cam_down = 0.8;
@@ -96,8 +97,10 @@ public class depoLM0 {
     }
 
     public boolean ishatchopen(){
-        boolean x = hatch.getPosition() > (hatchclose + 0.04);
-        return x;
+        double position = hatch.getPosition();
+        boolean negativeSide = Math.abs(position - hatchopen) <= 0.04;
+        boolean positiveSide = Math.abs(position - hatchopen_2) <= 0.04;
+        return negativeSide || positiveSide;
     }
 
     public boolean reachedvelocity(){
@@ -113,8 +116,22 @@ public class depoLM0 {
 
 
     public void open_hatch(){
-            hatch.setPosition(hatchopen);
+        hatch.setPosition(hatchopen);
     }
+
+    public void open_hatch_2(){
+        hatch.setPosition(hatchopen_2);
+    }
+
+    /** Negative turret degrees use hatchopen. Zero and positive degrees use hatchopen_2. */
+    public void open_hatch(double turretDeg) {
+        if (turretDeg < 0) {
+            open_hatch();
+        } else {
+            open_hatch_2();
+        }
+    }
+
     public void close_hatch(){
         hatch.setPosition(hatchclose);
     }
