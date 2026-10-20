@@ -9,22 +9,20 @@ import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.qualcomm.robotcore.hardware.DcMotorEx;
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.depoLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.intakeLM0;
-
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
-
 
 @Autonomous(name = "UnderHive", group = "Autonomous")
 public class autoUnderHive extends OpMode {
     private Follower follower;
     private Timer pathTimer, opModeTimer;
-    //private DcMotorEx intake;
+    private org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer timers;
     private intakeLM0 intake;
     private depoLM0 depo;
 
     public enum PathState {
+        SHOOT,
         STARTING_COORDINATE,
         END_PATH_1,
         END_PATH_2,
@@ -35,19 +33,19 @@ public class autoUnderHive extends OpMode {
 
     private PathState pathState;
 
-
-    private final Pose startingCoordinate = new Pose(56, 9, Math.toRadians(-180));
-    private final Pose endPath1 = new Pose(27, 9, Math.toRadians(-180));
-    private final Pose endPath2 = new Pose(11.5, 9, Math.toRadians(-180));
-    private final Pose endPath3 = new Pose(52, 114.5 , Math.toRadians(114));
-    private final Pose endPath4 = new Pose(11 , 109 , Math.toRadians(0));  //11.109
-
+    private final Pose startingCoordinate = new Pose(56, 9, Math.toRadians(90));
+    private final Pose endPath1 = new Pose(26.4, 19, Math.toRadians(-147));
+    private final Pose endPath2 = new Pose(15, 12.4, Math.toRadians(-151));
+    private final Pose endPath3 = new Pose(52, 114.5, Math.toRadians(114));
+    private final Pose endPath4 = new Pose(11, 109, Math.toRadians(0));
 
     private PathChain start_path1, path1_path2, path2_path3, path3_path4;
 
     public void buildPaths() {
         start_path1 = follower.pathBuilder()
-                .addPath(new BezierLine(startingCoordinate, endPath1))
+                .addPath(new BezierCurve(startingCoordinate,
+                        new Pose(55.4,38),
+                        endPath1))
                 .setTangentHeadingInterpolation()
                 .build();
         path1_path2 = follower.pathBuilder()
@@ -56,14 +54,9 @@ public class autoUnderHive extends OpMode {
                 .build();
         path2_path3 = follower.pathBuilder()
                 .addPath(new BezierCurve(endPath2,
-                        /*
-                        new Pose(78.5, 16), //82, 14
-                        new Pose(59, 107), //58,104
-
-                         */
-                        new Pose(61.5,12), //61.5, 12
-                        new Pose (48.5 ,27.5), //39,27.5
-                        new Pose(63.5,109), //65.5, 109
+                        new Pose(61.5, 12),
+                        new Pose(48.5, 27.5),
+                        new Pose(63.5, 109),
                         endPath3))
                 .setHeadingInterpolation(HeadingInterpolator.piecewise(
                         HeadingInterpolator.PiecewiseNode.linear(0, 0.313, endPath2.getHeading(), Math.toRadians(63)),
@@ -81,12 +74,31 @@ public class autoUnderHive extends OpMode {
         return pathTimer.getElapsedTimeSeconds() > seconds;
     }
 
+    public void useDepo() {
+        depo.run_using_pid();
+        if (depo.reachedvelocity() && !timers.isRunning("depo")) {
+            timers.start("depo");
+            depo.open_hatch();
+            intake.turn_on_intake();
+        }
+        if (timers.checkSecondsLast("depo", 2)) {
+            depo.turn_off_deposit();
+            depo.close_hatch();
+        }
+    }
+
     public void statePathUpdate() {
         double timeElapsed = pathTimer.getElapsedTimeSeconds();
-
         switch (pathState) {
+            case SHOOT:
+                if (timeElapsed > 1 && !depo.isDepositOn()) {
+                    depo.turn_on_deposit(); 
+                    setPathState(PathState.STARTING_COORDINATE);
+                }
+                break;
             case STARTING_COORDINATE:
-                if (timeElapsed > 1) {
+                if (!depo.isDepositOn()) {
+                    depo.turn_off_deposit();
                     follower.followPath(start_path1, true);
                     setPathState(PathState.END_PATH_1);
                 }
@@ -142,27 +154,29 @@ public class autoUnderHive extends OpMode {
         //intake = hardwareMap.get(DcMotorEx.class, "intake");
         intake = new intakeLM0(hardwareMap);
         depo = new depoLM0(hardwareMap);
+        timers = new org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer();
+
         buildPaths();
         follower.setPose(startingCoordinate);
-        pathState = PathState.STARTING_COORDINATE;
+        pathState = PathState.SHOOT;
     }
     @Override
     public void start() {
         opModeTimer.resetTimer();
         setPathState(pathState);
         intake.start();
+        depo.start();
+        timers.createNew("depo");
     }
     @Override
     public void loop() {
         follower.update();
+        useDepo();
         statePathUpdate();
         telemetry.addData("State", pathState);
-        telemetry.addData("T Value", follower.getCurrentTValue());
         telemetry.addData("X", follower.getPose().getX());
         telemetry.addData("Y", follower.getPose().getY());
         telemetry.addData("Heading (Deg)", Math.toDegrees(follower.getPose().getHeading()));
-        telemetry.addData("Path time", pathTimer.getElapsedTimeSeconds());
         telemetry.update();
     }
-
 }
