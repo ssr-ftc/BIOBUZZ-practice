@@ -9,13 +9,13 @@ import com.qualcomm.robotcore.hardware.Servo;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 
-@TeleOp(name = "Template Pedro TeleOp", group = "Templates")
+@TeleOp(name = "Servos tester")
 public class ServoTest extends OpMode {
 
     private Follower follower;//this is pedropathing follower
     private double speedScale = 0.8;
     Servo hatch;
-
+    Servo cam;
     Servo flower;
 
 
@@ -25,6 +25,7 @@ public class ServoTest extends OpMode {
         follower.setStartingPose(new Pose(0, 0, 0));
         hatch = hardwareMap.get(Servo.class,"hatch");
         flower = hardwareMap.get(Servo.class,"flower_intake");
+        cam = hardwareMap.get(Servo.class,"camera");
         telemetry.addLine("Initialized");
         telemetry.addData("Status", "Press start to run TeleOp");
         telemetry.addData("Starting Pose", "(%.1f, %.1f, %.1f)", 0.0, 0.0, 0.0);
@@ -35,7 +36,8 @@ public class ServoTest extends OpMode {
     @Override
     public void start() {//this is called once when the driver presses start
         flower.setPosition(0.5);
-        hatch.setPosition(0.5);
+        hatch.setPosition(0.54);
+        cam.setPosition(0.5);
         follower.startTeleopDrive();
     }
 
@@ -43,10 +45,14 @@ public class ServoTest extends OpMode {
     public void loop() {//this is called repeatedly during the op mode
         follower.update();
 //        driveWithPedro();
-        if(gamepad1.dpadUpWasPressed()) hatch.setPosition(hatch.getPosition()+0.01);
+        if(gamepad1.dpadUpWasPressed()) hatch.setPosition(hatch.getPosition()+0.01);//dpad up/down for hatch
         if(gamepad1.dpadDownWasPressed()) hatch.setPosition(hatch.getPosition()-0.01);
-        if(gamepad1.dpadLeftWasPressed()) flower.setPosition(flower.getPosition()-0.01);
+
+        if(gamepad1.dpadLeftWasPressed()) flower.setPosition(flower.getPosition()-0.01);//dpad left/right for flower
         if(gamepad1.dpadRightWasPressed()) flower.setPosition(flower.getPosition()+0.01);
+
+        if(gamepad1.rightBumperWasPressed()) cam.setPosition(cam.getPosition()+0.01);//left and right bumpers for cam
+        if(gamepad1.leftBumperWasPressed()) cam.setPosition(cam.getPosition()-0.01);
         //0.4 is hatch open
         //0.54 is close
         //0.66 is open2
@@ -68,6 +74,7 @@ public class ServoTest extends OpMode {
         telemetry.addLine("this is telemetry");
         telemetry.addData("hatch",hatch.getPosition());
         telemetry.addData("flower",flower.getPosition());
+        telemetry.addData("camera",cam.getPosition());
         telemetry.update();
     }
 }

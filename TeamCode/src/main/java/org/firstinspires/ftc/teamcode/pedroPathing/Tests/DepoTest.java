@@ -12,7 +12,7 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
-@TeleOp(name = "tiny depo 2", group = "tuning")
+@TeleOp(name = "depo pid test", group = "tuning")
 @Config
 public class DepoTest extends LinearOpMode {
 
@@ -30,7 +30,7 @@ public class DepoTest extends LinearOpMode {
     public static double kF = 0.0004001; // adjust for your motor's max ticks/sec
 
     // Target velocity in ticks per second
-    public static double targetVelocity = 1;
+    public static double targetVelocity = 0;
     private enum Mode {DRIVER, AUTO}
     private Mode mode = Mode.DRIVER;
 

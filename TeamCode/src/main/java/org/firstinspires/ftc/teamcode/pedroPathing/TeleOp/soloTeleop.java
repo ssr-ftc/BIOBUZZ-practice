@@ -50,10 +50,7 @@ public class soloTeleop extends OpMode {
         driveWithPedro();
         runIntake();
         runDepo();
-        //  openhatch();
         sendTelemetry();
-
-        if(gamepad1.squareWasPressed()) depo.updatePID();
     }
 
     @Override
@@ -65,7 +62,7 @@ public class soloTeleop extends OpMode {
     private void driveWithPedro() {
         double forward = -gamepad1.left_stick_y * speedScale;
         double strafe = -gamepad1.left_stick_x * speedScale;
-        double turn = -gamepad1.right_stick_x * speedScale;
+        double turn = -gamepad1.right_stick_x * 0.8;
         follower.setTeleOpDrive(forward, strafe, turn, true);
     }
 
@@ -82,6 +79,12 @@ public class soloTeleop extends OpMode {
             } else {
                 intake.turn_on_intake();
             }
+        }
+        if(gamepad1.squareWasPressed()){
+            if(intake.isFlowerDown()){
+                intake.flower_up();
+            }
+            else intake.flower_down();
         }
 
 
@@ -106,9 +109,9 @@ public class soloTeleop extends OpMode {
 
 
         if (gamepad1.dpad_up) {
-            depoLM0.ON_VELOCITY +=10;
+            depoLM0.ON_VELOCITY +=1;
         } else if (gamepad1.dpad_down) {
-            depoLM0.ON_VELOCITY -=10;
+            depoLM0.ON_VELOCITY -=1;
         }
 
     }
