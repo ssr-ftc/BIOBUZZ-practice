@@ -37,7 +37,8 @@ public class LM0Teleop extends OpMode {
         depo.start();
         dashboard.start();
         timers.createNew("depo");
-        turret.ResetTurretEncoders();
+        //turret.ResetTurretEncoders();
+        turret.setPositionDeg(0);
     }
     @Override
     public void loop() {
@@ -97,14 +98,16 @@ public class LM0Teleop extends OpMode {
     }
     public void useturret(){
         if(gamepad2.rightTriggerWasPressed()) {
+            turret.ResetTurretEncoders();
             /*if(turret.getPosition() > 20){
                 turret.setPositionDeg(-45);
             }
             else {
                 turret.setPositionDeg(45);
             }*/
-            turret.setPositionTicks(100);
+
         }
+
     }
     public void useDepo() {
         depo.run_using_pid();
