@@ -105,7 +105,6 @@ public class LM0Teleop extends OpMode {
             else {
                 turret.setPositionDeg(45);
             }*/
-
         }
 
     }
