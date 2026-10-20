@@ -1,14 +1,12 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.Tests;
 
-import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
 
 
 @TeleOp(name = "turret test", group = "Templates")
-public class TurretTest extends OpMode {
+public class TurretTestServo extends OpMode {
 
     private Servo servoturret;
 

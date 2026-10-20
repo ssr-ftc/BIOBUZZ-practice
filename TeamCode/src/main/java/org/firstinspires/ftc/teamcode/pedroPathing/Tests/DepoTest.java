@@ -12,7 +12,7 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
-@TeleOp(name = "tiny depo 2", group = "tuning")
+@TeleOp(name = "depo pid test", group = "tuning")
 @Config
 public class DepoTest extends LinearOpMode {
 
