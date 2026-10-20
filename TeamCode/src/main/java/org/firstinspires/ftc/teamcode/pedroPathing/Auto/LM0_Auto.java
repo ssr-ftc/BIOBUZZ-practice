@@ -28,6 +28,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.CustomFollower;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.depoLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.intakeLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.TeleOp.soloTeleop;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.turret;
 
 
 @Autonomous(name = "AutoLM0", group = "Season")
@@ -38,6 +39,7 @@ public class LM0_Auto extends OpMode {
     private DcMotorEx depo1;
     private depoLM0 depo;
     private intakeLM0 intake;
+    private turret turret;
     private Servo hatch;
     private CRServo turret_servo;
     private CustomFollower follower;
@@ -86,6 +88,7 @@ public class LM0_Auto extends OpMode {
         follower = new CustomFollower(hardwareMap, telemetry);
         intake = new intakeLM0(hardwareMap);
         depo = new depoLM0(hardwareMap);
+        turret = new turret(hardwareMap);
         telemetry.addLine("Ready. Press Y for Blue, A for Red.");
         telemetry.addLine("Press X for Small Blue, B for Small Red.");
         telemetry.addLine("Press D-pad UP for Blue Sample, D-pad DOWN for Red Sample.");
@@ -102,6 +105,7 @@ public class LM0_Auto extends OpMode {
         pathTimer.resetTimer();
         intake.start();
         depo.start();
+        turret.ResetTurretEncoders();
         timers.createNew("depo");
         setShootState(ShootState.SHOOT);
         depo.turn_on_deposit();
@@ -110,6 +114,8 @@ public class LM0_Auto extends OpMode {
     @Override
     public void loop() {
         follower.update();
+        turret.run_using_pid();
+        depo.run_using_pid();
         updateAutoState();
         updateTelemetry();
         updateShootState();
@@ -123,7 +129,7 @@ public class LM0_Auto extends OpMode {
 
         switch (autoState) {
             case STARTTOSAMPLE1:
-                if (pathTimer.getElapsedTimeSeconds() > 0.5) {
+                if (pathTimer.getElapsedTimeSeconds() > 1.25) {
                     setShootState(ShootState.INTAKE);
                     follower.acceleration(0.5, 1.0, 1.0, 0.5);
                     follower.followPath(startToSample1, true);
@@ -165,17 +171,17 @@ public class LM0_Auto extends OpMode {
 
     private void updateShootState() {
         switch (shootState) {
-            case TURRET:
-                //turret.setservotodegree(90);
-                break;
             case INTAKE:
                 //needDepo = false;
                 intake.turn_on_intake();
                 break;
             case SHOOT:
                 //needDepo = true;
-                intake.turn_on_intake();;
-                runAutoDepo();
+                turret.setPositionDeg(90);
+                intake.turn_on_intake();
+                if(turret.getPositionDeg() >= 88) {
+                    runAutoDepo();
+                }
                 break;
 
         }
@@ -204,7 +210,7 @@ public class LM0_Auto extends OpMode {
         if (isBlue) {
             start = new Pose(84.35853658536585, 134.31463414634146, Math.toRadians(0));
             sample1 = new Pose(126.23658536585364, 134.70487804878047, Math.toRadians(0));
-            shoot = new Pose(90.10487804878049, 36.74390243902439, Math.toRadians(-90));
+            shoot = new Pose(90.71481304788598, 14.812749716739198, Math.toRadians(-90));
             done = new Pose(138.7166915141034, 33.84915618104835, Math.toRadians(180));
         } else if (isRed) {
             start = new Pose(59.64146341463415, 9.68536585365854, Math.toRadians(180));
@@ -245,7 +251,7 @@ public class LM0_Auto extends OpMode {
 
             shootToDone = follower.pathBuilder()
                     .addPath(new BezierCurve(shoot, new Pose(98.33658536585365, 38.026829268292694), done))
-                    .setLinearHeadingInterpolation(sample2.getHeading(), done.getHeading())
+                    .setLinearHeadingInterpolation(shoot.getHeading(), done.getHeading())
                     .build();
         }
 

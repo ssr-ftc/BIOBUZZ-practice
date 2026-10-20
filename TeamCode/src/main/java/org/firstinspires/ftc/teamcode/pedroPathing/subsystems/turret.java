@@ -13,21 +13,20 @@ public class turret {
     public Servo cam;
 
 
-
     public turret(HardwareMap hardwareMap) {
         turret = hardwareMap.get(DcMotorEx.class, "turret");
-
 
 
         turret.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         pid = new PIDFController(p, i, d, kF);
     }
-    public void start(){
-        pid.p=p;
-        pid.i=i;
-        pid.d=d;
-        pid.kF=kF;
+
+    public void start() {
+        pid.p = p;
+        pid.i = i;
+        pid.d = d;
+        pid.kF = kF;
     }
 
 
@@ -43,9 +42,10 @@ public class turret {
     public void setPositionTicks(double x) {
         targetPos = x;
     }
+
     public void setPositionDeg(double x) {
-        if(x<-90) x+=360;
-        targetPos = 3.47778*x;
+        if (x < -90) x += 360;
+        targetPos = 3.47778 * x;
     }
 
     public void run_using_pid() {
@@ -54,15 +54,18 @@ public class turret {
         turret.setPower(power);
     }
 
-    public void ResetTurretEncoders(){
+    public void ResetTurretEncoders() {
         turret.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         turret.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
     }
 
 
-
     public double getPosition() {
         return turret.getCurrentPosition();
+    }
+
+    public double getPositionDeg() {
+        return turret.getCurrentPosition() / 3.47778;
     }
 }
 //hi
