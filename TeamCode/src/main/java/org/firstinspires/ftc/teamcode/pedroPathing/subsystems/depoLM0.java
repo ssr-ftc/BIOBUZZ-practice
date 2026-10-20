@@ -11,34 +11,7 @@ public class depoLM0 {
     private DcMotorEx top;
     private DcMotorEx bottom;
     public Servo hatch;
-
-    public static class PIDFController {
-        public double p, i, d, kF;
-        private double lastError = 0;
-        private double integralSum = 0;
-        private static final double MAX_INTEGRAL = 1000; // tune; limits windup
-
-        public PIDFController(double p, double i, double d, double kF) {
-            this.p = p;
-            this.i = i;
-            this.d = d;
-            this.kF = kF;
-        }
-
-        public void reset() {
-            integralSum = 0;
-            lastError = 0;
-        }
-
-        public double calculate(double current, double target) {
-            double error = target - current;
-            integralSum += error;
-            integralSum = Math.max(-MAX_INTEGRAL, Math.min(MAX_INTEGRAL, integralSum));
-            double derivative = error - lastError;
-            lastError = error;
-            return (p * error) + (i * integralSum) + (d * derivative) + (kF * target);
-        }
-    }
+    public Servo cam;
 
     public depoLM0(HardwareMap hardwareMap) {
         top = hardwareMap.get(DcMotorEx.class, "depo");
@@ -55,6 +28,7 @@ public class depoLM0 {
         bottom.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         hatch = hardwareMap.get(Servo.class,"hatch");
+        cam = hardwareMap.get(Servo.class,"camera");
 
         pid = new PIDFController(p, i, d, kF);
     }
@@ -80,10 +54,16 @@ public class depoLM0 {
     public static double i = 0.00047;
     public static double d = 0.000035;
     public static double kF = 0.0004501;
-    public static double ON_VELOCITY = 1470; // change the deposit speed here (prev 550)
     private static double targetVelocity = 0;
-    public static double hatchopen = 0.63;
-    public static double hatchclose = 0.51;
+
+    //important constatnts below
+    public static double ON_VELOCITY = 1470; // change the deposit speed here (prev 550)
+    public static double hatchopen = 0.65;
+    public static double hatchclose = 0.54;
+    public static double cam_up = 0.2;
+    public static double cam_down = 0.8;
+    public static double camMiddle = 0.5;
+
 
     public void set_target_velocity(double x) {
         targetVelocity = x;
@@ -135,8 +115,17 @@ public class depoLM0 {
     public void open_hatch(){
             hatch.setPosition(hatchopen);
     }
-public void close_hatch(){
+    public void close_hatch(){
         hatch.setPosition(hatchclose);
+    }
+    public void setCam_up(){
+        cam.setPosition(cam_up);
+    }
+    public void setCam_down(){
+        hatch.setPosition(cam_down);
+    }
+    public void setCam_middle(){
+        cam.setPosition(camMiddle);
     }
 
 
