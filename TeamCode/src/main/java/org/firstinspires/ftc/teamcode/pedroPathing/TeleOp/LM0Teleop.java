@@ -7,6 +7,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.depoLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.intakeLM0;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.turret;
 
 @TeleOp(name = "LM0Teleop", group = "TeleOp")
 public class LM0Teleop extends OpMode {
@@ -14,6 +15,7 @@ public class LM0Teleop extends OpMode {
     private final Pose startPose = new Pose(0, 0, 0);
     private intakeLM0 intake;
     private depoLM0 depo;
+    private turret turret;
     private carDashboard dashboard;
     private Timer timers;
 
@@ -25,6 +27,7 @@ public class LM0Teleop extends OpMode {
         depo = new depoLM0(hardwareMap);
         dashboard = new carDashboard(hardwareMap, telemetry, follower);
         timers = new Timer();
+        turret = new turret(hardwareMap);
     }
 
     @Override
@@ -34,12 +37,16 @@ public class LM0Teleop extends OpMode {
         depo.start();
         dashboard.start();
         timers.createNew("depo");
+        turret.ResetTurretEncoders();
     }
     @Override
     public void loop() {
+        turret.run_using_pid();
         drive();
         useIntake();
         useDepo();
+        useturret();
+
         telemetry.addData("Status", depo.isDepositOn() ? "ON" : "OFF");
         telemetry.addData("Target Velocity", depoLM0.ON_VELOCITY);
         telemetry.addData("Current Velocity", "%.1f", depo.getVelocity());
@@ -79,6 +86,17 @@ public class LM0Teleop extends OpMode {
             } else {
                 intake.turn_on_intake();
             }
+        }
+    }
+    public void useturret(){
+        if(gamepad2.rightTriggerWasPressed()) {
+            /*if(turret.getPosition() > 20){
+                turret.setPositionDeg(-45);
+            }
+            else {
+                turret.setPositionDeg(45);
+            }*/
+            turret.setPositionTicks(100);
         }
     }
     public void useDepo() {
