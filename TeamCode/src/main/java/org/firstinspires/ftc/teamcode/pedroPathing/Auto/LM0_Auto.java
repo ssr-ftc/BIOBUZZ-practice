@@ -9,6 +9,7 @@ package org.firstinspires.ftc.teamcode.pedroPathing.Auto;
 import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
+import com.pedropathing.paths.HeadingInterpolator;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -41,7 +42,7 @@ public class LM0_Auto extends OpMode {
     private CRServo turret_servo;
     private CustomFollower follower;
     Pose start, sample1, shoot, sample2, done;
-    private PathChain startToSample1, sample1ToShoot, shootToSample2, sample2ToDone;
+    private PathChain startToSample1, sample1ToShoot, shootToDone;
 
     private Timer pathTimer, opModeTimer;
     // pedroPathing's Timer is already imported above, so the team's own Timer (same one soloTeleop uses) needs its full name
@@ -56,8 +57,8 @@ public class LM0_Auto extends OpMode {
     private enum AutoState {
         STARTTOSAMPLE1,
         SAMPLE1TOSHOOT,
-        SHOOTTOSAMPLE2,
-        SAMPLE2TODONE,
+        // SHOOTTOSAMPLE2,
+        SHOOTTODONE,
         DONE
     }
 
@@ -132,17 +133,19 @@ public class LM0_Auto extends OpMode {
 
             case SAMPLE1TOSHOOT:
                 follower.followPath(sample1ToShoot, true);
-                setPathState(AutoState.SHOOTTOSAMPLE2);
+                setPathState(AutoState.SHOOTTODONE);
                 break;
 
-            case SHOOTTOSAMPLE2:
+            /* case SHOOTTOSAMPLE2:
                 follower.followPath(shootToSample2, true);
                 setPathState(AutoState.SAMPLE2TODONE);
                 break;
 
-            case SAMPLE2TODONE:
+             */
+
+            case SHOOTTODONE:
                 if (isBlue || isRed || isBlueSample || isRedSample) {
-                    follower.followPath(sample2ToDone, true);
+                    follower.followPath(shootToDone, true);
                 }
                 else {
                     // This executes for Small paths AND the Sample paths
@@ -202,7 +205,6 @@ public class LM0_Auto extends OpMode {
             start = new Pose(84.35853658536585, 134.31463414634146, Math.toRadians(0));
             sample1 = new Pose(126.23658536585364, 134.70487804878047, Math.toRadians(0));
             shoot = new Pose(90.10487804878049, 36.74390243902439, Math.toRadians(-90));
-            sample2 = new Pose(100.72334963325183, 16.883481424056274, Math.toRadians(-90));
             done = new Pose(138.7166915141034, 33.84915618104835, Math.toRadians(180));
         } else if (isRed) {
             start = new Pose(59.64146341463415, 9.68536585365854, Math.toRadians(180));
@@ -237,19 +239,16 @@ public class LM0_Auto extends OpMode {
 
             sample1ToShoot = follower.pathBuilder()
                     .addPath(new BezierCurve(sample1, new Pose(125.05243902439025, 65.78780487804879), new Pose(112.61829268292684, 29.90365853658537), shoot))
-                    .setLinearHeadingInterpolation(sample1.getHeading(), shoot.getHeading())
+                    .setHeadingInterpolation(HeadingInterpolator.piecewise(new HeadingInterpolator.PiecewiseNode(0, 0.15, HeadingInterpolator.linear(sample1.getHeading(), shoot.getHeading())),
+                            new HeadingInterpolator.PiecewiseNode(0.15, 1, HeadingInterpolator.constant(Math.toRadians(-90)))))
                     .build();
 
-            shootToSample2 = follower.pathBuilder()
-                    .addPath(new BezierCurve(shoot, new Pose(94.88536585365854, 25.947560975609758), sample2))
-                    .setLinearHeadingInterpolation(shoot.getHeading(), sample2.getHeading())
-                    .build();
-
-            sample2ToDone = follower.pathBuilder()
-                    .addPath(new BezierCurve(sample2, new Pose(98.33658536585365, 38.026829268292694), done))
+            shootToDone = follower.pathBuilder()
+                    .addPath(new BezierCurve(shoot, new Pose(98.33658536585365, 38.026829268292694), done))
                     .setLinearHeadingInterpolation(sample2.getHeading(), done.getHeading())
                     .build();
         }
+
         else if(isRed) {
             startToSample1 = follower.pathBuilder()
                     .addPath(new BezierLine(start, sample1))
@@ -258,17 +257,13 @@ public class LM0_Auto extends OpMode {
 
             sample1ToShoot = follower.pathBuilder()
                     .addPath(new BezierCurve(sample1, new Pose(18.94756097560975, 78.21219512195121), new Pose(31.38170731707316, 114.09634146341463), shoot))
-                    .setLinearHeadingInterpolation(sample1.getHeading(), shoot.getHeading())
+                    .setHeadingInterpolation(HeadingInterpolator.piecewise(new HeadingInterpolator.PiecewiseNode(0, 0.15, HeadingInterpolator.linear(sample1.getHeading(), shoot.getHeading())),
+                            new HeadingInterpolator.PiecewiseNode(0.15, 1, HeadingInterpolator.constant(Math.toRadians(90)))))
                     .build();
 
-            shootToSample2 = follower.pathBuilder()
-                    .addPath(new BezierCurve(shoot, new Pose(49.11463414634146, 118.05243902439024), sample2))
-                    .setLinearHeadingInterpolation(shoot.getHeading(), sample2.getHeading())
-                    .build();
-
-            sample2ToDone = follower.pathBuilder()
-                    .addPath(new BezierCurve(sample2, new Pose(45.66341463414635, 105.97317073170731), done))
-                    .setLinearHeadingInterpolation(sample2.getHeading(), done.getHeading())
+            shootToDone = follower.pathBuilder()
+                    .addPath(new BezierCurve(shoot, new Pose(45.66341463414635, 105.97317073170731), done))
+                    .setLinearHeadingInterpolation(shoot.getHeading(), done.getHeading())
                     .build();
         }
         else if(isSmallBlue) {
@@ -285,24 +280,24 @@ public class LM0_Auto extends OpMode {
                     .build();
         }
         else if(isBlueSample) {
-            shootToSample2 = follower.pathBuilder()
+            sample1ToShoot = follower.pathBuilder()
                     .addPath(new BezierCurve(start, new Pose(88.3183, 28.3902), sample1))
                     .setLinearHeadingInterpolation(start.getHeading(), sample1.getHeading())
                     .build();
 
-            sample2ToDone = follower.pathBuilder()
+            shootToDone = follower.pathBuilder()
                     .addPath(new BezierLine(sample1, done))
                     .setLinearHeadingInterpolation(sample1.getHeading(), done.getHeading())
                     .build();
         }
         else if(isRedSample) {
-            shootToSample2 = follower.pathBuilder()
+            sample1ToShoot = follower.pathBuilder()
                     // Exactly reflected control point (144 - X, 144 - Y)
                     .addPath(new BezierCurve(start, new Pose(55.6817, 115.6098), sample1))
                     .setLinearHeadingInterpolation(start.getHeading(), sample1.getHeading())
                     .build();
 
-            sample2ToDone = follower.pathBuilder()
+            shootToDone = follower.pathBuilder()
                     .addPath(new BezierLine(sample1, done))
                     .setLinearHeadingInterpolation(sample1.getHeading(), done.getHeading())
                     .build();
@@ -331,7 +326,7 @@ public class LM0_Auto extends OpMode {
             poses();
             buildPaths();
             follower.setPose(start);
-            autoState = AutoState.SAMPLE2TODONE;
+            autoState = AutoState.SHOOTTODONE;
             telemetry.addData("Selected", "SMALL BLUE");
         }
         else if(gamepad1.b) {
@@ -339,7 +334,7 @@ public class LM0_Auto extends OpMode {
             poses();
             buildPaths();
             follower.setPose(start);
-            autoState = AutoState.SAMPLE2TODONE;
+            autoState = AutoState.SHOOTTODONE;
             telemetry.addData("Selected", "SMALL RED");
         }
         else if(gamepad1.dpad_up) {
@@ -347,7 +342,7 @@ public class LM0_Auto extends OpMode {
             poses();
             buildPaths();
             follower.setPose(start);
-            autoState = AutoState.SHOOTTOSAMPLE2;
+            autoState = AutoState.SAMPLE1TOSHOOT;
             telemetry.addData("Selected", "BLUE SAMPLE");
         }
         else if(gamepad1.dpad_down) {
@@ -355,7 +350,7 @@ public class LM0_Auto extends OpMode {
             poses();
             buildPaths();
             follower.setPose(start);
-            autoState = AutoState.SHOOTTOSAMPLE2;
+            autoState = AutoState.SAMPLE1TOSHOOT;
             telemetry.addData("Selected", "RED SAMPLE");
         }
     }
