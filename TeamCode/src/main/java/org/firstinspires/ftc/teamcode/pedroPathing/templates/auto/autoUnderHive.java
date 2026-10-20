@@ -4,7 +4,6 @@ import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.HeadingInterpolator;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -22,10 +21,12 @@ public class autoUnderHive extends OpMode {
     private depoLM0 depo;
 
     public enum PathState {
-        SHOOT,
+        SHOOT1,
         STARTING_COORDINATE,
         END_PATH_1,
         END_PATH_2,
+        END_PATH_NEW,
+        SHOOT2,
         WAIT_AT_PATH2,
         END_PATH_3,
         DONE
@@ -36,10 +37,11 @@ public class autoUnderHive extends OpMode {
     private final Pose startingCoordinate = new Pose(56, 9, Math.toRadians(90));
     private final Pose endPath1 = new Pose(26.4, 19, Math.toRadians(-147));
     private final Pose endPath2 = new Pose(15, 12.4, Math.toRadians(-151));
+    private final Pose endPathnew = new Pose (55.2, 11.9, Math.toRadians(90));
     private final Pose endPath3 = new Pose(52, 114.5, Math.toRadians(114));
     private final Pose endPath4 = new Pose(11, 109, Math.toRadians(0));
 
-    private PathChain start_path1, path1_path2, path2_path3, path3_path4;
+    private PathChain start_path1, path1_path2, path2_path3, pathnew_path4, path4_path5;
 
     public void buildPaths() {
         start_path1 = follower.pathBuilder()
@@ -54,17 +56,28 @@ public class autoUnderHive extends OpMode {
                 .build();
         path2_path3 = follower.pathBuilder()
                 .addPath(new BezierCurve(endPath2,
-                        new Pose(61.5, 12),
-                        new Pose(48.5, 27.5),
-                        new Pose(63.5, 109),
-                        endPath3))
+                        new Pose(60,69),
+                        //new Pose(61.5, 12),
+                        //new Pose(48.5, 27.5),
+                        //new Pose(63.5, 109),
+                        endPathnew))
+                /*
                 .setHeadingInterpolation(HeadingInterpolator.piecewise(
                         HeadingInterpolator.PiecewiseNode.linear(0, 0.313, endPath2.getHeading(), Math.toRadians(63)),
                         new HeadingInterpolator.PiecewiseNode(0.313, 0.741, HeadingInterpolator.tangent),
                         HeadingInterpolator.PiecewiseNode.linear(0.741, 1, Math.toRadians(105), endPath3.getHeading())
                 ))
+
+                 */
+                .setTangentHeadingInterpolation()
                 .build();
-        path3_path4 = follower.pathBuilder()
+        pathnew_path4 = follower.pathBuilder()
+                .addPath(new BezierCurve(endPathnew,
+                        new Pose(60,69),
+                                endPath3))
+                .setTangentHeadingInterpolation()
+                .build();
+        path4_path5 = follower.pathBuilder()
                 .addPath(new BezierLine(endPath3, endPath4))
                 .setTangentHeadingInterpolation()
                 .build();
@@ -90,7 +103,7 @@ public class autoUnderHive extends OpMode {
     public void statePathUpdate() {
         double timeElapsed = pathTimer.getElapsedTimeSeconds();
         switch (pathState) {
-            case SHOOT:
+            case SHOOT1:
                 if (timeElapsed > 1 && !depo.isDepositOn()) {
                     depo.turn_on_deposit(); 
                     setPathState(PathState.STARTING_COORDINATE);
@@ -98,7 +111,7 @@ public class autoUnderHive extends OpMode {
                 break;
             case STARTING_COORDINATE:
                 if (!depo.isDepositOn()) {
-                    depo.turn_off_deposit();
+                    //depo.turn_off_deposit();
                     follower.followPath(start_path1, true);
                     setPathState(PathState.END_PATH_1);
                 }
@@ -114,17 +127,24 @@ public class autoUnderHive extends OpMode {
                 if (!follower.isBusy()) {
                     intake.turn_off_intake();
                     follower.followPath(path2_path3, true);
+                    setPathState(PathState.SHOOT2);
+                }
+                break;
+            case SHOOT2:
+                if (!follower.isBusy() && pathTimer.getElapsedTimeSeconds() > 1) {
+                    depo.turn_on_deposit();
                     setPathState(PathState.WAIT_AT_PATH2);
                 }
                 break;
             case WAIT_AT_PATH2:
                 if (!follower.isBusy()) {
+                    follower.followPath(pathnew_path4);
                     setPathState(PathState.END_PATH_3);
                 }
                 break;
             case END_PATH_3:
                 if (pathTimer.getElapsedTimeSeconds() > 2) {
-                    follower.followPath(path3_path4, true);
+                    follower.followPath(path4_path5, true);
                     setPathState(PathState.DONE);
                 }
                 break;
@@ -158,7 +178,7 @@ public class autoUnderHive extends OpMode {
 
         buildPaths();
         follower.setPose(startingCoordinate);
-        pathState = PathState.SHOOT;
+        pathState = PathState.SHOOT1;
     }
     @Override
     public void start() {
