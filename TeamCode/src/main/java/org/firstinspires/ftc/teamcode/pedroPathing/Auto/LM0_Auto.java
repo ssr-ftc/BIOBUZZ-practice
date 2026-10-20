@@ -24,23 +24,34 @@ import com.qualcomm.robotcore.hardware.CRServo;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.CustomFollower;
 //import static com.pedropathing.ivy.pedro.PedroCommands.*;
 
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.depoLM0;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.intakeLM0;
+import org.firstinspires.ftc.teamcode.pedroPathing.TeleOp.soloTeleop;
+
 
 @Autonomous(name = "AutoLM0", group = "Season")
 public class LM0_Auto extends OpMode {
 
-    private DcMotorEx depo, depo1, depo2;
-    private Servo lift_left, //turret2,
-            launch_amgle;
+    soloTeleop teleop = new soloTeleop();
+    //boolean needDepo = true;
+    private DcMotorEx depo1;
+    private depoLM0 depo;
+    private intakeLM0 intake;
+    private Servo hatch;
     private CRServo turret_servo;
     private CustomFollower follower;
     Pose start, sample1, shoot, sample2, done;
     private PathChain startToSample1, sample1ToShoot, shootToSample2, sample2ToDone;
 
     private Timer pathTimer, opModeTimer;
+    // pedroPathing's Timer is already imported above, so the team's own Timer (same one soloTeleop uses) needs its full name
+    private org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer timers;
 
     boolean isBlue, isRed, isSmallBlue, isSmallRed, isBlueSample, isRedSample;
     //intake intake;
-   // turret turret;
+    // turret turret;
+
+    // soloTeleop teleop = new soloTeleop();
 
     private enum AutoState {
         STARTTOSAMPLE1,
@@ -70,7 +81,10 @@ public class LM0_Auto extends OpMode {
         subsystems();
         pathTimer = new Timer();
         opModeTimer = new Timer();
+        timers = new org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer();
         follower = new CustomFollower(hardwareMap, telemetry);
+        intake = new intakeLM0(hardwareMap);
+        depo = new depoLM0(hardwareMap);
         telemetry.addLine("Ready. Press Y for Blue, A for Red.");
         telemetry.addLine("Press X for Small Blue, B for Small Red.");
         telemetry.addLine("Press D-pad UP for Blue Sample, D-pad DOWN for Red Sample.");
@@ -85,6 +99,11 @@ public class LM0_Auto extends OpMode {
     public void start() {
         opModeTimer.resetTimer();
         pathTimer.resetTimer();
+        intake.start();
+        depo.start();
+        timers.createNew("depo");
+        setShootState(ShootState.SHOOT);
+        depo.turn_on_deposit();
     }
 
     @Override
@@ -92,7 +111,7 @@ public class LM0_Auto extends OpMode {
         follower.update();
         updateAutoState();
         updateTelemetry();
-        //updateShootState();
+        updateShootState();
     }
 
     // --- THE SINGLE STATE MACHINE ---
@@ -105,7 +124,7 @@ public class LM0_Auto extends OpMode {
             case STARTTOSAMPLE1:
                 if (pathTimer.getElapsedTimeSeconds() > 0.5) {
                     setShootState(ShootState.INTAKE);
-                    follower.acceleration(0.75, 1.0, 1.0, 0.75);
+                    follower.acceleration(0.5, 1.0, 1.0, 0.5);
                     follower.followPath(startToSample1, true);
                     setPathState(AutoState.SAMPLE1TOSHOOT);
                 }
@@ -147,7 +166,15 @@ public class LM0_Auto extends OpMode {
                 //turret.setservotodegree(90);
                 break;
             case INTAKE:
-               // intake.turn_on_intake();
+                //needDepo = false;
+                intake.turn_on_intake();
+                break;
+            case SHOOT:
+                //needDepo = true;
+                intake.turn_on_intake();;
+                runAutoDepo();
+                break;
+
         }
     }
 
@@ -159,6 +186,16 @@ public class LM0_Auto extends OpMode {
     private void setShootState(ShootState newState) {
         shootState = newState;
     }
+
+   /* public void hardwareMap() {
+        intake = hardwareMap.get(DcMotorEx.class, "intake");
+        depo = hardwareMap.get(DcMotorEx.class, "depo");
+        depo1 = hardwareMap.get(DcMotorEx.class, "depo1");
+
+        hatch = hardwareMap.get(Servo.class, "hatch");
+    }
+
+    */
 
     private void poses() {
         if (isBlue) {
@@ -322,6 +359,22 @@ public class LM0_Auto extends OpMode {
             telemetry.addData("Selected", "RED SAMPLE");
         }
     }
+
+    public void runAutoDepo() {
+        depo.run_using_pid();
+
+        if (depo.reachedvelocity() && !timers.isRunning("depo")){
+            timers.start("depo");
+            depo.open_hatch();
+            intake.turn_on_intake();
+        }
+        if (timers.checkSecondsLast("depo", 3)){
+            depo.turn_off_deposit();
+            depo.close_hatch();
+
+        }
+    }
+
 
     private void updateTelemetry() {
         telemetry.addData("auto state", autoState);

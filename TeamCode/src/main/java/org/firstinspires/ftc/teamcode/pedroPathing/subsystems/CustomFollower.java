@@ -15,11 +15,12 @@ public class CustomFollower {
 
     public Follower pedro;
     private Telemetry telemetry;
+    private boolean isAuto; // True when used from an autonomous OpMode, false for TeleOp
 
     // --- MANUAL RAMPING VARIABLES ---
     private boolean isRamping = false;
     private double rampStartT, rampEndT, rampStartPower, rampEndPower;
-    private Path rampPath = null; // The specific path the ramp is locked onto
+    private boolean rampLocked = false; // True once the ramp has started on a running path
 
     // --- AUTO-PHYSICS VARIABLES ---
     private boolean isAutoCalculating = false;
@@ -34,6 +35,7 @@ public class CustomFollower {
     public CustomFollower(HardwareMap hardwareMap, Telemetry telemetry) {
         pedro = Constants.createFollower(hardwareMap);
         this.telemetry = telemetry;
+        this.isAuto = isAuto;
     }
 
     /**
@@ -44,7 +46,7 @@ public class CustomFollower {
         this.rampEndT = endT;
         this.rampStartPower = startPower;
         this.rampEndPower = endPower;
-        this.rampPath = null; // Unlock so the ramp locks onto the next active path
+        this.rampLocked = false; // Unlock so the ramp locks onto the next path
 
         this.isRamping = true; // Turn the manual math engine ON
         this.isAutoCalculating = false; // Turn the physics engine OFF
@@ -81,18 +83,10 @@ public class CustomFollower {
 
                 // 1B. OR RUN MANUAL RAMPING ENGINE
             } else if (isRamping) {
-                Path activePath = pedro.getCurrentPath();
+                // Mark the ramp as started now that a path is actually running
+                rampLocked = true;
 
-                // Lock onto the first path we see after acceleration() was called
-                if (rampPath == null) {
-                    rampPath = activePath;
-                }
-
-                if (activePath != rampPath) {
-                    // Pedro moved on to the next path in the chain, so the ramp is over
-                    endRamp();
-
-                } else if (currentT < rampStartT) {
+                if (currentT < rampStartT) {
                     pedro.setMaxPower(1.0);
 
                 } else if (currentT <= rampEndT) {
@@ -134,15 +128,15 @@ public class CustomFollower {
     private void endRamp() {
         pedro.setMaxPower(1.0);
         isRamping = false;
-        rampPath = null;
+        rampLocked = false;
     }
 
     private void prepareToFollow() {
         // A ramp that already locked onto a path belongs to a path that has
         // finished (or is being replaced), so end it.
         // A ramp set by acceleration() just before this call hasn't locked yet
-        // (rampPath == null), so it is kept for the path about to start.
-        if (isRamping && rampPath != null) {
+        // (rampLocked is false), so it is kept for the path about to start.
+        if (isRamping && rampLocked) {
             endRamp();
         }
         pedro.setMaxPower(1.0);
