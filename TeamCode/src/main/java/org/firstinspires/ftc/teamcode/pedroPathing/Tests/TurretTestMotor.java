@@ -21,11 +21,11 @@ public class TurretTestMotor extends LinearOpMode {
     private FtcDashboard dashboard = FtcDashboard.getInstance();
 
     // PID coefficients (tune these in dashboard)
-    public static double p = 0.00346;
-    public static double i = 0.00047;
-    public static double d = 0.000035;
-    // Feedforward coefficient (applied by PIDFController to target velocity)
-    public static double kF = 0.0004001; // adjust for your motor's max ticks/sec
+    public double power;
+    public static double p = 0.0027;
+    public static double i = 0.05;
+    public static double d = 0.000001;
+    public static double kF = 0; // adjust for your motor's max ticks/sec
 
     // Target velocity in ticks per second
     public static double targetPos = 0;
