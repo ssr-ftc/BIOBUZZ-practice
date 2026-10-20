@@ -86,7 +86,14 @@ public class LM0Teleop extends OpMode {
             } else {
                 intake.turn_on_intake();
             }
+            if(gamepad2.squareWasPressed()){
+                if(intake.isFlowerDown()){
+                    intake.flower_up();
+                }
+                else intake.flower_down();
+            }
         }
+
     }
     public void useturret(){
         if(gamepad2.rightTriggerWasPressed()) {
