@@ -1,4 +1,5 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.TeleOp;
+
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -7,15 +8,13 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.depoLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.intakeLM0;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.turret;
 
-@TeleOp(name = "LM0Teleop", group = "TeleOp")
+@TeleOp(name = "realLM0Teleop", group = "TeleOp")
 public class LM0Teleop extends OpMode {
     private Follower follower;
     private final Pose startPose = new Pose(0, 0, 0);
     private intakeLM0 intake;
     private depoLM0 depo;
-    private turret turret;
     private carDashboard dashboard;
     private Timer timers;
 
@@ -27,7 +26,6 @@ public class LM0Teleop extends OpMode {
         depo = new depoLM0(hardwareMap);
         dashboard = new carDashboard(hardwareMap, telemetry, follower);
         timers = new Timer();
-        turret = new turret(hardwareMap);
     }
 
     @Override
@@ -37,16 +35,13 @@ public class LM0Teleop extends OpMode {
         depo.start();
         dashboard.start();
         timers.createNew("depo");
-        turret.ResetTurretEncoders();
     }
+
     @Override
     public void loop() {
-        turret.run_using_pid();
         drive();
         useIntake();
         useDepo();
-        useturret();
-
         telemetry.addData("Status", depo.isDepositOn() ? "ON" : "OFF");
         telemetry.addData("Target Velocity", depoLM0.ON_VELOCITY);
         telemetry.addData("Current Velocity", "%.1f", depo.getVelocity());
@@ -55,30 +50,33 @@ public class LM0Teleop extends OpMode {
         telemtry();
         telemetry.update();
     }
+
     public void drive() {
         double speedShift = 0.9;
         if (gamepad1.right_trigger > 0.1) {
             speedShift = 0.25;
             gamepad1.rumbleBlips(1);
         }
+
         if (gamepad1.options) {
             follower.setPose(new Pose(0, 0, Math.toRadians(0)));
         }
+
         follower.setTeleOpDrive(
                 -gamepad1.left_stick_y * speedShift,
                 -gamepad1.left_stick_x * speedShift,
                 -gamepad1.right_stick_x * speedShift * 0.8,
                 true
         );
+
         follower.update();
     }
-    public void useIntake() {
-        if (gamepad2.left_bumper) {
-            intake.outtake();
 
+    public void useIntake() {
+        if (gamepad2.circleWasPressed()) {
+            intake.outtake();
         } else if (intake.isOuttaking()) {
             intake.turn_off_intake();
-
         }
         if (gamepad2.rightBumperWasPressed()) {
             if (intake.isIntakeOn()) {
@@ -87,33 +85,37 @@ public class LM0Teleop extends OpMode {
                 intake.turn_on_intake();
             }
         }
-    }
-    public void useturret(){
-        if(gamepad2.rightTriggerWasPressed()) {
-            /*if(turret.getPosition() > 20){
-                turret.setPositionDeg(-45);
+        if(gamepad2.leftBumperWasPressed()){
+            if(intake.isFlowerDown()){
+                intake.flower_up();
             }
-            else {
-                turret.setPositionDeg(45);
-            }*/
-            turret.setPositionTicks(100);
+            else intake.flower_down();
         }
     }
+
     public void useDepo() {
         depo.run_using_pid();
-        if (gamepad2.crossWasPressed()){
+        if (gamepad2.crossWasPressed()) {
             depo.turn_on_deposit();
         }
-        if (depo.reachedvelocity() && !timers.isRunning("depo")){
+        if (depo.reachedvelocity() && !timers.isRunning("depo")) {
             timers.start("depo");
             depo.open_hatch();
             intake.turn_on_intake();
         }
-        if (timers.checkSecondsLast("depo", 2)){
+        if (timers.checkSecondsLast("depo", 2)) {
             depo.turn_off_deposit();
             depo.close_hatch();
         }
+
+
+        if (gamepad2.dpad_up) {
+            depoLM0.ON_VELOCITY += 10;
+        } else if (gamepad2.dpad_down) {
+            depoLM0.ON_VELOCITY -= 10;
+        }
     }
+
     public void telemtry() {
         telemetry.addLine( "                 ");
         telemetry.addLine("-------------CONTROLS---------------");
@@ -131,6 +133,7 @@ public class LM0Teleop extends OpMode {
         telemetry.addLine("DPad Up/Down = changes veclotiy");
 
     }
+
     @Override
     public void stop() {
         intake.turn_off_intake();
