@@ -47,7 +47,6 @@ public class LM0Teleop extends OpMode {
         useIntake();
         useDepo();
         useturret();
-
         telemetry.addData("Status", depo.isDepositOn() ? "ON" : "OFF");
         telemetry.addData("Target Velocity", depoLM0.ON_VELOCITY);
         telemetry.addData("Current Velocity", "%.1f", depo.getVelocity());
@@ -129,21 +128,22 @@ public class LM0Teleop extends OpMode {
         telemetry.addLine("                          ");
         telemetry.addLine("Base driver:");
         telemetry.addLine("Left Joystick = forward and backward (up-down)");
-        telemetry.addLine("Left Joystick = strafs (left-right)");
+        telemetry.addLine("Left Joystick = strafes (left-right)");
         telemetry.addLine("Right Trigger = Lowers speed by 70%");
-        telemetry.addLine("Three Lines = resets theCompass");
+        telemetry.addLine("Three Lines = resets the Compass");
         telemetry.addLine("                          ");
         telemetry.addLine("Shooter driver:");
         telemetry.addLine("Right Bumper = intake");
         telemetry.addLine("Left Bumper = outtake");
         telemetry.addLine("A = shooter");
-        telemetry.addLine("DPad Up/Down = changes veclotiy");
+        telemetry.addLine("DPad Up/Down = changes velocity");
 
     }
     @Override
     public void stop() {
         intake.turn_off_intake();
         depo.turn_off_deposit();
+        intake.flower_up();
         dashboard.stop();
     }
 }
