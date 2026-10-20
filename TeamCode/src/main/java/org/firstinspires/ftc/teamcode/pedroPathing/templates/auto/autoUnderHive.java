@@ -9,7 +9,6 @@ import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.depoLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.intakeLM0;
@@ -23,8 +22,8 @@ public class autoUnderHive extends OpMode {
     private depoLM0 depo;
 
     public enum PathState {
+        SHOOT,
         STARTING_COORDINATE,
-        WAIT_FOR_SHOOT,
         END_PATH_1,
         END_PATH_2,
         WAIT_AT_PATH2,
@@ -35,8 +34,8 @@ public class autoUnderHive extends OpMode {
     private PathState pathState;
 
     private final Pose startingCoordinate = new Pose(56, 9, Math.toRadians(90));
-    private final Pose endPath1 = new Pose(27, 9, Math.toRadians(180));
-    private final Pose endPath2 = new Pose(10.5, 9, Math.toRadians(180));
+    private final Pose endPath1 = new Pose(26.4, 19, Math.toRadians(-147));
+    private final Pose endPath2 = new Pose(15, 12.4, Math.toRadians(-151));
     private final Pose endPath3 = new Pose(52, 114.5, Math.toRadians(114));
     private final Pose endPath4 = new Pose(11, 109, Math.toRadians(0));
 
@@ -44,8 +43,10 @@ public class autoUnderHive extends OpMode {
 
     public void buildPaths() {
         start_path1 = follower.pathBuilder()
-                .addPath(new BezierLine(startingCoordinate, endPath1))
-                .setLinearHeadingInterpolation(startingCoordinate.getHeading(), endPath1.getHeading())
+                .addPath(new BezierCurve(startingCoordinate,
+                        new Pose(55.4,38),
+                        endPath1))
+                .setTangentHeadingInterpolation()
                 .build();
         path1_path2 = follower.pathBuilder()
                 .addPath(new BezierLine(endPath1, endPath2))
@@ -88,17 +89,16 @@ public class autoUnderHive extends OpMode {
 
     public void statePathUpdate() {
         double timeElapsed = pathTimer.getElapsedTimeSeconds();
-
         switch (pathState) {
-            case STARTING_COORDINATE:
-                if (timeElapsed > 1) {
-                    depo.turn_on_deposit();
-                    follower.followPath(start_path1, true);
-                    setPathState(PathState.WAIT_FOR_SHOOT);
+            case SHOOT:
+                if (timeElapsed > 1 && !depo.isDepositOn()) {
+                    depo.turn_on_deposit(); 
+                    setPathState(PathState.STARTING_COORDINATE);
                 }
                 break;
-            case WAIT_FOR_SHOOT:
+            case STARTING_COORDINATE:
                 if (!depo.isDepositOn()) {
+                    depo.turn_off_deposit();
                     follower.followPath(start_path1, true);
                     setPathState(PathState.END_PATH_1);
                 }
@@ -158,7 +158,7 @@ public class autoUnderHive extends OpMode {
 
         buildPaths();
         follower.setPose(startingCoordinate);
-        pathState = PathState.STARTING_COORDINATE;
+        pathState = PathState.SHOOT;
     }
     @Override
     public void start() {
@@ -168,18 +168,15 @@ public class autoUnderHive extends OpMode {
         depo.start();
         timers.createNew("depo");
     }
-
     @Override
     public void loop() {
         follower.update();
         useDepo();
         statePathUpdate();
         telemetry.addData("State", pathState);
-        telemetry.addData("T Value", follower.getCurrentTValue());
         telemetry.addData("X", follower.getPose().getX());
         telemetry.addData("Y", follower.getPose().getY());
         telemetry.addData("Heading (Deg)", Math.toDegrees(follower.getPose().getHeading()));
-        telemetry.addData("Path time", pathTimer.getElapsedTimeSeconds());
         telemetry.update();
     }
 }
