@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.subsystems;
 
+import com.arcrobotics.ftclib.controller.PIDFController;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -15,10 +16,7 @@ public class turret {
         pid = new PIDFController(p, i, d, kF);
     }
     public void start(){
-        pid.p=p;
-        pid.i=i;
-        pid.d=d;
-        pid.kF=kF;
+        pid.setPIDF(p, i, d, kF);
     }
     PIDFController pid;
     public double power;
@@ -42,7 +40,6 @@ public class turret {
         power = Math.max(-1, Math.min(1, power));
         turret.setPower(power);
     }
-
     public void ResetTurretEncoders(){
         turret.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         turret.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
