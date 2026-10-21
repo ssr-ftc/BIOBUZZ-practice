@@ -73,12 +73,10 @@ public class LM0Teleop extends OpMode {
         follower.update();
     }
     public void useIntake() {
-        if (gamepad2.left_bumper) {
+        if (gamepad2.triangleWasPressed()) {
             intake.outtake();
-
         } else if (intake.isOuttaking()) {
             intake.turn_off_intake();
-
         }
         if (gamepad2.rightBumperWasPressed()) {
             if (intake.isIntakeOn()) {
@@ -86,7 +84,7 @@ public class LM0Teleop extends OpMode {
             } else {
                 intake.turn_on_intake();
             }
-            if(gamepad2.squareWasPressed()){
+            if(gamepad2.leftBumperWasPressed()){
                 if(intake.isFlowerDown()){
                     intake.flower_up();
                 }
