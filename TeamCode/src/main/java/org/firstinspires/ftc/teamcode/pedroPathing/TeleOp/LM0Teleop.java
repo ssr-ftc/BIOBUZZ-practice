@@ -9,7 +9,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.depoLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.intakeLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.turret;
 
-@TeleOp(name = "LM0Teleop", group = "TeleOp")
+@TeleOp(name = "RREEALLM0teleop", group = "TeleOp")
 public class LM0Teleop extends OpMode {
     private Follower follower;
     private final Pose startPose = new Pose(0, 0, 0);
@@ -37,7 +37,7 @@ public class LM0Teleop extends OpMode {
         depo.start();
         dashboard.start();
         timers.createNew("depo");
-        //turret.ResetTurretEncoders();
+        turret.ResetTurretEncoders();
         turret.setPositionDeg(0);
     }
     @Override
