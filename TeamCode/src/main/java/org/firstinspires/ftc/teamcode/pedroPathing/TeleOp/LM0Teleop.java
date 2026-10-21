@@ -74,9 +74,11 @@ public class LM0Teleop extends OpMode {
     }
     public void useIntake() {
         if (gamepad2.triangleWasPressed()) {
-            intake.outtake();
-        } else if (intake.isOuttaking()) {
-            intake.turn_off_intake();
+            if (intake.isOuttaking()) {
+                intake.turn_off_intake();
+            } else {
+                intake.outtake();
+            }
         }
         if (gamepad2.rightBumperWasPressed()) {
             if (intake.isIntakeOn()) {
@@ -84,14 +86,14 @@ public class LM0Teleop extends OpMode {
             } else {
                 intake.turn_on_intake();
             }
-            if(gamepad2.leftBumperWasPressed()){
-                if(intake.isFlowerDown()){
-                    intake.flower_up();
-                }
-                else intake.flower_down();
+        }
+        if (gamepad2.leftBumperWasPressed()) {
+            if (intake.isFlowerDown()) {
+                intake.flower_up();
+            } else {
+                intake.flower_down();
             }
         }
-
     }
     public void useturret(){
         if(gamepad2.rightTriggerWasPressed()) {
@@ -105,6 +107,7 @@ public class LM0Teleop extends OpMode {
         }
 
     }
+
     public void useDepo() {
         depo.run_using_pid();
         if (gamepad2.crossWasPressed()){
@@ -112,14 +115,17 @@ public class LM0Teleop extends OpMode {
         }
         if (depo.reachedvelocity() && !timers.isRunning("depo")){
             timers.start("depo");
-            depo.open_hatch();
+            depo.open_hatch_2();
             intake.turn_on_intake();
         }
         if (timers.checkSecondsLast("depo", 2)){
             depo.turn_off_deposit();
             depo.close_hatch();
+            intake.turn_off_intake();
         }
     }
+
+
     public void telemtry() {
         telemetry.addLine( "                 ");
         telemetry.addLine("-------------CONTROLS---------------");
