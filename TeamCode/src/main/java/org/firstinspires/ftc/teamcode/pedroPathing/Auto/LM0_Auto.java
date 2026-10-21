@@ -229,6 +229,7 @@ public class LM0_Auto extends OpMode {
             sample1 = new Pose(94.3909, 16.2493, Math.toRadians(-90));
             done = new Pose(139.1744, 29.522, Math.toRadians(180));
         } else if (isRedSample) {
+
             // Exact mathematical 144-reflection of the Blue Sample poses
             start = new Pose(63.7829, 134.9646, Math.toRadians(90));
             sample1 = new Pose(49.6091, 127.7507, Math.toRadians(90));
