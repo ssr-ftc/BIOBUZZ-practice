@@ -50,5 +50,14 @@ public class turret {
     public double getPosition() {
         return turret.getCurrentPosition();
     }
+
+    public double getPositionDeg() {
+        return getPosition() / 3.47778;
+    }
+
+    public boolean atPositionDeg(double toleranceDeg) {
+        double targetDeg = targetPos / 3.47778;
+        return Math.abs(getPositionDeg() - targetDeg) <= toleranceDeg;
+    }
 }
 //hi

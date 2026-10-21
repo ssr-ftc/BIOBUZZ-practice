@@ -9,6 +9,7 @@ package org.firstinspires.ftc.teamcode.pedroPathing.Auto;
 import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
+import com.pedropathing.paths.HeadingInterpolator;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -28,6 +29,8 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.depoLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.intakeLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.TeleOp.soloTeleop;
 
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.turret;
+
 
 @Autonomous(name = "AutoLM0", group = "Season")
 public class LM0_Auto extends OpMode {
@@ -39,6 +42,7 @@ public class LM0_Auto extends OpMode {
     private intakeLM0 intake;
     private Servo hatch;
     private CRServo turret_servo;
+    private turret turret;
     private CustomFollower follower;
     Pose start, sample1, shoot, sample2, done;
     private PathChain startToSample1, sample1ToShoot, shootToSample2, sample2ToDone;
@@ -54,6 +58,7 @@ public class LM0_Auto extends OpMode {
     // soloTeleop teleop = new soloTeleop();
 
     private enum AutoState {
+        PRESHOOT,
         STARTTOSAMPLE1,
         SAMPLE1TOSHOOT,
         SHOOTTOSAMPLE2,
@@ -70,6 +75,12 @@ public class LM0_Auto extends OpMode {
 
     private AutoState autoState;
     private ShootState shootState;
+    private boolean intaking = false;
+    private boolean depositRunning = false;
+    private boolean pausedAtSample2 = false;
+    private boolean preshootStarted = false;
+    private boolean hatchOpened = false;
+    private static final double TURRET_TOLERANCE_DEG = 3.0;
     public void subsystems() {
         //intake = new intake(hardwareMap);
         // turret = new turret(hardwareMap);
@@ -85,6 +96,7 @@ public class LM0_Auto extends OpMode {
         follower = new CustomFollower(hardwareMap, telemetry);
         intake = new intakeLM0(hardwareMap);
         depo = new depoLM0(hardwareMap);
+        turret = new turret(hardwareMap);
         telemetry.addLine("Ready. Press Y for Blue, A for Red.");
         telemetry.addLine("Press X for Small Blue, B for Small Red.");
         telemetry.addLine("Press D-pad UP for Blue Sample, D-pad DOWN for Red Sample.");
@@ -101,17 +113,16 @@ public class LM0_Auto extends OpMode {
         pathTimer.resetTimer();
         intake.start();
         depo.start();
+        turret.ResetTurretEncoders();
         timers.createNew("depo");
-        setShootState(ShootState.SHOOT);
-        depo.turn_on_deposit();
     }
 
     @Override
     public void loop() {
         follower.update();
         updateAutoState();
+        updateMechanisms();
         updateTelemetry();
-        updateShootState();
     }
 
     // --- THE SINGLE STATE MACHINE ---
@@ -121,31 +132,66 @@ public class LM0_Auto extends OpMode {
         }
 
         switch (autoState) {
-            case STARTTOSAMPLE1:
-                if (pathTimer.getElapsedTimeSeconds() > 0.5) {
-                    setShootState(ShootState.INTAKE);
+            case PRESHOOT:
+                if (!preshootStarted) {
+                    depo.turn_on_deposit();
+                    depositRunning = true;
+                    turret.setPositionDeg(isBlue ? 90 : -90);
+                    preshootStarted = true;
+                }
+                if (shotFinished()) {
+                    intake();
                     follower.acceleration(0.5, 1.0, 1.0, 0.5);
                     follower.followPath(startToSample1, true);
                     setPathState(AutoState.SAMPLE1TOSHOOT);
                 }
                 break;
 
+            case STARTTOSAMPLE1:
+                intake();
+                follower.acceleration(0.5, 1.0, 1.0, 0.5);
+                follower.followPath(startToSample1, true);
+                setPathState(AutoState.SAMPLE1TOSHOOT);
+                break;
+
             case SAMPLE1TOSHOOT:
+                stopIntake();
+                if (isBlue) {
+                    follower.acceleration(0.6, 1.0, 0.4, 0.4);
+                }
                 follower.followPath(sample1ToShoot, true);
                 setPathState(AutoState.SHOOTTOSAMPLE2);
                 break;
 
             case SHOOTTOSAMPLE2:
+                if (isBlue) {
+                    if (!pausedAtSample2) {
+                        intake();
+                        pathTimer.resetTimer();
+                        pausedAtSample2 = true;
+                        return;
+                    }
+                    if (pathTimer.getElapsedTimeSeconds() < 1.0) {
+                        return;
+                    }
+                    stopIntake();
+                    follower.followPath(shootToSample2, true);
+                    setPathState(AutoState.SAMPLE2TODONE);
+                    break;
+                }
                 follower.followPath(shootToSample2, true);
                 setPathState(AutoState.SAMPLE2TODONE);
                 break;
 
             case SAMPLE2TODONE:
-                if (isBlue || isRed || isBlueSample || isRedSample) {
+                if (isBlue) {
+                    setPathState(AutoState.DONE);
+                    break;
+                }
+                if (isRed || isBlueSample || isRedSample) {
                     follower.followPath(sample2ToDone, true);
                 }
                 else {
-                    // This executes for Small paths AND the Sample paths
                     follower.followPath(startToSample1, true);
                 }
                 setPathState(AutoState.DONE);
@@ -160,22 +206,47 @@ public class LM0_Auto extends OpMode {
         }
     }
 
-    private void updateShootState() {
-        switch (shootState) {
-            case TURRET:
-                //turret.setservotodegree(90);
-                break;
-            case INTAKE:
-                //needDepo = false;
-                intake.turn_on_intake();
-                break;
-            case SHOOT:
-                //needDepo = true;
-                intake.turn_on_intake();;
-                runAutoDepo();
-                break;
+    private void intake() {
+        intaking = true;
+    }
 
+    private void stopIntake() {
+        intaking = false;
+        intake.turn_off_intake();
+    }
+
+    /**
+     * Same shot as LM0Teleop: once the turret is on target and the deposit is at speed,
+     * open the hatch and run the intake, then close the hatch and stop the deposit after 2 seconds.
+     * Returns true on the loop the shot finishes.
+     */
+    private boolean shotFinished() {
+        if (turret.atPositionDeg(TURRET_TOLERANCE_DEG)
+                && depo.reachedvelocity()
+                && !timers.isRunning("depo")
+                && !hatchOpened) {
+            timers.start("depo");
+            depo.open_hatch(turret.getPositionDeg());
+            intake();
+            hatchOpened = true;
         }
+        if (timers.checkSecondsLast("depo", 2)) {
+            depo.turn_off_deposit();
+            depo.close_hatch();
+            depositRunning = false;
+            return true;
+        }
+        return false;
+    }
+
+    private void updateMechanisms() {
+        if (intaking) {
+            intake.turn_on_intake();
+        }
+        if (depositRunning) {
+            depo.run_using_pid();
+        }
+        turret.run_using_pid();
     }
 
     private void setPathState(AutoState newState) {
@@ -199,11 +270,10 @@ public class LM0_Auto extends OpMode {
 
     private void poses() {
         if (isBlue) {
-            start = new Pose(84.35853658536585, 134.31463414634146, Math.toRadians(0));
-            sample1 = new Pose(126.23658536585364, 134.70487804878047, Math.toRadians(0));
-            shoot = new Pose(90.10487804878049, 36.74390243902439, Math.toRadians(-90));
-            sample2 = new Pose(100.72334963325183, 16.883481424056274, Math.toRadians(-90));
-            done = new Pose(138.7166915141034, 33.84915618104835, Math.toRadians(180));
+            start = new Pose(84.3585, 134.3146, Math.toRadians(0));
+            sample1 = new Pose(126.2366, 134.7049, Math.toRadians(0));
+            sample2 = new Pose(100.7233, 23.8835, Math.toRadians(-90));
+            done = new Pose(138.7167, 33.8492, Math.toRadians(180));
         } else if (isRed) {
             start = new Pose(59.64146341463415, 9.68536585365854, Math.toRadians(180));
             sample1 = new Pose(17.76341463414636, 9.29512195121953, Math.toRadians(180));
@@ -236,17 +306,15 @@ public class LM0_Auto extends OpMode {
                     .build();
 
             sample1ToShoot = follower.pathBuilder()
-                    .addPath(new BezierCurve(sample1, new Pose(125.05243902439025, 65.78780487804879), new Pose(112.61829268292684, 29.90365853658537), shoot))
-                    .setLinearHeadingInterpolation(sample1.getHeading(), shoot.getHeading())
+                    .addPath(new BezierCurve(sample1, new Pose(94.8854, 25.9476), sample2))
+                    .setHeadingInterpolation(HeadingInterpolator.piecewise(
+                            HeadingInterpolator.PiecewiseNode.linear(0, 0.15, Math.toRadians(0), Math.toRadians(-90)),
+                            new HeadingInterpolator.PiecewiseNode(0.15, 1, HeadingInterpolator.constant(Math.toRadians(-90)))
+                    ))
                     .build();
 
             shootToSample2 = follower.pathBuilder()
-                    .addPath(new BezierCurve(shoot, new Pose(94.88536585365854, 25.947560975609758), sample2))
-                    .setLinearHeadingInterpolation(shoot.getHeading(), sample2.getHeading())
-                    .build();
-
-            sample2ToDone = follower.pathBuilder()
-                    .addPath(new BezierCurve(sample2, new Pose(98.33658536585365, 38.026829268292694), done))
+                    .addPath(new BezierCurve(sample2, new Pose(98.3366, 38.0268), done))
                     .setLinearHeadingInterpolation(sample2.getHeading(), done.getHeading())
                     .build();
         }
@@ -315,7 +383,7 @@ public class LM0_Auto extends OpMode {
             poses();
             buildPaths();
             follower.setPose(start);
-            autoState = AutoState.STARTTOSAMPLE1;
+            autoState = AutoState.PRESHOOT;
             telemetry.addData("Selected", "BLUE");
         }
         else if(gamepad1.a) {
@@ -323,7 +391,7 @@ public class LM0_Auto extends OpMode {
             poses();
             buildPaths();
             follower.setPose(start);
-            autoState = AutoState.STARTTOSAMPLE1;
+            autoState = AutoState.PRESHOOT;
             telemetry.addData("Selected", "RED");
         }
         else if(gamepad1.x) {
@@ -360,24 +428,9 @@ public class LM0_Auto extends OpMode {
         }
     }
 
-    public void runAutoDepo() {
-        depo.run_using_pid();
-
-        if (depo.reachedvelocity() && !timers.isRunning("depo")){
-            timers.start("depo");
-            depo.open_hatch();
-            intake.turn_on_intake();
-        }
-        if (timers.checkSecondsLast("depo", 3)){
-            depo.turn_off_deposit();
-            depo.close_hatch();
-
-        }
-    }
-
-
     private void updateTelemetry() {
         telemetry.addData("auto state", autoState);
+        telemetry.addData("turret deg", turret.getPositionDeg());
         Pose pose = follower.getPose();
         if (pose != null) {
             telemetry.addData("x", pose.getX());
