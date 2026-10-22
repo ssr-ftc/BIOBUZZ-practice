@@ -24,6 +24,13 @@ import com.qualcomm.robotcore.hardware.CRServo;
 //import org.firstinspires.ftc.teamcode.OFSB2.Subsystems.turret;
 //import org.firstinspires.ftc.teamcode.OFSB2.Subsystems.intake;
 //import org.firstinspires.ftc.teamcode.OFSB2.Auto.Constants;
+import org.firstinspires.ftc.teamcode.pedroPathing.Vision.AprilTagStuff.APRILTAG_Biobuzz.Alliance;
+import org.firstinspires.ftc.teamcode.pedroPathing.Vision.AprilTagStuff.APRILTAG_Biobuzz.AprilTagDetector;
+import org.firstinspires.ftc.teamcode.pedroPathing.Vision.AprilTagStuff.APRILTAG_Biobuzz.BioBuzzVisionConfig;
+import org.firstinspires.ftc.teamcode.pedroPathing.Vision.AprilTagStuff.APRILTAG_Biobuzz.HiveCluster;
+import org.firstinspires.ftc.teamcode.pedroPathing.Vision.AprilTagStuff.APRILTAG_Biobuzz.TagClusterMapper;
+import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
+import java.util.List;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.CustomFollower;
 //import static com.pedropathing.ivy.pedro.PedroCommands.*;
 
@@ -77,6 +84,30 @@ public class LM0_Auto extends OpMode {
 
     private AutoState autoState;
     private ShootState shootState;
+    // ---------------- APRILTAG (read during INIT) ----------------
+    private final AprilTagDetector aprilTag = new AprilTagDetector();
+    private boolean cameraStarted = false;       // camera was created without an error
+    private String cameraMessage = "";
+
+    private AprilTagDetection seenTag = null;    // best HIVE tag the camera saw during INIT (null = none yet)
+    private HiveCluster seenHive = null;         // which hive cell that tag belongs to
+    private boolean otherSideHiveAssumed = true; // true while no tag has been seen
+    private Alliance tagAlliance = null;         // null = accept every hive tag; RED / BLUE = only that alliance's tags
+
+    // What we assume about the other side's hive if INIT ends without ever seeing a tag.
+    // PLACEHOLDER word - change it to whatever you meant by "u..".
+    private static final String HIVE_IF_NO_TAG = "UNKNOWN";
+    private static final long LOST_TAG_GRACE_NS = 1_000_000_000L;
+    private HiveCluster selectedHive = null;
+    private HiveCluster oppositeHive = null;
+    private long lastVisibleTagNanos = 0;
+    private boolean switchedToOpposite = false;
+    private int rawDetectionCount = 0;
+    private int blueDetectionCount = 0;
+    private int redDetectionCount = 0;
+    private int unmappedDetectionCount = 0;
+    private int badHammingCount = 0;
+    private boolean previousBothBumpers = false;
     public void subsystems() {
         //intake = new intake(hardwareMap);
         // turret = new turret(hardwareMap);
@@ -93,6 +124,7 @@ public class LM0_Auto extends OpMode {
         intake = new intakeLM0(hardwareMap);
         depo = new depoLM0(hardwareMap);
         turret = new turret(hardwareMap);
+        initAprilTag();
         telemetry.addLine("Ready. Press Y for Blue, A for Red.");
         telemetry.addLine("Press X for Small Blue, B for Small Red.");
         telemetry.addLine("Press D-pad UP for Blue Sample, D-pad DOWN for Red Sample.");
@@ -102,6 +134,8 @@ public class LM0_Auto extends OpMode {
     @Override
     public void init_loop() {
         gamepadSide();
+        selectTagAlliance();
+        updateAprilTag();
     }
 
     @Override
@@ -122,8 +156,151 @@ public class LM0_Auto extends OpMode {
         turret.run_using_pid();
         depo.run_using_pid();
         updateAutoState();
+        updateAprilTag();
         updateTelemetry();
         updateShootState();
+    }
+
+    @Override
+    public void stop() {
+        if (cameraStarted) {
+            aprilTag.stop();
+        }
+    }
+
+    private void selectTagAlliance() {
+        Alliance picked = tagAlliance;
+        boolean both = gamepad1.left_bumper && gamepad1.right_bumper;
+        if (both && !previousBothBumpers) {
+            picked = null;
+        } else if (!both && gamepad1.left_bumper) {
+            picked = Alliance.BLUE;
+        } else if (!both && gamepad1.right_bumper) {
+            picked = Alliance.RED;
+        }
+        previousBothBumpers = both;
+        if (picked != tagAlliance) {
+            tagAlliance = picked;
+            seenTag = null;
+            seenHive = null;
+            selectedHive = null;
+            oppositeHive = null;
+            switchedToOpposite = false;
+            lastVisibleTagNanos = 0;
+        }
+    }
+
+    private void initAprilTag() {
+        try {
+            aprilTag.init(hardwareMap, telemetry);
+            cameraStarted = true;
+        } catch (Exception e) {
+            cameraStarted = false;
+            cameraMessage = "could not start: " + e.getMessage();
+        }
+    }
+
+    private HiveCluster findOppositeHive(HiveCluster current) {
+        if (current == null) return null;
+        HiveCluster opposite = null;
+        for (int id = 30; id <= 45; id++) {
+            HiveCluster candidate = TagClusterMapper.getCellForTagId(id);
+            if (candidate == null || candidate.alliance != current.alliance
+                    || candidate.displayName().equals(current.displayName())) continue;
+            if (opposite != null && !opposite.displayName().equals(candidate.displayName())) {
+                return null; // More than two cells: cannot safely infer an opposite.
+            }
+            opposite = candidate;
+        }
+        return opposite;
+    }
+
+    private void updateAprilTag() {
+        telemetry.addData("Tag filter (LB blue / RB red / BOTH all)",
+                tagAlliance == null ? "ALL" : tagAlliance.name());
+        if (!cameraStarted) {
+            telemetry.addData("Camera", cameraMessage);
+            return;
+        }
+
+        aprilTag.update();
+        telemetry.addData("Camera streaming", aprilTag.isStreaming());
+
+        List<AprilTagDetection> detections = aprilTag.getDetections();
+        rawDetectionCount = detections == null ? 0 : detections.size();
+        blueDetectionCount = 0;
+        redDetectionCount = 0;
+        unmappedDetectionCount = 0;
+        badHammingCount = 0;
+        AprilTagDetection best = null;
+        HiveCluster bestCell = null;
+
+        if (detections != null) for (AprilTagDetection d : detections) {
+            telemetry.addData("Raw ID " + d.id,
+                    "hamming=%d, margin=%.1f", d.hamming, d.decisionMargin);
+            HiveCluster cell = TagClusterMapper.getCellForTagId(d.id);
+            if (cell == null) {
+                unmappedDetectionCount++;
+                continue;
+            }
+            if (cell.alliance == Alliance.BLUE) blueDetectionCount++;
+            else if (cell.alliance == Alliance.RED) redDetectionCount++;
+
+            if (d.hamming > BioBuzzVisionConfig.MAX_HAMMING) {
+                badHammingCount++;
+                continue;
+            }
+            if (tagAlliance != null && cell.alliance != tagAlliance) continue;
+            if (best == null || d.decisionMargin > best.decisionMargin) {
+                best = d;
+                bestCell = cell;
+            }
+        }
+
+        telemetry.addData("Raw tags", rawDetectionCount);
+        telemetry.addData("Mapped RED", redDetectionCount);
+        telemetry.addData("Mapped BLUE", blueDetectionCount);
+        telemetry.addData("Unmapped", unmappedDetectionCount);
+        telemetry.addData("Bad hamming", badHammingCount);
+
+        if (best != null) {
+            seenTag = best;
+            seenHive = bestCell;
+            selectedHive = bestCell;
+            oppositeHive = findOppositeHive(bestCell);
+            lastVisibleTagNanos = System.nanoTime();
+            switchedToOpposite = false;
+            otherSideHiveAssumed = false;
+            telemetry.addData("Current tag", best.id);
+            telemetry.addData("Current hive", bestCell.displayName());
+            if (best.ftcPose != null) {
+                telemetry.addData("Range (in)", "%.1f", best.ftcPose.range);
+                telemetry.addData("Bearing (deg)", "%.1f", best.ftcPose.bearing);
+                telemetry.addData("Yaw (deg)", "%.1f", best.ftcPose.yaw);
+            }
+        } else if (seenTag != null) {
+            // A previously seen target disappeared: propose switching to the
+            // opposite mapped hive after a short dropout tolerance.
+            long elapsed = System.nanoTime() - lastVisibleTagNanos;
+            if (elapsed >= LOST_TAG_GRACE_NS && oppositeHive != null) {
+                selectedHive = oppositeHive;
+                switchedToOpposite = true;
+            }
+            telemetry.addLine("No accepted tag NOW (last tag is remembered)");
+        } else {
+            telemetry.addLine("AprilTag: NOT seen");
+            otherSideHiveAssumed = true;
+        }
+
+        telemetry.addData("Last accepted ID", seenTag == null ? "none" : seenTag.id);
+        telemetry.addData("Seen hive", seenHive == null ? "UNKNOWN" : seenHive.displayName());
+        telemetry.addData("Opposite mapped hive",
+                oppositeHive == null ? "UNRESOLVED" : oppositeHive.displayName());
+        telemetry.addData("SELECTED hive",
+                selectedHive == null ? HIVE_IF_NO_TAG : selectedHive.displayName());
+        telemetry.addData("Switched after losing tag", switchedToOpposite);
+        // NOTE: selectedHive is decision state only. Mechanical aiming and
+        // Pedro paths require hive-specific geometry not supplied here.
     }
 
     // --- THE SINGLE STATE MACHINE ---
@@ -446,5 +623,9 @@ public class LM0_Auto extends OpMode {
             telemetry.addData("heading (deg)", Math.toDegrees(pose.getHeading()));
         }
         telemetry.addData("path time", pathTimer.getElapsedTimeSeconds());
+        telemetry.addData("Tag filter", tagAlliance == null ? "ALL" : tagAlliance.name());
+        telemetry.addData("Last accepted tag", seenTag == null ? "none" : seenTag.id);
+        telemetry.addData("Selected hive", selectedHive == null ? "UNKNOWN" : selectedHive.displayName());
+        telemetry.addData("Opposite hive", oppositeHive == null ? "UNRESOLVED" : oppositeHive.displayName());
     }
 }

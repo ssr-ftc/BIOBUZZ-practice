@@ -7,6 +7,8 @@ import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
+/// yo AI made some of this but pls no delete it is very dear to me
+
 public class carDashboard {
     private final HardwareMap hardwareMap;
     private final Telemetry telemetry;
