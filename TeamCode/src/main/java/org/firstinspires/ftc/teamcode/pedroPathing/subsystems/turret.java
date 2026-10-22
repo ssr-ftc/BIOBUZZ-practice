@@ -7,6 +7,12 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 //@Config
 public class turret {
+    private static final double HIVE_X = 84.36;
+    private static final double HIVE_Y = 81.4;
+   static double deg;
+   static double totalDeg;
+
+
     private DcMotorEx turret;
     public Servo cam;
     public turret(HardwareMap hardwareMap) {
@@ -53,6 +59,18 @@ public class turret {
 
     public double getPositionDeg() {
         return turret.getCurrentPosition() / 3.47778;
+    }
+
+    // blue hive cell in field coordinates (my estimate, edit these two if you know better)
+
+    // type the robot's field x, y and heading (degrees), get the turret angle (degrees)
+     public static double turretAngle(double robotX, double robotY, double robotHeadingDeg) {
+        double fieldDeg = Math.toDegrees(Math.atan2(HIVE_Y - robotY, HIVE_X - robotX));
+        deg = -(fieldDeg - robotHeadingDeg);
+        while (deg < -90) deg += 360;
+        while (deg >= 270) deg -= 360;
+
+        return deg;
     }
 }
 //hi
