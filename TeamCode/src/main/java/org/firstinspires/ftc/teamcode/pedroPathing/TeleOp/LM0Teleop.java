@@ -9,7 +9,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.depoLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.intakeLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.turret;
 
-@TeleOp(name = "RREEALLM0teleop", group = "TeleOp")
+@TeleOp(name = "LM0teleop", group = "TeleOp")
 public class LM0Teleop extends OpMode {
     private Follower follower;
     private final Pose startPose = new Pose(0, 0, 0);
@@ -87,7 +87,7 @@ public class LM0Teleop extends OpMode {
                 intake.turn_on_intake();
             }
         }
-        if (gamepad2.leftBumperWasPressed()) {
+        if (gamepad1.triangleWasPressed()) {
             if (intake.isFlowerDown()) {
                 intake.flower_up();
             } else {
@@ -105,7 +105,6 @@ public class LM0Teleop extends OpMode {
                 turret.setPositionDeg(45);
             }*/
         }
-
     }
 
     public void useDepo() {
