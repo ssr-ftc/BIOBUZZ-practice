@@ -105,7 +105,6 @@ public class LM0Teleop extends OpMode {
                 turret.setPositionDeg(45);
             }*/
         }
-
     }
 
     public void useDepo() {
