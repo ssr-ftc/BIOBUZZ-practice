@@ -28,8 +28,10 @@ public class autoUnderHive extends OpMode {
         END_PATH_2,
         END_PATH_NEW,
         SHOOT2,
-        NEARFLOWER,
         WAIT_AT_PATH2,
+        NEARFLOWER,
+        WAITATFLOWER,
+        NEAR_OPPFLOWER,
         END_PATH_3,
         DONE
     }
@@ -38,13 +40,13 @@ public class autoUnderHive extends OpMode {
 
     private final Pose startingCoordinate = new Pose(56, 9, Math.toRadians(-180));
     private final Pose endPath1 = new Pose(27, 9, Math.toRadians(-180));
-    private final Pose endPath2 = new Pose(13, 9, Math.toRadians(-180));
+    private final Pose endPath2 = new Pose(12.5, 9, Math.toRadians(-180));
     private final Pose endPathnew = new Pose (56, 9, Math.toRadians(90));
     private final Pose flowerNear = new Pose (19,37.6, (145));
-    private final Pose oppositFlower = new Pose(52, 114.5, Math.toRadians(114));
+    private final Pose oppositFlower = new Pose(52, 114.5, Math.toRadians(103));
     private final Pose endPath4 = new Pose(11, 109, Math.toRadians(0));
 
-    private PathChain start_path1, path1_path2, path2_shoot, shoot2_oppFlower, flower_park;
+    private PathChain start_path1, path1_path2, path2_shoot, shoot_nearFlower, nearFlower_oppFlower, shoot2_oppFlower, flower_park;
 
     public void buildPaths() {
         start_path1 = follower.pathBuilder()
@@ -71,11 +73,22 @@ public class autoUnderHive extends OpMode {
                  */
                 .setHeadingInterpolation(HeadingInterpolator.tangent.reverse())
                 .build();
+        shoot_nearFlower = follower.pathBuilder()
+                .addPath(new BezierLine(endPathnew, flowerNear))
+                .setTangentHeadingInterpolation()
+                .build();
+        /*
         shoot2_oppFlower = follower.pathBuilder()
                 .addPath(new BezierCurve(endPathnew,
                         new Pose(60,69),
                         oppositFlower))
                 .setTangentHeadingInterpolation()
+                .build();
+         */
+        nearFlower_oppFlower = follower.pathBuilder()
+                .addPath(new BezierCurve(flowerNear,
+                        new Pose(26.5, 100),
+                        oppositFlower))
                 .build();
         flower_park = follower.pathBuilder()
                 .addPath(new BezierLine(oppositFlower, endPath4))
@@ -133,8 +146,8 @@ public class autoUnderHive extends OpMode {
                     setPathState(PathState.END_PATH_NEW);
                 }
                 break;
-                case END_PATH_NEW:
-                if (pathTimer.getElapsedTimeSeconds() > 1.5) {
+            case END_PATH_NEW:
+                if (pathTimer.getElapsedTimeSeconds() > 1) {
                     follower.followPath(path2_shoot, true);
                     setPathState(PathState.SHOOT2);
                 }
@@ -142,15 +155,35 @@ public class autoUnderHive extends OpMode {
             case SHOOT2:
                 if (!follower.isBusy() && pathTimer.getElapsedTimeSeconds() > 1) {
                     depo.turn_on_deposit();
-                    setPathState(PathState.WAIT_AT_PATH2);
+                    setPathState(PathState.NEARFLOWER);
                 }
                 break;
+            case NEARFLOWER:
+                if (!follower.isBusy() && !depo.isDepositOn()) {
+                    intake.flower_down();
+                    intake.turn_on_intake();
+                    follower.followPath(shoot_nearFlower, true);
+                    setPathState(PathState.NEAR_OPPFLOWER);
+                }
+                break;
+            case WAITATFLOWER:
+                if (!follower.isBusy()){
+                    setPathState(PathState.NEAR_OPPFLOWER);
+                }
+            case NEAR_OPPFLOWER:
+                if (!follower.isBusy() && pathTimer.getElapsedTimeSeconds() > 2) {
+                    follower.followPath(nearFlower_oppFlower, true);
+                    setPathState(PathState.END_PATH_3);
+                }
+                break;
+                /*
             case WAIT_AT_PATH2:
                 if (!follower.isBusy() && !depo.isDepositOn()) {
                     follower.followPath(shoot2_oppFlower);
                     setPathState(PathState.END_PATH_3);
                 }
                 break;
+                 */
             case END_PATH_3:
                 if (pathTimer.getElapsedTimeSeconds() > 2) {
                     follower.followPath(flower_park, true);
