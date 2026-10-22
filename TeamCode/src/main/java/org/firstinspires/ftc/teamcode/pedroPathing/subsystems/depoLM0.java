@@ -106,7 +106,7 @@ public class depoLM0 {
     public boolean reachedvelocity(){
         boolean x;
         if (targetVelocity != 0){
-            x = getVelocity() >= targetVelocity-20;
+            x = getVelocity() >= targetVelocity - 20;
         } else {
             x = false;
         }
