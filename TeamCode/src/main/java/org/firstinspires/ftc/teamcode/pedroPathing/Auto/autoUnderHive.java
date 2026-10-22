@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.pedroPathing.templates.auto;
+package org.firstinspires.ftc.teamcode.pedroPathing.Auto;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierCurve;
@@ -30,6 +30,7 @@ public class autoUnderHive extends OpMode {
         SHOOT2,
         WAIT_AT_PATH2,
         NEARFLOWER,
+        INTAKEFLOWER,
         WAITATFLOWER,
         NEAR_OPPFLOWER,
         END_PATH_3,
@@ -42,11 +43,12 @@ public class autoUnderHive extends OpMode {
     private final Pose endPath1 = new Pose(27, 9, Math.toRadians(-180));
     private final Pose endPath2 = new Pose(12.5, 9, Math.toRadians(-180));
     private final Pose endPathnew = new Pose (56, 9, Math.toRadians(90));
-    private final Pose flowerNear = new Pose (19,37.6, (145));
+    private final Pose approachingFlower = new Pose(30,39,Math.toRadians(-180));
+    private final Pose flowerNearSlow = new Pose (18,39, Math.toRadians(-180));
     private final Pose oppositFlower = new Pose(52, 114.5, Math.toRadians(103));
     private final Pose endPath4 = new Pose(11, 109, Math.toRadians(0));
 
-    private PathChain start_path1, path1_path2, path2_shoot, shoot_nearFlower, nearFlower_oppFlower, shoot2_oppFlower, flower_park;
+    private PathChain start_path1, path1_path2, path2_shoot, shoot_approachFlower, apprpoach_nearFlower, nearFlower_oppFlower, shoot2_oppFlower, flower_park;
 
     public void buildPaths() {
         start_path1 = follower.pathBuilder()
@@ -73,8 +75,12 @@ public class autoUnderHive extends OpMode {
                  */
                 .setHeadingInterpolation(HeadingInterpolator.tangent.reverse())
                 .build();
-        shoot_nearFlower = follower.pathBuilder()
-                .addPath(new BezierLine(endPathnew, flowerNear))
+        shoot_approachFlower = follower.pathBuilder()
+                .addPath(new BezierLine(endPathnew, approachingFlower))
+                .setLinearHeadingInterpolation(endPathnew.getHeading(), approachingFlower.getHeading())
+                .build();
+        apprpoach_nearFlower = follower.pathBuilder()
+                .addPath(new BezierLine(approachingFlower, flowerNearSlow))
                 .setTangentHeadingInterpolation()
                 .build();
         /*
@@ -86,7 +92,7 @@ public class autoUnderHive extends OpMode {
                 .build();
          */
         nearFlower_oppFlower = follower.pathBuilder()
-                .addPath(new BezierCurve(flowerNear,
+                .addPath(new BezierCurve(flowerNearSlow,
                         new Pose(26.5, 100),
                         oppositFlower))
                 .build();
@@ -148,7 +154,7 @@ public class autoUnderHive extends OpMode {
                 break;
             case END_PATH_NEW:
                 if (pathTimer.getElapsedTimeSeconds() > 1) {
-                    follower.followPath(path2_shoot, true);
+                    follower.followPath(path2_shoot,  true);
                     setPathState(PathState.SHOOT2);
                 }
                 break;
@@ -161,9 +167,15 @@ public class autoUnderHive extends OpMode {
             case NEARFLOWER:
                 if (!follower.isBusy() && !depo.isDepositOn()) {
                     intake.flower_down();
+                    follower.followPath(shoot_approachFlower, true);
+                    setPathState(PathState.INTAKEFLOWER);
+                }
+                break;
+            case INTAKEFLOWER:
+                if (!follower.isBusy()) {
                     intake.turn_on_intake();
-                    follower.followPath(shoot_nearFlower, true);
-                    setPathState(PathState.NEAR_OPPFLOWER);
+                    follower.followPath(apprpoach_nearFlower, 0.3, true);
+                    setPathState(PathState.WAITATFLOWER);
                 }
                 break;
             case WAITATFLOWER:
