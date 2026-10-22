@@ -16,7 +16,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.turret;
 @Autonomous(name = "UnderHive Akash", group = "Autonomous")
 public class autoUnderHive_Akash extends OpMode {
     private Follower follower;
-    private Timer pathTimer, opModeTimer;
+    private Timer pathTimer, opModeTimer, stallTimer;
     private org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer timers;
     private intakeLM0 intake;
     private depoLM0 depo;
@@ -44,6 +44,7 @@ public class autoUnderHive_Akash extends OpMode {
     private boolean path4Started = false;
     private boolean path4FlowerDown = false;
     private boolean path6Approach = false;
+    private boolean flowerPush = false;
     private double turretTargetDeg = 90;
     /** Heading 180 with the turret at 90 points at the first hive. Turret = robot heading - 90. */
     private static final double TURRET_FIELD_AIM_DEG = 90;
@@ -66,15 +67,25 @@ public class autoUnderHive_Akash extends OpMode {
     /** Last 40% of the drive from the second shot to the near flower. */
     private static final double PATH4_SLOW_START = 0.6;
     private static final double PATH4_SLOW_POWER = 0.2;
+    /**
+     * The slow flower approach can stall a few inches short. After a short stall the
+     * robot gets this much power to finish the drive onto the flower pose.
+     */
+    private static final double FLOWER_PUSH_POWER = 0.5;
+    /** Slower than this, in inches per second, counts as stalled. */
+    private static final double STALL_SPEED = 1.5;
+    private static final double STALL_PUSH_SECONDS = 0.25;
+    /** Still stalled this long while pushing means the robot is pressed against the flower. */
+    private static final double STALL_AT_FLOWER_SECONDS = 0.75;
 
     // Visualizer poses are degrees. Pedro Pathing 2 stores heading in radians.
     private final Pose start = new Pose(56, 9, Math.toRadians(180));
     private final Pose path1End = new Pose(27, 9, Math.toRadians(180));
     private final Pose path2End = new Pose(12.5, 9, Math.toRadians(180));
     private final Pose path3End = new Pose(56, 9, Math.toRadians(150));
-    private final Pose path4End = new Pose(16.1394, 49.5881, Math.toRadians(180));
-    private final Pose path5End = new Pose(21.4, 49.2159, Math.toRadians(175.9538));
-    private final Pose path6End = new Pose(40.3019, 123.2715, Math.toRadians(90));
+    private final Pose path4End = new Pose(16.1394, 54.5881, Math.toRadians(180));
+    private final Pose path5End = new Pose(21.4, 54.2159, Math.toRadians(175.9538));
+    private final Pose path6End = new Pose(43.3019, 118.2715, Math.toRadians(90));
     private final Pose path7End = new Pose(7.8428, 113.6069, Math.toRadians(0));
 
     private PathChain path1, path2, path3, path4, path5, path6, path7;
@@ -190,14 +201,15 @@ public class autoUnderHive_Akash extends OpMode {
                     }
                     break;
                 }
-                if (follower.getCurrentTValue() >= PATH4_SLOW_START) {
+                boolean path4Slow = follower.getCurrentTValue() >= PATH4_SLOW_START;
+                if (path4Slow && !flowerPush) {
                     follower.setMaxPower(PATH4_SLOW_POWER);
                 }
                 if (!path4FlowerDown && leadTimeReached(path4End, FLOWER_LEAD_SECONDS)) {
                     intake.flower_down();
                     path4FlowerDown = true;
                 }
-                if (pathDone(path4End)) {
+                if (reachedFlower(path4Slow)) {
                     intake.flower_down();
                     intake.turn_on_intake();
                     setPathState(PathState.PATH4_INTAKE);
@@ -215,6 +227,7 @@ public class autoUnderHive_Akash extends OpMode {
             case PATH5:
                 if (!follower.isBusy()) {
                     follower.setMaxPower(1.0);
+                    flowerPush = false;
                     setTurretDeg(SECOND_HIVE_TURRET_DEG);
                     follower.followPath(path6, true);
                     setPathState(PathState.PATH6);
@@ -226,13 +239,17 @@ public class autoUnderHive_Akash extends OpMode {
                     intake.flower_down();
                     follower.setMaxPower(FAR_FLOWER_APPROACH_POWER);
                 }
-                if (!follower.isBusy() && path6Approach && turretAimed()) {
-                    follower.setMaxPower(1.0);
-                    intake.turn_off_intake();
-                    intake.flower_up();
-                    depo.turn_on_deposit();
-                    setPathState(PathState.SHOOT3);
+                if (!reachedFlower(path6Approach)) {
+                    break;
                 }
+                follower.setMaxPower(1.0);
+                if (!turretAimed()) {
+                    break;
+                }
+                intake.turn_off_intake();
+                intake.flower_up();
+                depo.turn_on_deposit();
+                setPathState(PathState.SHOOT3);
                 break;
             case SHOOT3:
                 if (depo.isDepositOn()) {
@@ -291,10 +308,34 @@ public class autoUnderHive_Akash extends OpMode {
     }
 
     /**
-     * Pedro only auto-ends a stopped path while its progress is under 80 percent.
-     * Path 4 slows to 0.2 and path 7 brakes at the park, so both stop in that gap
-     * and isBusy stays true until the robot is pushed onto the endpoint.
+     * Pedro only ends a path at t >= 0.99 and ignores a stall past t = 0.8, so a slow
+     * approach that stalls a few inches short of the flower never finishes. During the
+     * slow approach, a stall gets more power so Pedro can finish on the flower pose.
+     * If the robot still cannot move while pushing, it is pressed against the flower.
      */
+    private boolean reachedFlower(boolean slowApproach) {
+        if (!follower.isBusy()) {
+            return true;
+        }
+        if (!slowApproach || follower.getVelocity().getMagnitude() > STALL_SPEED) {
+            stallTimer.resetTimer();
+            return false;
+        }
+        if (!flowerPush) {
+            if (stallTimer.getElapsedTimeSeconds() > STALL_PUSH_SECONDS) {
+                flowerPush = true;
+                follower.setMaxPower(FLOWER_PUSH_POWER);
+                stallTimer.resetTimer();
+            }
+            return false;
+        }
+        if (stallTimer.getElapsedTimeSeconds() > STALL_AT_FLOWER_SECONDS) {
+            follower.breakFollowing();
+            return true;
+        }
+        return false;
+    }
+
     private boolean pathDone(Pose target) {
         if (!follower.isBusy()) {
             return true;
@@ -332,6 +373,7 @@ public class autoUnderHive_Akash extends OpMode {
     public void init() {
         pathTimer = new Timer();
         opModeTimer = new Timer();
+        stallTimer = new Timer();
         follower = Constants.createFollower(hardwareMap);
         follower.setCentripetalScaling(0.0015);
         follower.getConstants().setBEZIER_CURVE_SEARCH_LIMIT(100);
