@@ -1,5 +1,5 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.Auto;
-//skib version 0.1.2.2
+//Needs near fine tuning version 0.1.3.0
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
@@ -53,7 +53,7 @@ public class autoUnderHive_Akash extends OpMode {
     /** Heading 180 with the turret at 90 points at the first hive. Turret = robot heading - 90. */
     private static final double TURRET_FIELD_AIM_DEG = 90;
     /** Far shot at the second hive. */
-    private static final double SECOND_HIVE_TURRET_DEG = -50;
+    private static final double SECOND_HIVE_TURRET_DEG = -45;
     /** A shot counts as aimed once the turret is within this many degrees of the target. */
     private static final double TURRET_TOLERANCE_DEG = 7.0;
     /** Flower starts down this long before the path 4 stop, based on current speed. */
@@ -93,9 +93,9 @@ public class autoUnderHive_Akash extends OpMode {
     private final Pose path4End = new Pose(13, 53, Math.toRadians(180));
     private final Pose path5End = new Pose(21.4, 53, Math.toRadians(180));
     private final Pose path6End = new Pose(22.0147, 88.2872, Math.toRadians(180));
-    private final Pose shoot2End = new Pose(47.0839, 128.6541, Math.toRadians(-121.8417));
-    private final Pose path8End = new Pose(59.2159, 115.1195, Math.toRadians(130));
-    private final Pose path7End = new Pose(55.3524, 130.4625, Math.toRadians(90));
+    private final Pose shoot2End = new Pose(47.0839, 135.1803, Math.toRadians(-118.1291));
+    private final Pose path8End = new Pose(51.7998, 122.8323, Math.toRadians(130));
+    private final Pose path7End = new Pose(45.5631, 124.8262, Math.toRadians(90));
     private final Pose parkEnd = new Pose(2.2065, 113.9036, Math.toRadians(0));
 
     private PathChain straightGardenIntake, straightGardenIntake2, path3, path4, path5, path6, shoot2, path8, path7, park;
@@ -143,7 +143,7 @@ public class autoUnderHive_Akash extends OpMode {
 
         path7 = follower.pathBuilder()
                 .addPath(new BezierLine(path8End, path7End))
-                .setLinearHeadingInterpolation(path8End.getHeading(), path7End.getHeading())
+                .setConstantHeadingInterpolation(path7End.getHeading())
                 .build();
 
         park = follower.pathBuilder()
