@@ -1,5 +1,5 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.Auto;
-//skib version 0.0.2
+//skib version 0.1.2.2
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
@@ -93,9 +93,9 @@ public class autoUnderHive_Akash extends OpMode {
     private final Pose path4End = new Pose(13, 53, Math.toRadians(180));
     private final Pose path5End = new Pose(21.4, 53, Math.toRadians(180));
     private final Pose path6End = new Pose(22.0147, 88.2872, Math.toRadians(180));
-    private final Pose shoot2End = new Pose(46.1939, 117.9748, Math.toRadians(-129.1613));
-    private final Pose path8End = new Pose(45.8669, 107.4067, Math.toRadians(130));
-    private final Pose path7End = new Pose(46.7497, 126.6061, Math.toRadians(90));
+    private final Pose shoot2End = new Pose(47.0839, 128.6541, Math.toRadians(-121.8417));
+    private final Pose path8End = new Pose(59.2159, 115.1195, Math.toRadians(130));
+    private final Pose path7End = new Pose(55.3524, 130.4625, Math.toRadians(90));
     private final Pose parkEnd = new Pose(2.2065, 113.9036, Math.toRadians(0));
 
     private PathChain straightGardenIntake, straightGardenIntake2, path3, path4, path5, path6, shoot2, path8, path7, park;
