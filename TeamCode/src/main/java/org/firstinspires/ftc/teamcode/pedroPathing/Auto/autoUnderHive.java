@@ -13,7 +13,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.depoLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.intakeLM0;
 
-@Autonomous(name = "UnderHive", group = "Autonomous")
+@Autonomous(name = "soham auto", group = "Autonomous")
 public class autoUnderHive extends OpMode {
     private Follower follower;
     private Timer pathTimer, opModeTimer;
@@ -43,8 +43,8 @@ public class autoUnderHive extends OpMode {
     private final Pose endPath1 = new Pose(27, 9, Math.toRadians(-180));
     private final Pose endPath2 = new Pose(12.5, 9, Math.toRadians(-180));
     private final Pose endPathnew = new Pose (56, 9, Math.toRadians(90));
-    private final Pose approachingFlower = new Pose(30,39,Math.toRadians(-180));
-    private final Pose flowerNearSlow = new Pose (18,39, Math.toRadians(-180));
+    private final Pose approachingFlower = new Pose(30,49,Math.toRadians(-180));
+    private final Pose flowerNearSlow = new Pose (17,49, Math.toRadians(-180));
     private final Pose oppositFlower = new Pose(52, 114.5, Math.toRadians(103));
     private final Pose endPath4 = new Pose(11, 109, Math.toRadians(0));
 
@@ -61,11 +61,12 @@ public class autoUnderHive extends OpMode {
                 .build();
         path2_shoot = follower.pathBuilder()
                 .addPath(new BezierLine(endPath2,
+                        endPathnew))
 
                         //new Pose(61.5, 12),
                         //new Pose(48.5, 27.5),
                         //new Pose(63.5, 109),
-                        endPathnew))
+
                 /*
                 .setHeadingInterpolation(HeadingInterpolator.piecewise(
                         HeadingInterpolator.PiecewiseNode.linear(0, 0.313, endPath2.getHeading(), Math.toRadians(63)),
@@ -174,7 +175,7 @@ public class autoUnderHive extends OpMode {
             case INTAKEFLOWER:
                 if (!follower.isBusy()) {
                     intake.turn_on_intake();
-                    follower.followPath(apprpoach_nearFlower, 0.3, true);
+                    follower.followPath(apprpoach_nearFlower, 0.5, true);
                     setPathState(PathState.WAITATFLOWER);
                 }
                 break;
@@ -182,6 +183,7 @@ public class autoUnderHive extends OpMode {
                 if (!follower.isBusy()){
                     setPathState(PathState.NEAR_OPPFLOWER);
                 }
+                break;
             case NEAR_OPPFLOWER:
                 if (!follower.isBusy() && pathTimer.getElapsedTimeSeconds() > 2) {
                     follower.followPath(nearFlower_oppFlower, true);
