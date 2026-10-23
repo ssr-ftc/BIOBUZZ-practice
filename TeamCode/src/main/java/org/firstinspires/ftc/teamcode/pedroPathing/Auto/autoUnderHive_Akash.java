@@ -1,5 +1,5 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.Auto;
-//skib version 0.0.1
+//skib version 0.0.2
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
@@ -19,7 +19,7 @@ public class autoUnderHive_Akash extends OpMode {
     private Timer pathTimer, opModeTimer, stallTimer;
     private org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer timers;
     private intakeLM0 intake;
-    private depoLM0 depo;
+    private depoLM0 depo; 
     private turret turret;
 
     public enum PathState {
@@ -32,10 +32,13 @@ public class autoUnderHive_Akash extends OpMode {
         PATH4_INTAKE,
         PATH5,
         PATH6,
+        DRIVE_SHOOT2,
         SHOOT3,
+        PATH8,
         INTAKE_FLOWER,
         SHOOT4,
         PATH7,
+        PARK,
         DONE
     }
 
@@ -43,25 +46,29 @@ public class autoUnderHive_Akash extends OpMode {
     private boolean gardenHoldStarted = false;
     private boolean path4Started = false;
     private boolean path4FlowerDown = false;
-    private boolean path6Approach = false;
+    private boolean flower2Approach = false;
+    private boolean flower2ClearStarted = false;
     private boolean flowerPush = false;
     private double turretTargetDeg = 90;
     /** Heading 180 with the turret at 90 points at the first hive. Turret = robot heading - 90. */
     private static final double TURRET_FIELD_AIM_DEG = 90;
-    /** Second hive, used for both shots at the far flower. */
-    private static final double SECOND_HIVE_TURRET_DEG = 175;
-    private static final double TURRET_TOLERANCE_DEG = 3.0;
+    /** Far shot at the second hive. */
+    private static final double SECOND_HIVE_TURRET_DEG = -50;
+    /** A shot counts as aimed once the turret is within this many degrees of the target. */
+    private static final double TURRET_TOLERANCE_DEG = 7.0;
     /** Flower starts down this long before the path 4 stop, based on current speed. */
     private static final double FLOWER_LEAD_SECONDS = 1.5;
     /** Stopped intake at the path 4 flower and at the far flower. */
     private static final double FLOWER_INTAKE_SECONDS = 2.0;
+    /** Stay down after reaching the far flower so the flower piece can clear the flowers. */
+    private static final double FLOWER2_CLEAR_SECONDS = 2.0;
     /**
-     * Last part of the drive to the far flower. 36 inches at this power is a little
+     * Last part of the drive into the far flower. 36 inches at this power is a little
      * over 1.5 seconds and slow enough that the flower piece does not slam in.
      */
     private static final double FAR_FLOWER_APPROACH_INCHES = 36;
-    private static final double FAR_FLOWER_APPROACH_POWER = 0.3;
-    /** Straight garden pass. Intake stays on for one second after the robot stops. */
+    private static final double FAR_FLOWER_APPROACH_POWER = 0.55;
+    /** Straight garden intake. The curved visualizer lines are not used. Intake stays on for one second after the robot stops. */
     private static final double GARDEN_INTAKE_POWER = 0.4;
     private static final double GARDEN_HOLD_SECONDS = 1.0;
     /** Last 40% of the drive from the second shot to the near flower. */
@@ -80,30 +87,33 @@ public class autoUnderHive_Akash extends OpMode {
 
     // Visualizer poses are degrees. Pedro Pathing 2 stores heading in radians.
     private final Pose start = new Pose(56, 9, Math.toRadians(180));
-    private final Pose path1End = new Pose(27, 9, Math.toRadians(180));
-    private final Pose path2End = new Pose(12.5, 9, Math.toRadians(180));
+    private final Pose straightGardenIntakeEnd = new Pose(27, 9, Math.toRadians(180));
+    private final Pose straightGardenIntake2End = new Pose(12.5, 9, Math.toRadians(180));
     private final Pose path3End = new Pose(56, 9, Math.toRadians(150));
-    private final Pose path4End = new Pose(16.1394, 54.5881, Math.toRadians(180));
-    private final Pose path5End = new Pose(21.4, 54.2159, Math.toRadians(175.9538));
-    private final Pose path6End = new Pose(43.3019, 118.2715, Math.toRadians(90));
-    private final Pose path7End = new Pose(7.8428, 113.6069, Math.toRadians(0));
+    private final Pose path4End = new Pose(13, 53, Math.toRadians(180));
+    private final Pose path5End = new Pose(21.4, 53, Math.toRadians(180));
+    private final Pose path6End = new Pose(22.0147, 88.2872, Math.toRadians(180));
+    private final Pose shoot2End = new Pose(46.1939, 117.9748, Math.toRadians(-129.1613));
+    private final Pose path8End = new Pose(45.8669, 107.4067, Math.toRadians(130));
+    private final Pose path7End = new Pose(46.7497, 126.6061, Math.toRadians(90));
+    private final Pose parkEnd = new Pose(2.2065, 113.9036, Math.toRadians(0));
 
-    private PathChain path1, path2, path3, path4, path5, path6, path7;
+    private PathChain straightGardenIntake, straightGardenIntake2, path3, path4, path5, path6, shoot2, path8, path7, park;
 
     public void buildPaths() {
-        path1 = follower.pathBuilder()
-                .addPath(new BezierLine(start, path1End))
+        straightGardenIntake = follower.pathBuilder()
+                .addPath(new BezierLine(start, straightGardenIntakeEnd))
                 .setTangentHeadingInterpolation()
                 .build();
 
-        path2 = follower.pathBuilder()
-                .addPath(new BezierLine(path1End, path2End))
+        straightGardenIntake2 = follower.pathBuilder()
+                .addPath(new BezierLine(straightGardenIntakeEnd, straightGardenIntake2End))
                 .setTangentHeadingInterpolation()
                 .build();
 
         path3 = follower.pathBuilder()
-                .addPath(new BezierLine(path2End, path3End))
-                .setLinearHeadingInterpolation(path2End.getHeading(), path3End.getHeading())
+                .addPath(new BezierLine(straightGardenIntake2End, path3End))
+                .setLinearHeadingInterpolation(straightGardenIntake2End.getHeading(), path3End.getHeading())
                 .build();
 
         path4 = follower.pathBuilder()
@@ -116,18 +126,29 @@ public class autoUnderHive_Akash extends OpMode {
                 .setHeadingInterpolation(HeadingInterpolator.tangent.reverse())
                 .build();
 
-        // Straight line to the far flower. Heading goes 150 -> 60 over the first 40%, then 60 -> 90.
         path6 = follower.pathBuilder()
                 .addPath(new BezierLine(path5End, path6End))
-                .setHeadingInterpolation(HeadingInterpolator.piecewise(
-                        HeadingInterpolator.PiecewiseNode.linear(0, 0.4, Math.toRadians(150), Math.toRadians(60)),
-                        HeadingInterpolator.PiecewiseNode.linear(0.4, 1, Math.toRadians(60), Math.toRadians(90))
-                ))
+                .setConstantHeadingInterpolation(path6End.getHeading())
+                .build();
+
+        shoot2 = follower.pathBuilder()
+                .addPath(new BezierLine(path6End, shoot2End))
+                .setHeadingInterpolation(HeadingInterpolator.tangent.reverse())
+                .build();
+
+        path8 = follower.pathBuilder()
+                .addPath(new BezierLine(shoot2End, path8End))
+                .setConstantHeadingInterpolation(path8End.getHeading())
                 .build();
 
         path7 = follower.pathBuilder()
-                .addPath(new BezierLine(path6End, path7End))
-                .setLinearHeadingInterpolation(path6End.getHeading(), path7End.getHeading())
+                .addPath(new BezierLine(path8End, path7End))
+                .setLinearHeadingInterpolation(path8End.getHeading(), path7End.getHeading())
+                .build();
+
+        park = follower.pathBuilder()
+                .addPath(new BezierLine(path7End, parkEnd))
+                .setLinearHeadingInterpolation(path7End.getHeading(), parkEnd.getHeading())
                 .build();
     }
 
@@ -155,7 +176,7 @@ public class autoUnderHive_Akash extends OpMode {
                 break;
             case PATH1:
                 if (!depo.isDepositOn()) {
-                    follower.followPath(path1, true);
+                    follower.followPath(straightGardenIntake, true);
                     setPathState(PathState.PATH2);
                 }
                 break;
@@ -163,7 +184,7 @@ public class autoUnderHive_Akash extends OpMode {
                 if (!follower.isBusy()) {
                     intake.turn_on_intake();
                     follower.setMaxPower(GARDEN_INTAKE_POWER);
-                    follower.followPath(path2, true);
+                    follower.followPath(straightGardenIntake2, true);
                     setPathState(PathState.PATH3);
                 }
                 break;
@@ -234,31 +255,38 @@ public class autoUnderHive_Akash extends OpMode {
                 }
                 break;
             case PATH6:
-                if (!path6Approach && distanceTo(path6End) <= FAR_FLOWER_APPROACH_INCHES) {
-                    path6Approach = true;
-                    intake.flower_down();
-                    follower.setMaxPower(FAR_FLOWER_APPROACH_POWER);
+                if (!follower.isBusy()) {
+                    follower.setMaxPower(1.0);
+                    follower.followPath(shoot2, true);
+                    setPathState(PathState.DRIVE_SHOOT2);
                 }
-                if (!reachedFlower(path6Approach)) {
-                    break;
+                break;
+            case DRIVE_SHOOT2:
+                if (!follower.isBusy() && turretAimed()) {
+                    intake.turn_off_intake();
+                    intake.flower_up();
+                    depo.turn_on_deposit();
+                    setPathState(PathState.SHOOT3);
                 }
-                follower.setMaxPower(1.0);
-                if (!turretAimed()) {
-                    break;
-                }
-                intake.turn_off_intake();
-                intake.flower_up();
-                depo.turn_on_deposit();
-                setPathState(PathState.SHOOT3);
                 break;
             case SHOOT3:
                 if (depo.isDepositOn()) {
                     break;
                 }
                 if (pathTimer.getElapsedTimeSeconds() > 1) {
-                    intake.flower_down();
-                    intake.turn_on_intake();
-                    setPathState(PathState.INTAKE_FLOWER);
+                    follower.setMaxPower(1.0);
+                    flowerPush = false;
+                    intake.flower_up();
+                    follower.followPath(path8, true);
+                    setPathState(PathState.PATH8);
+                }
+                break;
+            case PATH8:
+                if (!follower.isBusy()) {
+                    follower.setMaxPower(1.0);
+                    flowerPush = false;
+                    follower.followPath(path7, true);
+                    setPathState(PathState.PATH7);
                 }
                 break;
             case INTAKE_FLOWER:
@@ -273,12 +301,37 @@ public class autoUnderHive_Akash extends OpMode {
                     intake.flower_up();
                     intake.turn_off_intake();
                     follower.setMaxPower(1.0);
-                    follower.followPath(path7, true);
-                    setPathState(PathState.PATH7);
+                    flowerPush = false;
+                    follower.followPath(park, true);
+                    setPathState(PathState.PARK);
                 }
                 break;
             case PATH7:
-                if (pathDone(path7End)) {
+                if (!flower2Approach && distanceTo(path7End) <= FAR_FLOWER_APPROACH_INCHES) {
+                    flower2Approach = true;
+                    intake.flower_down();
+                    follower.setMaxPower(FAR_FLOWER_APPROACH_POWER);
+                }
+                if (!reachedFlower(flower2Approach)) {
+                    break;
+                }
+                if (!flower2ClearStarted) {
+                    flower2ClearStarted = true;
+                    pathTimer.resetTimer();
+                    follower.setMaxPower(1.0);
+                    intake.flower_down();
+                    break;
+                }
+                if (pathTimer.getElapsedTimeSeconds() < FLOWER2_CLEAR_SECONDS) {
+                    intake.flower_down();
+                    break;
+                }
+                intake.flower_down();
+                intake.turn_on_intake();
+                setPathState(PathState.INTAKE_FLOWER);
+                break;
+            case PARK:
+                if (pathDone(parkEnd)) {
                     setPathState(PathState.DONE);
                 }
                 break;
@@ -378,6 +431,7 @@ public class autoUnderHive_Akash extends OpMode {
         follower.setCentripetalScaling(0.0015);
         follower.getConstants().setBEZIER_CURVE_SEARCH_LIMIT(100);
         intake = new intakeLM0(hardwareMap);
+        intake.flower_up();
         depo = new depoLM0(hardwareMap);
         turret = new turret(hardwareMap);
         timers = new org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer();
