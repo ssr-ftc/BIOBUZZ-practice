@@ -183,8 +183,8 @@ public class autoUnderHive_Akash extends OpMode {
             case PATH2:
                 if (!follower.isBusy()) {
                     intake.turn_on_intake();
-                    follower.setMaxPower(GARDEN_INTAKE_POWER);
-                    follower.followPath(straightGardenIntake2, true);
+                    //follower.setMaxPower(GARDEN_INTAKE_POWER);
+                    follower.followPath(straightGardenIntake2, 0.4, true);
                     setPathState(PathState.PATH3);
                 }
                 break;
