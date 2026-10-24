@@ -54,8 +54,8 @@ public class autoUnderHive_Akash extends OpMode {
     private double turretTargetDeg = 90;
     /** Heading 180 with the turret at 90 points at the first hive. Turret = robot heading - 90. */
     private static final double TURRET_FIELD_AIM_DEG = 90;
-    /** Far shot at the second hive. */
-    private static final double SECOND_HIVE_TURRET_DEG = -45;
+    /** Far shot at the second hive. Set again on the return so the turret does not stay wherever it drifted. */
+    private static final double SECOND_HIVE_TURRET_DEG = -40;
     /** A shot counts as aimed once the turret is within this many degrees of the target. */
     private static final double TURRET_TOLERANCE_DEG = 7.0;
     /** Flower starts down this long before the near flower, based on current speed. */
@@ -95,7 +95,7 @@ public class autoUnderHive_Akash extends OpMode {
     private final Pose flower1 = new Pose(13, 53, Math.toRadians(180));
     private final Pose flower1Backup = new Pose(21.4, 53, Math.toRadians(180));
     private final Pose farSide = new Pose(22.0147, 88.2872, Math.toRadians(180));
-    private final Pose farShoot = new Pose(39.3711, 134.8836, Math.toRadians(-110.4295));
+    private final Pose farShoot = new Pose(31.9549, 134.2904, Math.toRadians(-102.1929));
     private final Pose flower2Turnaround = new Pose(46.2013, 108.9895, Math.toRadians(88.0699));
     private final Pose flower2 = new Pose(47.0463, 133.6, Math.toRadians(90));
     private final Pose parkSpot = new Pose(2.2065, 113.9036, Math.toRadians(0));
@@ -155,12 +155,12 @@ public class autoUnderHive_Akash extends OpMode {
 
         backToFarShoot = follower.pathBuilder()
                 .addPath(new BezierLine(flower2Turnaround, farShoot))
-                .setHeadingInterpolation(HeadingInterpolator.tangent.reverse())
+                .setLinearHeadingInterpolation(flower2Turnaround.getHeading(), farShoot.getHeading() + 2 * Math.PI)
                 .build();
 
         toPark = follower.pathBuilder()
                 .addPath(new BezierLine(farShoot, parkSpot))
-                .setLinearHeadingInterpolation(Math.toRadians(-90), parkSpot.getHeading())
+                .setLinearHeadingInterpolation(farShoot.getHeading(), parkSpot.getHeading())
                 .build();
     }
 
@@ -335,6 +335,7 @@ public class autoUnderHive_Akash extends OpMode {
             case BACK_TO_TURNAROUND:
                 if (!follower.isBusy()) {
                     follower.setMaxPower(1.0);
+                    setTurretDeg(SECOND_HIVE_TURRET_DEG);
                     follower.followPath(backToFarShoot, true);
                     setPathState(PathState.BACK_TO_FAR_SHOOT);
                 }
