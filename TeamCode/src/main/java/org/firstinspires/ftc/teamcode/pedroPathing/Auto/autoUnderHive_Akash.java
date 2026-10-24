@@ -19,7 +19,7 @@ public class autoUnderHive_Akash extends OpMode {
     private Timer pathTimer, opModeTimer, stallTimer;
     private org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer timers;
     private intakeLM0 intake;
-    private depoLM0 depo; 
+    private depoLM0 depo;
     private turret turret;
 
     public enum PathState {
@@ -72,7 +72,7 @@ public class autoUnderHive_Akash extends OpMode {
     private static final double FAR_FLOWER_APPROACH_POWER = 0.4;
     /** Straight garden intake. The curved visualizer lines are not used. Intake stays on for one second after the robot stops. */
     private static final double GARDEN_INTAKE_POWER = 0.4;
-    private static final double GARDEN_HOLD_SECONDS = 1.0;
+    private static final double GARDEN_HOLD_SECONDS = 0.5;
     /** Last 40% of the drive from the near shot to the first flower. */
     private static final double FLOWER1_SLOW_START = 0.6;
     private static final double FLOWER1_SLOW_POWER = 0.2;
@@ -228,7 +228,7 @@ public class autoUnderHive_Akash extends OpMode {
                     break;
                 }
                 if (pathTimer.getElapsedTimeSeconds() > GARDEN_HOLD_SECONDS) {
-                    intake.turn_off_intake();
+                    //intake.turn_off_intake();
                     follower.setMaxPower(1.0);
                     aimTurret(150);
                     follower.followPath(toNearShoot, true);

@@ -11,12 +11,12 @@ public class intakeLM0 {
     private DcMotor intakeMotor;
     private Servo flowerintake;
     private double floweruppos = 0.99; // not a real variable yet
-    private double flowerdownpos = 0.08; // not a real variable yet
+    private double flowerdownpos = 0.13; // not a real variable yet
     private static final double intake_power = -1;
     private static final double outtake_power = 1;
 
     public intakeLM0(HardwareMap hardwareMap) {
-        intakeMotor = hardwareMap.get(DcMotor.class,"intake");
+        intakeMotor = hardwareMap.get(DcMotor.class, "intake");
         intakeMotor.setDirection(DcMotorSimple.Direction.REVERSE);
         intakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         flowerintake = hardwareMap.get(Servo.class, "flower_intake");
