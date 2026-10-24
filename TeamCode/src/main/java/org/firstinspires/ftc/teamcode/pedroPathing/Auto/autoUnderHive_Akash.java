@@ -36,6 +36,8 @@ public class autoUnderHive_Akash extends OpMode {
         SHOOT3,
         PATH8,
         INTAKE_FLOWER,
+        BACK_TO_POINT8,
+        BACK_TO_SHOOT2,
         SHOOT4,
         PATH7,
         PARK,
@@ -72,7 +74,7 @@ public class autoUnderHive_Akash extends OpMode {
      * over 1.5 seconds and slow enough that the flower piece does not slam in.
      */
     private static final double FAR_FLOWER_APPROACH_INCHES = 36;
-    private static final double FAR_FLOWER_APPROACH_POWER = 0.55;
+    private static final double FAR_FLOWER_APPROACH_POWER = 0.4;
     /** Straight garden intake. The curved visualizer lines are not used. Intake stays on for one second after the robot stops. */
     private static final double GARDEN_INTAKE_POWER = 0.4;
     private static final double GARDEN_HOLD_SECONDS = 1.0;
@@ -100,10 +102,10 @@ public class autoUnderHive_Akash extends OpMode {
     private final Pose path6End = new Pose(22.0147, 88.2872, Math.toRadians(180));
     private final Pose shoot2End = new Pose(47.0839, 135.1803, Math.toRadians(-118.1291));
     private final Pose path8End = new Pose(46.2013, 108.9895, Math.toRadians(88.0699));
-    private final Pose path7End = new Pose(47.0463, 135.2088, Math.toRadians(90));
+    private final Pose path7End = new Pose(47.0463, 133.6, Math.toRadians(90));
     private final Pose parkEnd = new Pose(2.2065, 113.9036, Math.toRadians(0));
 
-    private PathChain straightGardenIntake, straightGardenIntake2, path3, path4, path5, path6, shoot2, path8, path7, park;
+    private PathChain straightGardenIntake, straightGardenIntake2, path3, path4, path5, path6, shoot2, path8, path7, backToPoint8, backToShoot2, park;
 
     public void buildPaths() {
         straightGardenIntake = follower.pathBuilder()
@@ -151,9 +153,19 @@ public class autoUnderHive_Akash extends OpMode {
                 .setConstantHeadingInterpolation(Math.toRadians(90))
                 .build();
 
+        backToPoint8 = follower.pathBuilder()
+                .addPath(new BezierLine(path7End, path8End))
+                .setConstantHeadingInterpolation(Math.toRadians(90))
+                .build();
+
+        backToShoot2 = follower.pathBuilder()
+                .addPath(new BezierLine(path8End, shoot2End))
+                .setHeadingInterpolation(HeadingInterpolator.tangent.reverse())
+                .build();
+
         park = follower.pathBuilder()
-                .addPath(new BezierLine(path7End, parkEnd))
-                .setLinearHeadingInterpolation(Math.toRadians(90), parkEnd.getHeading())
+                .addPath(new BezierLine(shoot2End, parkEnd))
+                .setLinearHeadingInterpolation(Math.toRadians(-90), parkEnd.getHeading())
                 .build();
     }
 
@@ -295,21 +307,40 @@ public class autoUnderHive_Akash extends OpMode {
                     follower.setMaxPower(1.0);
                     flowerPush = false;
                     intake.flower_down();
+                    intake.turn_on_intake();
                     flower2Dropped = true;
                     pathTimer.resetTimer();
                     break;
                 }
                 if (pathTimer.getElapsedTimeSeconds() < FLOWER2_DROP_SECONDS) {
                     intake.flower_down();
+                    intake.turn_on_intake();
                     break;
                 }
-                follower.setMaxPower(1.0);
+                follower.setMaxPower(FAR_FLOWER_APPROACH_POWER);
                 follower.followPath(path7, true);
                 setPathState(PathState.PATH7);
                 break;
             case INTAKE_FLOWER:
                 if (pathTimer.getElapsedTimeSeconds() > FLOWER_INTAKE_SECONDS) {
                     intake.flower_up();
+                    intake.turn_off_intake();
+                    follower.setMaxPower(1.0);
+                    follower.followPath(backToPoint8, true);
+                    setPathState(PathState.BACK_TO_POINT8);
+                }
+                break;
+            case BACK_TO_POINT8:
+                if (!follower.isBusy()) {
+                    follower.setMaxPower(1.0);
+                    follower.followPath(backToShoot2, true);
+                    setPathState(PathState.BACK_TO_SHOOT2);
+                }
+                break;
+            case BACK_TO_SHOOT2:
+                if (!follower.isBusy() && turretAimed()) {
+                    intake.flower_up();
+                    intake.turn_off_intake();
                     depo.turn_on_deposit();
                     setPathState(PathState.SHOOT4);
                 }
