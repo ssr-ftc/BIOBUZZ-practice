@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.pedroPathing.subsystems;
+package org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0;
 
 import com.arcrobotics.ftclib.controller.PIDFController;
 import com.qualcomm.robotcore.hardware.DcMotor;

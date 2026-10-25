@@ -6,7 +6,7 @@ package org.firstinspires.ftc.teamcode.pedroPathing.Auto;
 //import static com.pedropathing.ivy.pedro.PedroCommands.*;
 
 
-import static org.firstinspires.ftc.teamcode.pedroPathing.subsystems.turret.turretAngle;
+import static org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turret.turretAngle;
 
 import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
@@ -34,16 +34,13 @@ import java.util.List;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.CustomFollower;
 //import static com.pedropathing.ivy.pedro.PedroCommands.*;
 
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.depoLM0;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.intakeLM0;
-import org.firstinspires.ftc.teamcode.pedroPathing.TeleOp.soloTeleop;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.turret;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.depoLM0;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.intakeLM0;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turret;
 
 
 @Autonomous(name = "AutoLM0", group = "Season")
 public class LM0_Auto extends OpMode {
-
-    soloTeleop teleop = new soloTeleop();
     //boolean needDepo = true;
     private DcMotorEx depo1;
     private depoLM0 depo;

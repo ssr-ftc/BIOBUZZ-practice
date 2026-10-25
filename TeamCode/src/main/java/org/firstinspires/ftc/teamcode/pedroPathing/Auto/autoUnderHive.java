@@ -10,8 +10,8 @@ import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.depoLM0;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.intakeLM0;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.depoLM0;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.intakeLM0;
 
 @Autonomous(name = "soham auto", group = "Autonomous")
 public class autoUnderHive extends OpMode {

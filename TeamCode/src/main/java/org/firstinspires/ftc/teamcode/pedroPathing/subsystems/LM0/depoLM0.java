@@ -1,6 +1,7 @@
-package org.firstinspires.ftc.teamcode.pedroPathing.subsystems;
+package org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0;
 
 //import com.acmerobotics.dashboard.config.Config;
+import com.arcrobotics.ftclib.controller.PIDFController;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -33,18 +34,12 @@ public class depoLM0 {
         pid = new PIDFController(p, i, d, kF);
     }
     public void start(){
-        pid.p=p;
-        pid.i=i;
-        pid.d=d;
-        pid.kF=kF;
+        pid.setPIDF(p,i,d,kF);
         close_hatch();
         turn_off_deposit();
     }
     public void updatePID(){
-        pid.p=p;
-        pid.i=i;
-        pid.d=d;
-        pid.kF=kF;
+        pid.setPIDF(p,i,d,kF);
     }
 
 
