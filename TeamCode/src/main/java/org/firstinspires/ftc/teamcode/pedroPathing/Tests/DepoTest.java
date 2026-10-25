@@ -27,7 +27,7 @@ public class DepoTest extends LinearOpMode {
     public static double i = 0.000;
     public static double d = 0.0000;
     // Feedforward coefficient (applied by PIDFController to target velocity)
-    public static double kF = 0.0004001; // adjust for your motor's max ticks/sec
+    public static double kF = 0.000400014; // adjust for your motor's max ticks/sec
 
     // Target velocity in ticks per second
     public static double targetVelocity = 0;
