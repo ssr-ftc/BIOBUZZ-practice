@@ -15,6 +15,7 @@ import com.pedropathing.paths.HeadingInterpolator;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 //import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -40,7 +41,8 @@ import org.firstinspires.ftc.teamcode.pedroPathing.TeleOp.soloTeleop;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.turret;
 
 
-@Autonomous(name = "AutoLM0", group = "Season")
+@Autonomous(name = "badAuto", group = "Season")
+@Disabled
 public class LM0_Auto extends OpMode {
 
     soloTeleop teleop = new soloTeleop();

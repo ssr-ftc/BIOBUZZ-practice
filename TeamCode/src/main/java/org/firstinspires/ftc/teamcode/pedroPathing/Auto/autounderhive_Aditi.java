@@ -7,13 +7,15 @@ import com.pedropathing.paths.HeadingInterpolator;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.depoLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.intakeLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.turret;
 
-@Autonomous(name = "UnderHive Aditi", group = "Autonomous")
+@Autonomous(name = "badAuto2", group = "Autonomous")
+@Disabled
 public class autounderhive_Aditi extends OpMode {
     private Follower follower;
     private Timer pathTimer, opModeTimer, stallTimer;

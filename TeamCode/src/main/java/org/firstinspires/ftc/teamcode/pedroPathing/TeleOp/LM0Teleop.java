@@ -37,7 +37,6 @@ public class LM0Teleop extends OpMode {
         depo.start();
         dashboard.start();
         timers.createNew("depo");
-        turret.ResetTurretEncoders();
         turret.setPositionDeg(0);
     }
     @Override
@@ -73,7 +72,7 @@ public class LM0Teleop extends OpMode {
         follower.update();
     }
     public void useIntake() {
-        if (gamepad2.triangleWasPressed()) {
+        if (gamepad2.leftBumperWasPressed()) {
             if (intake.isOuttaking()) {
                 intake.turn_off_intake();
             } else {
@@ -94,10 +93,13 @@ public class LM0Teleop extends OpMode {
                 intake.flower_down();
             }
         }
+        if (gamepad2.triangleWasPressed()) {
+            turret.setPositionDeg(0);
+        }
     }
     public void useturret(){
         if(gamepad2.rightTriggerWasPressed()) {
-            turret.ResetTurretEncoders();
+            turret.setPositionDeg(0);
             /*if(turret.getPosition() > 20){
                 turret.setPositionDeg(-45);
             }

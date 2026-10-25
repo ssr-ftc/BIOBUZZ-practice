@@ -1,5 +1,5 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.Auto;
-//Version 1.3.2
+//Version 1.3.3
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
@@ -13,7 +13,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.depoLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.intakeLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.turret;
 
-@Autonomous(name = "UnderHive Akash", group = "Autonomous")
+@Autonomous(name = "LM0 Auto", group = "Autonomous")
 public class autoUnderHive_Akash extends OpMode {
     private Follower follower;
     private Timer pathTimer, opModeTimer, stallTimer;
@@ -36,9 +36,6 @@ public class autoUnderHive_Akash extends OpMode {
         SHOOT_FAR,
         DROP_FOR_FLOWER2,
         DRIVE_FLOWER2,
-        BACK_TO_TURNAROUND,
-        BACK_TO_FAR_SHOOT,
-        SHOOT_RETURN,
         PARK,
         DONE
     }
@@ -54,7 +51,7 @@ public class autoUnderHive_Akash extends OpMode {
     private double turretTargetDeg = 90;
     /** Heading 180 with the turret at 90 points at the first hive. Turret = robot heading - 90. */
     private static final double TURRET_FIELD_AIM_DEG = 90;
-    /** Far shot at the second hive. Set again on the return so the turret does not stay wherever it drifted. */
+    /** Far shot at the second hive. */
     private static final double SECOND_HIVE_TURRET_DEG = -40;
     /** A shot counts as aimed once the turret is within this many degrees of the target. */
     private static final double TURRET_TOLERANCE_DEG = 7.0;
@@ -92,15 +89,15 @@ public class autoUnderHive_Akash extends OpMode {
     private final Pose gardenIntake = new Pose(27, 9, Math.toRadians(180));
     private final Pose gardenIntakeEnd = new Pose(12.5, 9, Math.toRadians(180));
     private final Pose nearShoot = new Pose(56, 9, Math.toRadians(150));
-    private final Pose flower1 = new Pose(13, 53, Math.toRadians(180));
+    private final Pose flower1 = new Pose(13, 54, Math.toRadians(180));
     private final Pose flower1Backup = new Pose(21.4, 53, Math.toRadians(180));
     private final Pose farSide = new Pose(22.0147, 88.2872, Math.toRadians(180));
     private final Pose farShoot = new Pose(31.9549, 134.2904, Math.toRadians(-102.1929));
     private final Pose flower2Turnaround = new Pose(46.2013, 108.9895, Math.toRadians(88.0699));
     private final Pose flower2 = new Pose(47.0463, 133.6, Math.toRadians(90));
-    private final Pose parkSpot = new Pose(2.2065, 113.9036, Math.toRadians(0));
+    private final Pose parkSpot = new Pose(-1.2065, 106.9036, Math.toRadians(0));
 
-    private PathChain toGardenIntake, toGardenIntakeEnd, toNearShoot, toFlower1, backupFlower1, toFarSide, toFarShoot, toFlower2Turnaround, toFlower2, backToTurnaround, backToFarShoot, toPark;
+    private PathChain toGardenIntake, toGardenIntakeEnd, toNearShoot, toFlower1, backupFlower1, toFarSide, toFarShoot, toFlower2Turnaround, toFlower2, toPark;
 
     public void buildPaths() {
         toGardenIntake = follower.pathBuilder()
@@ -148,19 +145,9 @@ public class autoUnderHive_Akash extends OpMode {
                 .setConstantHeadingInterpolation(Math.toRadians(90))
                 .build();
 
-        backToTurnaround = follower.pathBuilder()
-                .addPath(new BezierLine(flower2, flower2Turnaround))
-                .setConstantHeadingInterpolation(Math.toRadians(90))
-                .build();
-
-        backToFarShoot = follower.pathBuilder()
-                .addPath(new BezierLine(flower2Turnaround, farShoot))
-                .setLinearHeadingInterpolation(flower2Turnaround.getHeading(), farShoot.getHeading() + 2 * Math.PI)
-                .build();
-
         toPark = follower.pathBuilder()
-                .addPath(new BezierLine(farShoot, parkSpot))
-                .setLinearHeadingInterpolation(farShoot.getHeading(), parkSpot.getHeading())
+                .addPath(new BezierLine(flower2, parkSpot))
+                .setLinearHeadingInterpolation(flower2.getHeading(), parkSpot.getHeading())
                 .build();
     }
 
@@ -332,30 +319,6 @@ public class autoUnderHive_Akash extends OpMode {
                 follower.followPath(toFlower2, true);
                 setPathState(PathState.DRIVE_FLOWER2);
                 break;
-            case BACK_TO_TURNAROUND:
-                if (!follower.isBusy()) {
-                    follower.setMaxPower(1.0);
-                    setTurretDeg(SECOND_HIVE_TURRET_DEG);
-                    follower.followPath(backToFarShoot, true);
-                    setPathState(PathState.BACK_TO_FAR_SHOOT);
-                }
-                break;
-            case BACK_TO_FAR_SHOOT:
-                if (!follower.isBusy() && turretAimed()) {
-                    shootWithFlowerUp();
-                    setPathState(PathState.SHOOT_RETURN);
-                }
-                break;
-            case SHOOT_RETURN:
-                if (shotDone()) {
-                    intake.flower_up();
-                    intake.turn_off_intake();
-                    follower.setMaxPower(1.0);
-                    flowerPush = false;
-                    follower.followPath(toPark, true);
-                    setPathState(PathState.PARK);
-                }
-                break;
             case DRIVE_FLOWER2:
                 if (!flower2Slowing && distanceTo(flower2) <= FAR_FLOWER_APPROACH_INCHES) {
                     flower2Slowing = true;
@@ -380,16 +343,19 @@ public class autoUnderHive_Akash extends OpMode {
                 }
                 intake.flower_up();
                 intake.turn_off_intake();
+                setTurretDeg(0);
                 follower.setMaxPower(1.0);
-                follower.followPath(backToTurnaround, true);
-                setPathState(PathState.BACK_TO_TURNAROUND);
+                follower.followPath(toPark, true);
+                setPathState(PathState.PARK);
                 break;
             case PARK:
+                setTurretDeg(0);
                 if (pathDone(parkSpot)) {
                     setPathState(PathState.DONE);
                 }
                 break;
             case DONE:
+                setTurretDeg(0);
                 if (!follower.isBusy()) {
                     telemetry.addLine("finished");
                 }

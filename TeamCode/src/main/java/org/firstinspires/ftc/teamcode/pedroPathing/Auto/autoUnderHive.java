@@ -8,12 +8,14 @@ import com.pedropathing.paths.HeadingInterpolator;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.depoLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.intakeLM0;
 
-@Autonomous(name = "soham auto", group = "Autonomous")
+@Autonomous(name = "badAuto3", group = "Autonomous")
+@Disabled
 public class autoUnderHive extends OpMode {
     private Follower follower;
     private Timer pathTimer, opModeTimer;
