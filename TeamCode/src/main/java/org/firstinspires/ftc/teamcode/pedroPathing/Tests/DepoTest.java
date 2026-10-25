@@ -23,9 +23,9 @@ public class DepoTest extends LinearOpMode {
     private FtcDashboard dashboard = FtcDashboard.getInstance();
 
     // PID coefficients (tune these in dashboard)
-    public static double p = 0.00346;
-    public static double i = 0.00047;
-    public static double d = 0.000035;
+    public static double p = 0.002;
+    public static double i = 0.000;
+    public static double d = 0.0000;
     // Feedforward coefficient (applied by PIDFController to target velocity)
     public static double kF = 0.0004001; // adjust for your motor's max ticks/sec
 
