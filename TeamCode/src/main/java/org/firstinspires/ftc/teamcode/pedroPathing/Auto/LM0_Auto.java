@@ -61,7 +61,7 @@ public class LM0_Auto extends OpMode {
     // pedroPathing's Timer is already imported above, so the team's own Timer (same one soloTeleop uses) needs its full name
     private org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer timers;
 
-    boolean isBlue, isRed, isSmallBlue, isSmallRed, isBlueSample, isRedSample, isBlue2;
+    boolean isBlue, isRed, isSmallBlue, isSmallRed, isBlueSample, isRedSample, isBlue2, isHatchClosed;
     //intake intake;
     // turret turret;
 
@@ -86,6 +86,8 @@ public class LM0_Auto extends OpMode {
 
     private AutoState autoState;
     private ShootState shootState;
+    // Close enough to the commanded turret angle to open the hatch.
+    private static final double TURRET_TOLERANCE_DEG = 3.0;
     // ---------------- APRILTAG (read during INIT) ----------------
     private final AprilTagDetector aprilTag = new AprilTagDetector();
     private boolean cameraStarted = false;       // camera was created without an error
@@ -148,7 +150,7 @@ public class LM0_Auto extends OpMode {
         depo.start();
         turret.ResetTurretEncoders();
         timers.createNew("depo");
-        setShootState(ShootState.SHOOT);
+        setShootState(ShootState.SHOOTOFFSET);
         depo.turn_on_deposit();
     }
 
@@ -313,11 +315,12 @@ public class LM0_Auto extends OpMode {
 
         switch (autoState) {
             case STARTTOSAMPLE1:
-                if (pathTimer.getElapsedTimeSeconds() > 1.25) {
+                if (isHatchClosed) {
+                    isHatchClosed = false;
                     setShootState(ShootState.INTAKE);
-                    follower.acceleration(0.5, 1.0, 1.0, 0.5);
+                    //follower.acceleration(0.5, 1.0, 1.0, 0.5);
                     follower.followPath(startToSample1, true);
-                    if (isBlue2) {
+                    if (isBlue || isRed || isBlue2) {
                         setPathState(AutoState.SAMPLE1TOPOINT2);
                     }
                     else {
@@ -328,7 +331,13 @@ public class LM0_Auto extends OpMode {
 
             case SAMPLE1TOPOINT2:
                 follower.followPath(sample1ToPoint2, true);
-                setPathState(AutoState.SAMPLE1TOSHOOT);
+                if (!follower.isBusy()) {
+                    setShootState(ShootState.SHOOTOFFSET);
+                }
+                if (isHatchClosed) {
+                    isHatchClosed = false;
+                    setPathState(AutoState.SAMPLE1TOSHOOT);
+                }
                 break;
 
             case SAMPLE1TOSHOOT:
@@ -373,16 +382,16 @@ public class LM0_Auto extends OpMode {
                 //needDepo = true;
                 turret.setPositionDeg(90);
                 intake.turn_on_intake();
-                if(turret.getPositionDeg() >= 90) {
+                if (Math.abs(turret.getPositionDeg() - 90) <= TURRET_TOLERANCE_DEG || timers.isRunning("depo")) {
                     runAutoDepo();
                 }
                 break;
             case SHOOTOFFSET:
                 //needDepo = true;
                 double offsetDeg = turretAngle(follower.getPose().getX(), follower.getPose().getY(), Math.toDegrees(follower.getPose().getHeading()));
+                if (offsetDeg < -90) offsetDeg += 360;
                 turret.setPositionDeg(offsetDeg);
-                intake.turn_on_intake();
-                if(turret.getPositionDeg() >= offsetDeg) {
+                if (Math.abs(turret.getPositionDeg() - offsetDeg) <= TURRET_TOLERANCE_DEG || timers.isRunning("depo")) {
                     runAutoDepo();
                 }
                 break;
@@ -411,16 +420,18 @@ public class LM0_Auto extends OpMode {
 
     private void poses() {
         if (isBlue) {
-            start = new Pose(84.35853658536585, 134.31463414634146, Math.toRadians(0));
+            start = new Pose(108.3585, 134.3146, Math.toRadians(0));
             sample1 = new Pose(126.23658536585364, 134.70487804878047, Math.toRadians(0));
+            point2 = new Pose(108.3585, 134.3146, Math.toRadians(0));
             shoot = new Pose(90.71481304788598, 14.812749716739198, Math.toRadians(-90));
             done = new Pose(138.7166915141034, 33.84915618104835, Math.toRadians(180));
         } else if (isRed) {
-            start = new Pose(59.64146341463415, 9.68536585365854, Math.toRadians(180));
+            // 144-reflection of the Blue poses.
+            start = new Pose(35.6415, 9.6854, Math.toRadians(180));
             sample1 = new Pose(17.76341463414636, 9.29512195121953, Math.toRadians(180));
-            shoot = new Pose(53.89512195121951, 107.25609756097561, Math.toRadians(90));
-            sample2 = new Pose(43.27665036674817, 127.11651857594373, Math.toRadians(90));
-            done = new Pose(5.283308485896602, 110.15084381895165, Math.toRadians(0));
+            point2 = new Pose(35.6415, 9.6854, Math.toRadians(180));
+            shoot = new Pose(53.28518695211402, 129.1872502832608, Math.toRadians(90));
+            done = new Pose(5.2833084858966, 110.15084381895165, Math.toRadians(0));
         } else if (isSmallBlue) {
             start = new Pose(80.21707317073172, 9.035365853658533, Math.toRadians(90));
             done = new Pose(139.17439024390245, 41.521951219512204, Math.toRadians(180));
@@ -452,9 +463,14 @@ public class LM0_Auto extends OpMode {
                     .setLinearHeadingInterpolation(start.getHeading(), sample1.getHeading())
                     .build();
 
+            sample1ToPoint2 = follower.pathBuilder()
+                    .addPath(new BezierLine(sample1, point2))
+                    .setLinearHeadingInterpolation(sample1.getHeading(), point2.getHeading())
+                    .build();
+
             sample1ToShoot = follower.pathBuilder()
-                    .addPath(new BezierCurve(sample1, new Pose(125.05243902439025, 65.78780487804879), new Pose(112.61829268292684, 29.90365853658537), shoot))
-                    .setHeadingInterpolation(HeadingInterpolator.piecewise(new HeadingInterpolator.PiecewiseNode(0, 0.15, HeadingInterpolator.linear(sample1.getHeading(), shoot.getHeading())),
+                    .addPath(new BezierCurve(point2, new Pose(118.3537, 26.6378), shoot))
+                    .setHeadingInterpolation(HeadingInterpolator.piecewise(new HeadingInterpolator.PiecewiseNode(0, 0.15, HeadingInterpolator.linear(point2.getHeading(), shoot.getHeading())),
                             new HeadingInterpolator.PiecewiseNode(0.15, 1, HeadingInterpolator.constant(Math.toRadians(-90)))))
                     .build();
 
@@ -470,9 +486,14 @@ public class LM0_Auto extends OpMode {
                     .setLinearHeadingInterpolation(start.getHeading(), sample1.getHeading())
                     .build();
 
+            sample1ToPoint2 = follower.pathBuilder()
+                    .addPath(new BezierLine(sample1, point2))
+                    .setLinearHeadingInterpolation(sample1.getHeading(), point2.getHeading())
+                    .build();
+
             sample1ToShoot = follower.pathBuilder()
-                    .addPath(new BezierCurve(sample1, new Pose(18.94756097560975, 78.21219512195121), new Pose(31.38170731707316, 114.09634146341463), shoot))
-                    .setHeadingInterpolation(HeadingInterpolator.piecewise(new HeadingInterpolator.PiecewiseNode(0, 0.15, HeadingInterpolator.linear(sample1.getHeading(), shoot.getHeading())),
+                    .addPath(new BezierCurve(point2, new Pose(25.6463, 117.3622), shoot))
+                    .setHeadingInterpolation(HeadingInterpolator.piecewise(new HeadingInterpolator.PiecewiseNode(0, 0.15, HeadingInterpolator.linear(point2.getHeading(), shoot.getHeading())),
                             new HeadingInterpolator.PiecewiseNode(0.15, 1, HeadingInterpolator.constant(Math.toRadians(90)))))
                     .build();
 
@@ -605,13 +626,15 @@ public class LM0_Auto extends OpMode {
 
         if (depo.reachedvelocity() && !timers.isRunning("depo")){
             timers.start("depo");
-            depo.open_hatch();
+            depo.open_hatch(turret.getPositionDeg());
             intake.turn_on_intake();
+            isHatchClosed = false;
         }
-        if (timers.checkSecondsLast("depo", 3)){
+        if (timers.checkSecondsLast("depo", 2)){
             depo.turn_off_deposit();
             depo.close_hatch();
-
+            intake.turn_off_intake();
+            isHatchClosed = true;
         }
     }
 
