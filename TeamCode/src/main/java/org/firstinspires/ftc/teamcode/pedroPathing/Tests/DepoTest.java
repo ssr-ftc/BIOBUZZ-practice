@@ -43,11 +43,11 @@ public class DepoTest extends LinearOpMode {
         depo1.setDirection(DcMotorSimple.Direction.FORWARD);
 
 //        depo1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        depo.setDirection(DcMotorSimple.Direction.REVERSE);
+        depo.setDirection(DcMotorSimple.Direction.FORWARD);
         depo.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        depo.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        depo1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        depo.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        depo1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
         pid = new PIDFController(p, i, d, kF);
 
