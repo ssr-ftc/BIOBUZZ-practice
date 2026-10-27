@@ -40,6 +40,7 @@ public class depoLM0 {
         close_hatch();
         turn_off_deposit();
     }
+
     public void updatePID(){
         pid.p=p;
         pid.i=i;
@@ -84,8 +85,12 @@ public class depoLM0 {
     }
 
     public void turn_on_deposit() {
+        turn_on_deposit(ON_VELOCITY);
+    }
+
+    public void turn_on_deposit(double velocity) {
         pid.reset();
-        targetVelocity = ON_VELOCITY;
+        targetVelocity = velocity;
     }
 
     public void turn_off_deposit() {

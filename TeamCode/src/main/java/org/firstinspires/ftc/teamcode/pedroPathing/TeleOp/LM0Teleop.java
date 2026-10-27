@@ -1,6 +1,6 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.TeleOp;
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
@@ -12,7 +12,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.turret;
 @TeleOp(name = "LM0teleop", group = "TeleOp")
 public class LM0Teleop extends OpMode {
     private Follower follower;
-    private final Pose startPose = new Pose(0, 0, 0);
+    private final Pose startPose = Constants.pose(0, 0, 0);
     private intakeLM0 intake;
     private depoLM0 depo;
     private turret turret;
@@ -23,7 +23,7 @@ public class LM0Teleop extends OpMode {
     public void init() {
         follower = Constants.createFollower(hardwareMap);
         intake = new intakeLM0(hardwareMap);
-        follower.setStartingPose(startPose);
+        follower.setPose(startPose);
         depo = new depoLM0(hardwareMap);
         dashboard = new carDashboard(hardwareMap, telemetry, follower);
         timers = new Timer();
@@ -32,7 +32,6 @@ public class LM0Teleop extends OpMode {
 
     @Override
     public void start() {
-        follower.startTeleopDrive();
         intake.start();
         depo.start();
         dashboard.start();
@@ -61,13 +60,12 @@ public class LM0Teleop extends OpMode {
             gamepad1.rumbleBlips(1);
         }
         if (gamepad1.options) {
-            follower.setPose(new Pose(0, 0, Math.toRadians(0)));
+            follower.setPose(Constants.pose(0, 0, 0));
         }
-        follower.setTeleOpDrive(
+        follower.manual(
                 -gamepad1.left_stick_y * speedShift,
                 -gamepad1.left_stick_x * speedShift,
-                -gamepad1.right_stick_x * speedShift * 0.8,
-                true
+                -gamepad1.right_stick_x * speedShift * 0.8
         );
         follower.update();
     }

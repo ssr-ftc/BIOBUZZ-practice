@@ -1,9 +1,10 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.Auto;
 
+import static com.pedropathing.api.Paths.line;
+
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.BezierLine;
-import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.PathChain;
+import com.pedropathing.math.Pose;
+import com.pedropathing.paths.Path;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
@@ -11,24 +12,21 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 @Autonomous(name = "Leave Auto", group = "Autonomous")
 public class leaveAuto extends OpMode {
     private Follower follower;
-    private final Pose start = new Pose(8.7297, 132.7066, Math.toRadians(90));
-    private final Pose path1Start = new Pose(8.7297, 132.7066, Math.toRadians(0));
-    private final Pose path1 = new Pose(8.6385, 112.5088, Math.toRadians(0));
-    private PathChain leave;
+    private final Pose start = Constants.pose(8.7297, 132.7066, Math.toRadians(90));
+    private final Pose path1Start = Constants.pose(8.7297, 132.7066, Math.toRadians(0));
+    private final Pose path1 = Constants.pose(8.6385, 112.5088, Math.toRadians(0));
+    private Path leave;
 
     @Override
     public void init() {
         follower = Constants.createFollower(hardwareMap);
         follower.setPose(start);
-        leave = follower.pathBuilder()
-                .addPath(new BezierLine(path1Start, path1))
-                .setLinearHeadingInterpolation(path1Start.getHeading(), path1.getHeading())
-                .build();
+        leave = line(path1Start, path1).linear(path1Start, path1);
     }
 
     @Override
     public void start() {
-        follower.followPath(leave, true);
+        follower.follow(leave);
     }
 
     @Override
@@ -37,9 +35,9 @@ public class leaveAuto extends OpMode {
         if (!follower.isBusy()) {
             telemetry.addLine("left the start");
         }
-        telemetry.addData("X", follower.getPose().getX());
-        telemetry.addData("Y", follower.getPose().getY());
-        telemetry.addData("Heading", Math.toDegrees(follower.getPose().getHeading()));
+        telemetry.addData("X", follower.pose().x());
+        telemetry.addData("Y", follower.pose().y());
+        telemetry.addData("Heading", Math.toDegrees(follower.pose().heading()));
         telemetry.update();
     }
 }

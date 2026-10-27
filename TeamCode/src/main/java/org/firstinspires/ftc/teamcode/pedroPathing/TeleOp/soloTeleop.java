@@ -4,7 +4,6 @@ package org.firstinspires.ftc.teamcode.pedroPathing.TeleOp;
 //import com.acmerobotics.dashboard.config.Config;
 //import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -28,7 +27,7 @@ public class soloTeleop extends OpMode {
     @Override
     public void init() {
         follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(new Pose(0, 0, 0));
+        follower.setPose(Constants.pose(0, 0, 0));
         timers = new Timer();
         intake = new intakeLM0(hardwareMap);
         depo = new depoLM0(hardwareMap);
@@ -38,7 +37,6 @@ public class soloTeleop extends OpMode {
 
     @Override
     public void start() {
-        follower.startTeleopDrive();
         intake.start();
         depo.start();
         timers.createNew("depo");
@@ -63,7 +61,7 @@ public class soloTeleop extends OpMode {
         double forward = -gamepad1.left_stick_y * speedScale;
         double strafe = -gamepad1.left_stick_x * speedScale;
         double turn = -gamepad1.right_stick_x * 0.8;
-        follower.setTeleOpDrive(forward, strafe, turn, true);
+        follower.manual(forward, strafe, turn);
     }
 
     private void runIntake() {

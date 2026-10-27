@@ -18,6 +18,15 @@ apply from: '../build.dependencies.gradle'
 android {
     namespace = 'org.firstinspires.ftc.teamcode'
 
+    sourceSets {
+        main {
+            java {
+                // Pedro 2 tuner. Pedro 3 tuning is the AutoTune page from the tuning library.
+                exclude '**/Tuning.java'
+            }
+        }
+    }
+
     packagingOptions {
         jniLibs {
             pickFirsts += ['**/*.so']

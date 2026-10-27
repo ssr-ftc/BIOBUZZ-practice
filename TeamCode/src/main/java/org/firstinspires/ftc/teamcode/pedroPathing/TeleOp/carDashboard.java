@@ -3,7 +3,8 @@ package org.firstinspires.ftc.teamcode.pedroPathing.TeleOp;
 import android.content.Context;
 import android.content.SharedPreferences;
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Pose;
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
@@ -14,7 +15,7 @@ public class carDashboard {
     private final Telemetry telemetry;
     private final Follower follower;
 
-    private Pose lastPose = new Pose(0, 0, 0);
+    private Pose lastPose = Constants.pose(0, 0, 0);
     private double tripFeet = 0;
     private static double allTimeFeet = 0;
     private final SharedPreferences prefs;
@@ -28,19 +29,20 @@ public class carDashboard {
         allTimeFeet = prefs.getFloat("allTimeOdo", 0.0f);
     }
     public void start() {
-        lastPose = follower.getPose();
+        lastPose = follower.pose();
     }
     public void update() {
-        double deltaFeet = follower.getPose().distanceFrom(lastPose) / 12.0;
+        Pose pose = follower.pose();
+        double deltaFeet = Math.hypot(pose.x() - lastPose.x(), pose.y() - lastPose.y()) / 12.0;
         tripFeet += deltaFeet;
         allTimeFeet += deltaFeet;
-        lastPose = follower.getPose();
+        lastPose = pose;
 
         telemetry.addLine("-----------------FUEL-----------------");
         telemetry.addData("Fuel Level", fuelLevel());
         telemetry.addLine("                 ");
         telemetry.addLine("----------------DISTSNCE--------------");
-        telemetry.addData("IPS", "%.2f", follower.getVelocity().getMagnitude());
+        telemetry.addData("IPS", "%.2f", Math.hypot(follower.velocity().vx, follower.velocity().vy));
         telemetry.addData("Feet Traveled In Session", "%.2f ft", tripFeet);
         telemetry.addData("All-Time Feet Traveled", "%.2f ft", allTimeFeet);
         telemetry.addLine("                            ");
@@ -65,7 +67,7 @@ public class carDashboard {
         else return "Plug in New Battery";
     }
     public String getCompass() {
-        double degrees = Math.toDegrees(follower.getPose().getHeading());
+        double degrees = Math.toDegrees(follower.pose().heading());
         while (degrees < 0) degrees += 360;
         while (degrees >= 360) degrees -= 360;
         if (degrees > 337.5 || degrees <= 22.5)      return "N";

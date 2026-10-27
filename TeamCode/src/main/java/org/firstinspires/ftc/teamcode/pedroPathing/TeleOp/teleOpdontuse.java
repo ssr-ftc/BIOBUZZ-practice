@@ -1,7 +1,7 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.TeleOp;
 
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -12,10 +12,10 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 @Disabled
 public class teleOpdontuse extends OpMode {
     private Follower follower;
-    private final Pose startPose = new Pose(0, 0, 0);
+    private final Pose startPose = Constants.pose(0, 0, 0);
     private DcMotorEx intake;
 
-    private Pose lastPose = new Pose(0, 0, 0);
+    private Pose lastPose = Constants.pose(0, 0, 0);
     private double tripFeet = 0;
     private static double allTimeFeet = 0;
     private android.content.SharedPreferences prefs;
@@ -24,7 +24,7 @@ public class teleOpdontuse extends OpMode {
     public void init() {
         follower = Constants.createFollower(hardwareMap);
         intake = hardwareMap.get(DcMotorEx.class, "intake");
-        follower.setStartingPose(startPose);
+        follower.setPose(startPose);
 
         prefs = hardwareMap.appContext.getSharedPreferences("RobotData", android.content.Context.MODE_PRIVATE);
         allTimeFeet = prefs.getFloat("allTimeOdo", 0.0f);
@@ -32,8 +32,7 @@ public class teleOpdontuse extends OpMode {
 
     @Override
     public void start() {
-        follower.startTeleopDrive();
-        lastPose = follower.getPose();
+        lastPose = follower.pose();
     }
 
     @Override
@@ -51,22 +50,22 @@ public class teleOpdontuse extends OpMode {
         }
 
         if (gamepad1.options) {
-            follower.setPose(new Pose(0, 0, Math.toRadians(0)));
+            follower.setPose(Constants.pose(0, 0, 0));
         }
 
-        follower.setTeleOpDrive(
+        follower.manual(
                 -gamepad1.left_stick_y * speedShift,
                 -gamepad1.left_stick_x * speedShift,
-                -gamepad1.right_stick_x * speedShift * 0.8,
-                true
+                -gamepad1.right_stick_x * speedShift * 0.8
         );
 
         follower.update();
 
-        double deltaFeet = follower.getPose().distanceFrom(lastPose) / 12.0;
+        Pose pose = follower.pose();
+        double deltaFeet = Math.hypot(pose.x() - lastPose.x(), pose.y() - lastPose.y()) / 12.0;
         tripFeet += deltaFeet;
         allTimeFeet += deltaFeet;
-        lastPose = follower.getPose();
+        lastPose = pose;
     }
 
     public void useIntake() {
@@ -86,7 +85,7 @@ public class teleOpdontuse extends OpMode {
         telemetry.addData("Fuel Level", fuelLevel());
         telemetry.addLine("                            ");
         telemetry.addLine("-----Distance-----");
-        telemetry.addData("IPS", "%.2f", follower.getVelocity().getMagnitude());
+        telemetry.addData("IPS", "%.2f", Math.hypot(follower.velocity().vx, follower.velocity().vy));
         telemetry.addData("Feet Traveled In Session", "%.2f ft", tripFeet);
         telemetry.addData("All-Time Feet Traveled", "%.2f ft", allTimeFeet);
         telemetry.addLine("                            ");
@@ -111,7 +110,7 @@ public class teleOpdontuse extends OpMode {
         else return "Plug in New Battery";
     }
     public String getCompass() {
-        double degrees = Math.toDegrees(follower.getPose().getHeading());
+        double degrees = Math.toDegrees(follower.pose().heading());
         while (degrees < 0) degrees += 360;
         while (degrees >= 360) degrees -= 360;
 
