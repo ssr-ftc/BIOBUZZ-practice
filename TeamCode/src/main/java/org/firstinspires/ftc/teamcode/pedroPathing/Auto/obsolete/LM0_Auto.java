@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.pedroPathing.Auto;
+package org.firstinspires.ftc.teamcode.pedroPathing.Auto.obsolete;
 
 //import com.pedropathing.ivy.Scheduler;
 //import static com.pedropathing.ivy.Scheduler.schedule;
