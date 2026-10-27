@@ -8,6 +8,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.DepoLM1;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.intakeLM0;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turret;
 
 @TeleOp(name = "LM1teleop", group = "TeleOp")
 public class LM1TeleOp extends OpMode {
@@ -15,6 +16,7 @@ public class LM1TeleOp extends OpMode {
     private final Pose startPose = new Pose(0, 0, 0);
     private DepoLM1 depo;
     private intakeLM0 intake;
+    private turret turret;
     private final ElapsedTime shotTimer = new ElapsedTime();
     private boolean shotTimerRunning = false;
 
@@ -24,6 +26,7 @@ public class LM1TeleOp extends OpMode {
         follower.setStartingPose(startPose);
         depo = new DepoLM1(hardwareMap);
         intake = new intakeLM0(hardwareMap);
+        turret = new turret(hardwareMap);
     }
 
     @Override
@@ -31,13 +34,16 @@ public class LM1TeleOp extends OpMode {
         follower.startTeleopDrive();
         depo.start();
         intake.start();
+        turret.setPositionDeg(0);
     }
 
     @Override
     public void loop() {
+        turret.run_using_pid();
         drive();
         useIntake();
         useDepo();
+        useturret();
         telemetry.addData("Status", depo.isDepositOn() ? "ON" : "OFF");
         telemetry.addData("Target Velocity", DepoLM1.ON_VELOCITY);
         telemetry.addData("Current Velocity", "%.1f", depo.getVelocity());
@@ -86,6 +92,15 @@ public class LM1TeleOp extends OpMode {
                 intake.flower_down();
             }
         }
+        if (gamepad2.triangleWasPressed()) {
+            turret.setPositionDeg(0);
+        }
+    }
+
+    public void useturret() {
+        if (gamepad2.rightTriggerWasPressed()) {
+            turret.setPositionDeg(0);
+        }
     }
 
     public void useDepo() {
@@ -108,6 +123,7 @@ public class LM1TeleOp extends OpMode {
     }
 
     public void telemtry() {
+        telemetry.addData("CURRENT SERVO POSITION", turret.getPositionDeg());
         telemetry.addLine("                 ");
         telemetry.addLine("-------------CONTROLS---------------");
         telemetry.addLine("                          ");

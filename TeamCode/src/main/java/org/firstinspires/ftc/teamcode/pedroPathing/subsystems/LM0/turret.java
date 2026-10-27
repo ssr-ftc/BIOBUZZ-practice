@@ -7,8 +7,14 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 //@Config
 public class turret {
-    private static final double HIVE_X = 84.36;
-    private static final double HIVE_Y = 81.4;
+    private static final double BLUE_GARDEN_HIVE_X = 84.36;
+    private static final double BLUE_GARDEN_HIVE_Y = 81.4;
+    private static final double BLUE_OPPOSITE_HIVE_X = 59.64;
+    private static final double BLUE_OPPOSITE_HIVE_Y = 81.4;
+    private static final double RED_GARDEN_HIVE_X = 59.64;
+    private static final double RED_GARDEN_HIVE_Y = 62.6;
+    private static final double RED_OPPOSITE_HIVE_X = 84.36;
+    private static final double RED_OPPOSITE_HIVE_Y = 62.6;
    static double deg;
    static double totalDeg;
 
@@ -46,6 +52,10 @@ public class turret {
         power = Math.max(-1, Math.min(1, power));
         turret.setPower(power);
     }
+    public void holdCurrentPosition() {
+        targetPos = turret.getCurrentPosition();
+    }
+
     public void ResetTurretEncoders(){
         turret.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         turret.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -61,15 +71,31 @@ public class turret {
         return turret.getCurrentPosition() / 3.47778;
     }
 
-    // blue hive cell in field coordinates (my estimate, edit these two if you know better)
+    public static double turretAngle(double robotX, double robotY, double robotHeadingDeg) {
+        return turretAngleBlueGarden(robotX, robotY, robotHeadingDeg);
+    }
 
-    // type the robot's field x, y and heading (degrees), get the turret angle (degrees)
-     public static double turretAngle(double robotX, double robotY, double robotHeadingDeg) {
-        double fieldDeg = Math.toDegrees(Math.atan2(HIVE_Y - robotY, HIVE_X - robotX));
+    public static double turretAngleBlueGarden(double robotX, double robotY, double robotHeadingDeg) {
+        return turretAngleTo(BLUE_GARDEN_HIVE_X, BLUE_GARDEN_HIVE_Y, robotX, robotY, robotHeadingDeg);
+    }
+
+    public static double turretAngleBlueOpposite(double robotX, double robotY, double robotHeadingDeg) {
+        return turretAngleTo(BLUE_OPPOSITE_HIVE_X, BLUE_OPPOSITE_HIVE_Y, robotX, robotY, robotHeadingDeg);
+    }
+
+    public static double turretAngleRedGarden(double robotX, double robotY, double robotHeadingDeg) {
+        return turretAngleTo(RED_GARDEN_HIVE_X, RED_GARDEN_HIVE_Y, robotX, robotY, robotHeadingDeg);
+    }
+
+    public static double turretAngleRedOpposite(double robotX, double robotY, double robotHeadingDeg) {
+        return turretAngleTo(RED_OPPOSITE_HIVE_X, RED_OPPOSITE_HIVE_Y, robotX, robotY, robotHeadingDeg);
+    }
+
+    private static double turretAngleTo(double hiveX, double hiveY, double robotX, double robotY, double robotHeadingDeg) {
+        double fieldDeg = Math.toDegrees(Math.atan2(hiveY - robotY, hiveX - robotX));
         deg = -(fieldDeg - robotHeadingDeg);
         while (deg < -90) deg += 360;
         while (deg >= 270) deg -= 360;
-
         return deg;
     }
 }
