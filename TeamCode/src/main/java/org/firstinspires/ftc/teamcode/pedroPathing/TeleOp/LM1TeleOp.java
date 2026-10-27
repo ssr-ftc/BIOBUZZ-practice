@@ -6,7 +6,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.DepoLM1;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.depoLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.intakeLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turret;
 
@@ -14,7 +14,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turret;
 public class LM1TeleOp extends OpMode {
     private Follower follower;
     private final Pose startPose = new Pose(0, 0, 0);
-    private DepoLM1 depo;
+    private depoLM0 depo;
     private intakeLM0 intake;
     private turret turret;
     private final ElapsedTime shotTimer = new ElapsedTime();
@@ -24,7 +24,7 @@ public class LM1TeleOp extends OpMode {
     public void init() {
         follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(startPose);
-        depo = new DepoLM1(hardwareMap);
+        depo = new depoLM0(hardwareMap);
         intake = new intakeLM0(hardwareMap);
         turret = new turret(hardwareMap);
     }
@@ -45,7 +45,7 @@ public class LM1TeleOp extends OpMode {
         useDepo();
         useturret();
         telemetry.addData("Status", depo.isDepositOn() ? "ON" : "OFF");
-        telemetry.addData("Target Velocity", DepoLM1.ON_VELOCITY);
+        telemetry.addData("Target Velocity", depoLM0.ON_VELOCITY);
         telemetry.addData("Current Velocity", "%.1f", depo.getVelocity());
         telemetry.addLine("                             ");
         telemtry();

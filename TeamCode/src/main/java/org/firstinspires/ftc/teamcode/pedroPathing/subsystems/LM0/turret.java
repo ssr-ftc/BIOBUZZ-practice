@@ -32,9 +32,9 @@ public class turret {
     }
     PIDFController pid;
     public double power;
-    public static double p = 0.0027;
-    public static double i = 0.05;
-    public static double d = 0.000001;
+    public static double p = 0.015;
+    public static double i = 0;
+    public static double d = 0.0002;
     public static double kF = 0;
     private double targetPos = 0;
 
