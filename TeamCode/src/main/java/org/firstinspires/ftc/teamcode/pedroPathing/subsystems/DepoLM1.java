@@ -48,7 +48,7 @@ public class DepoLM1 {
     private static double targetVelocity = 0;
 
     //important constatnts below
-    public static double ON_VELOCITY = 1485; // change the deposit speed here (prev 550)
+    public static double ON_VELOCITY = 1520; // change the deposit speed here (prev 550)
     public static double hatchopen = 0.14;
     public static double hatchclose = 0;
     public static double cam_up = 0.2;
