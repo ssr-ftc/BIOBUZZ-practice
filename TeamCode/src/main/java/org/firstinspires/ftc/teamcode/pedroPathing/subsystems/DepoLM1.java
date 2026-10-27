@@ -1,5 +1,4 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.subsystems;
-//import com.acmerobotics.dashboard.config.Config;
 import com.arcrobotics.ftclib.controller.PIDFController;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -18,14 +17,14 @@ public class DepoLM1 {
         bottom = hardwareMap.get(DcMotorEx.class, "depo1");
 
         top.setDirection(DcMotorSimple.Direction.FORWARD);
-        bottom.setDirection(DcMotorSimple.Direction.REVERSE);
+        bottom.setDirection(DcMotorSimple.Direction.FORWARD);
 
         top.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         bottom.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         bottom.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER); // needed so power works and velocity still reads
 
-        top.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        bottom.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        top.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        bottom.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
         hatch = hardwareMap.get(Servo.class,"hatch");
         cam = hardwareMap.get(Servo.class,"camera");
@@ -40,14 +39,12 @@ public class DepoLM1 {
     public void updatePID(){
         pid.setPIDF(p,i,d,kF);
     }
-
-
     PIDFController pid;
     public double power;
-    public static double p = 0.00346;
-    public static double i = 0.00047;
-    public static double d = 0.000035;
-    public static double kF = 0.0004501;
+    public static double p = 0.002;
+    public static double i = 0.000;
+    public static double d = 0.0000;
+    public static double kF = 0.000400014;
     private static double targetVelocity = 0;
 
     //important constatnts below
@@ -100,7 +97,7 @@ public class DepoLM1 {
     }
 
     /** Negative turret degrees use hatchopen. Zero and positive degrees use hatchopen_2. */
-    public void open_hatch() {hatch.setPosition(hatchclose);}
+    public void open_hatch() {hatch.setPosition(hatchopen);}
 
     public void close_hatch(){
         hatch.setPosition(hatchclose);
@@ -115,7 +112,6 @@ public class DepoLM1 {
         cam.setPosition(camMiddle);
     }
 
-
     public double getVelocity() {
         return top.getVelocity();
     }
@@ -123,9 +119,9 @@ public class DepoLM1 {
         return top.getVelocity();
     }
 
-
     public boolean isDepositOn() {
         return targetVelocity != 0;
     }
 }
 //hi
+
