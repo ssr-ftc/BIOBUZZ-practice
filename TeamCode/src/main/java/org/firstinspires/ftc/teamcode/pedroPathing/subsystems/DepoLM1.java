@@ -29,6 +29,8 @@ public class DepoLM1 {
         hatch = hardwareMap.get(Servo.class,"hatch");
         cam = hardwareMap.get(Servo.class,"camera");
 
+        close_hatch();
+
         pid = new PIDFController(p, i, d, kF);
     }
     public void start(){
@@ -49,7 +51,7 @@ public class DepoLM1 {
 
     //important constatnts below
     public static double ON_VELOCITY = 1520; // change the deposit speed here (prev 550)
-    public static double hatchopen = 0.14;
+    public static double hatchopen = 0.11;
     public static double hatchclose = 0;
     public static double cam_up = 0.2;
     public static double cam_down = 0.8;

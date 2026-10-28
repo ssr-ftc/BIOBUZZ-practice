@@ -1,11 +1,12 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0;
 
+import com.acmerobotics.dashboard.config.Config;
 import com.arcrobotics.ftclib.controller.PIDFController;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
-//@Config
+@Config
 public class turret {
     private static final double BLUE_GARDEN_HIVE_X = 84.36;
     private static final double BLUE_GARDEN_HIVE_Y = 81.4;
@@ -48,6 +49,7 @@ public class turret {
     }
 
     public void run_using_pid() {
+        pid.setPIDF(p, i, d, kF);
         power = pid.calculate(turret.getCurrentPosition(), targetPos);
         power = Math.max(-1, Math.min(1, power));
         turret.setPower(power);

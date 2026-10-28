@@ -1,17 +1,18 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.subsystems;
 
+import com.acmerobotics.dashboard.config.Config;
 import com.arcrobotics.ftclib.controller.PIDFController;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
-//@Config
+
+@Config
 public class turret {
     private static final double HIVE_X = 84.36;
     private static final double HIVE_Y = 81.4;
    static double deg;
    static double totalDeg;
-
 
     private DcMotorEx turret;
     public Servo cam;
@@ -26,12 +27,11 @@ public class turret {
     }
     PIDFController pid;
     public double power;
-    public static double p = 0.002;
-    public static double i = 0;
-    public static double d = 0;
+    public static double p = 0.09; //0.002
+    public static double i = 0.04; //0
+    public static double d = 0.00067; //0
     public static double kF = 0.000400014;
     private double targetPos = 0;
-
 
     public void setPositionTicks(double x) {
         targetPos = x;
@@ -42,16 +42,20 @@ public class turret {
     }
 
     public void run_using_pid() {
+        pid.setPIDF(p, i, d, kF);
         power = pid.calculate(turret.getCurrentPosition(), targetPos);
         power = Math.max(-1, Math.min(1, power));
         turret.setPower(power);
     }
+
+    public void holdCurrentPosition() {
+        targetPos = turret.getCurrentPosition();
+    }
+
     public void ResetTurretEncoders(){
         turret.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         turret.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
     }
-
-
 
     public double getPosition() {
         return turret.getCurrentPosition();
@@ -69,8 +73,6 @@ public class turret {
         deg = -(fieldDeg - robotHeadingDeg);
         while (deg < -90) deg += 360;
         while (deg >= 270) deg -= 360;
-
         return deg;
     }
 }
-//hi

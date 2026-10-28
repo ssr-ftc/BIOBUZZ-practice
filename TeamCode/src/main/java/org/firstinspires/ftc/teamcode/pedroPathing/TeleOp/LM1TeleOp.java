@@ -6,15 +6,17 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.DepoLM1;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.depoLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.intakeLM0;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turret;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.turret;
+//import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.
 
 @TeleOp(name = "LM1teleop", group = "TeleOp")
 public class LM1TeleOp extends OpMode {
     private Follower follower;
     private final Pose startPose = new Pose(0, 0, 0);
-    private depoLM0 depo;
+    private DepoLM1 depo;
     private intakeLM0 intake;
     private turret turret;
     private final ElapsedTime shotTimer = new ElapsedTime();
@@ -24,7 +26,7 @@ public class LM1TeleOp extends OpMode {
     public void init() {
         follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(startPose);
-        depo = new depoLM0(hardwareMap);
+        depo = new DepoLM1(hardwareMap);
         intake = new intakeLM0(hardwareMap);
         turret = new turret(hardwareMap);
     }
@@ -42,8 +44,10 @@ public class LM1TeleOp extends OpMode {
         turret.run_using_pid();
         drive();
         useIntake();
+        otherControls();
         useDepo();
         useturret();
+        manualTurretPosition();
         telemetry.addData("Status", depo.isDepositOn() ? "ON" : "OFF");
         telemetry.addData("Target Velocity", depoLM0.ON_VELOCITY);
         telemetry.addData("Current Velocity", "%.1f", depo.getVelocity());
@@ -69,22 +73,17 @@ public class LM1TeleOp extends OpMode {
         );
         follower.update();
     }
-
     public void useIntake() {
-        if (gamepad2.leftBumperWasPressed()) {
-            if (intake.isOuttaking()) {
-                intake.turn_off_intake();
-            } else {
-                intake.outtake();
-            }
+        if (gamepad2.right_bumper) {
+            intake.turn_on_intake();
+        } else if (gamepad2.left_bumper) {
+            intake.outtake();
+        } else {
+            intake.turn_off_intake();
         }
-        if (gamepad2.rightBumperWasPressed()) {
-            if (intake.getMotorPower() < 0) {
-                intake.turn_off_intake();
-            } else {
-                intake.turn_on_intake();
-            }
-        }
+    }
+
+    public void otherControls() {
         if (gamepad1.triangleWasPressed()) {
             if (intake.isFlowerDown()) {
                 intake.flower_up();
@@ -92,14 +91,27 @@ public class LM1TeleOp extends OpMode {
                 intake.flower_down();
             }
         }
-        if (gamepad2.triangleWasPressed()) {
+        if (gamepad2.optionsWasPressed()) {
             turret.setPositionDeg(0);
         }
     }
 
+
     public void useturret() {
-        if (gamepad2.rightTriggerWasPressed()) {
+        if (gamepad2.optionsWasPressed() || gamepad2.startWasPressed()) {
             turret.setPositionDeg(0);
+        }
+    }
+
+    public void manualTurretPosition(){
+        if (gamepad2.rightTriggerWasPressed()) {
+            turret.setPositionDeg(turret.getPositionDeg() - 10);
+        } else if (gamepad2.leftTriggerWasPressed()) {
+            turret.setPositionDeg(turret.getPositionDeg() + 10);
+        } else if (gamepad2.yWasPressed()) {
+            turret.setPositionDeg(turret.getPositionDeg() - 5);
+        } else if (gamepad2.xWasPressed()) {
+            turret.setPositionDeg(turret.getPositionDeg() + 5);
         }
     }
 
@@ -112,6 +124,8 @@ public class LM1TeleOp extends OpMode {
             shotTimer.reset();
             shotTimerRunning = true;
             depo.open_hatch();
+        }
+        if (shotTimerRunning) {
             intake.turn_on_intake();
         }
         if (shotTimerRunning && shotTimer.seconds() >= 2) {

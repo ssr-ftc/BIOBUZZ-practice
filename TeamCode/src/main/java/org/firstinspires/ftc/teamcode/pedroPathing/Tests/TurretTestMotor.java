@@ -22,9 +22,9 @@ public class TurretTestMotor extends LinearOpMode {
 
     // PID coefficients (tune these in dashboard)
     public double power;
-    public static double p = 0.0027;
-    public static double i = 0.05;
-    public static double d = 0.000001;
+    public static double p = 0.09; //0.0027
+    public static double i = 0.04;
+    public static double d = 0.00067; //0.00001
     public static double kF = 0; // adjust for your motor's max ticks/sec
 
     // Target velocity in ticks per second
