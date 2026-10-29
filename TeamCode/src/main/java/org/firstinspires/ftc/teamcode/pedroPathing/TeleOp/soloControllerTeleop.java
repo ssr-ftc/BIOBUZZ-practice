@@ -10,10 +10,9 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.DepoLM1;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.depoLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.intakeLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.turret;
-//import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.
 
-@TeleOp(name = "sohamSoloTeleop", group = "TeleOp")
-public class sohamSoloTeleop extends OpMode {
+@TeleOp(name = "soloControllerTeleop", group = "TeleOp")
+public class soloControllerTeleop extends OpMode {
     private Follower follower;
     private final Pose startPose = new Pose(0, 0, 0);
     private DepoLM1 depo;
@@ -47,7 +46,6 @@ public class sohamSoloTeleop extends OpMode {
         otherControls();
         useDepo();
         useturret();
-        manualTurretPosition();
         telemetry.addData("Status", depo.isDepositOn() ? "ON" : "OFF");
         telemetry.addData("Target Velocity", depoLM0.ON_VELOCITY);
         telemetry.addData("Current Velocity", "%.1f", depo.getVelocity());
@@ -58,7 +56,7 @@ public class sohamSoloTeleop extends OpMode {
 
     public void drive() {
         double speedShift = 0.9;
-        if (gamepad1.rightTriggerWasPressed()) {
+        if (gamepad1.right_trigger > 0.1) {
             speedShift = 0.25;
             gamepad1.rumbleBlips(1);
         }
@@ -73,18 +71,27 @@ public class sohamSoloTeleop extends OpMode {
         );
         follower.update();
     }
+
     public void useIntake() {
-        if (gamepad1.right_bumper) {
-            intake.turn_on_intake();
-        } else if (gamepad1.left_bumper) {
-            intake.outtake();
-        } else {
-            intake.turn_off_intake();
+        if (gamepad1.leftBumperWasPressed()) {
+            if (intake.isOuttaking()) {
+                intake.turn_off_intake();
+            } else {
+                intake.outtake();
+            }
+            if (gamepad1.rightBumperWasPressed()) {
+                if (intake.getMotorPower() < 0) {
+                    intake.turn_off_intake();
+                } else {
+                    intake.turn_on_intake();
+                }
+            }
         }
     }
 
+
     public void otherControls() {
-        if (gamepad1.circleWasPressed()) {
+        if (gamepad1.triangleWasPressed()) {
             if (intake.isFlowerDown()) {
                 intake.flower_up();
             } else {
@@ -96,25 +103,9 @@ public class sohamSoloTeleop extends OpMode {
         }
     }
 
-
     public void useturret() {
         if (gamepad1.optionsWasPressed() || gamepad1.startWasPressed()) {
             turret.setPositionDeg(0);
-        }
-    }
-
-    public void manualTurretPosition(){
-        /*
-        if (gamepad1.rightTriggerWasPressed()) {
-            turret.setPositionDeg(turret.getPositionDeg() - 10);
-        } else if (gamepad1.leftTriggerWasPressed()) {
-            turret.setPositionDeg(turret.getPositionDeg() + 10);
-
-         */
-         if (gamepad1.yWasPressed()) {
-            turret.setPositionDeg(turret.getPositionDeg() - 5);
-        } else if (gamepad1.xWasPressed()) {
-            turret.setPositionDeg(turret.getPositionDeg() + 5);
         }
     }
 
@@ -147,14 +138,11 @@ public class sohamSoloTeleop extends OpMode {
         telemetry.addLine("Left Joystick = forward and backward (up-down)");
         telemetry.addLine("Right Joystick = strafes (left-right)");
         telemetry.addLine("Right Trigger = Lowers speed by 70%");
-        telemetry.addLine("Three Lines = resets the turret to 0");
+        telemetry.addLine("Three Lines = redets turret to 0");
         telemetry.addLine("A = shooter");
         telemetry.addLine("Right Bumper = intake");
         telemetry.addLine("Left Bumper = outtake");
-        telemetry.addLine("B = flower");
-        telemetry.addLine("Y = turret right");
-        telemetry.addLine("X = turret left");
-
+        telemetry.addLine("Y = flower");
     }
 
     @Override
