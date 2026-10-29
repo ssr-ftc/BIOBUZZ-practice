@@ -27,10 +27,10 @@ public class turret {
     }
     PIDFController pid;
     public double power;
-    public static double p = 0.09; //0.002
-    public static double i = 0.04; //0
-    public static double d = 0.00067; //0
-    public static double kF = 0.000400014;
+    public static double p = 0.0015; //0.002
+    public static double i = 0.05; //0
+    public static double d = 0.0005; //0
+    public static double kF = 0.000;
     private double targetPos = 0;
 
     public void setPositionTicks(double x) {
