@@ -8,7 +8,6 @@ import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
-
 @TeleOp(name = "Servos tester")
 public class ServoTest extends OpMode {
 
@@ -17,7 +16,6 @@ public class ServoTest extends OpMode {
     Servo hatch;
     Servo cam;
     Servo flower;
-
 
     @Override
     public void init() {//this is called once when the driver presses init
@@ -32,11 +30,10 @@ public class ServoTest extends OpMode {
         telemetry.update();
     }
 
-
     @Override
     public void start() {//this is called once when the driver presses start
         flower.setPosition(0.5);
-        hatch.setPosition(0.54);
+        hatch.setPosition(0);
         cam.setPosition(0.5);
         follower.startTeleopDrive();
     }
@@ -58,7 +55,6 @@ public class ServoTest extends OpMode {
         //0.66 is open2
         sendTelemetry();
     }
-
     private void driveWithPedro() {
 
         double forward = gamepad1.left_stick_y * speedScale;
@@ -67,9 +63,6 @@ public class ServoTest extends OpMode {
 
         follower.setTeleOpDrive(forward, strafe, turn, true);
     }
-
-
-
     private void sendTelemetry() {
         telemetry.addLine("this is telemetry");
         telemetry.addData("hatch",hatch.getPosition());

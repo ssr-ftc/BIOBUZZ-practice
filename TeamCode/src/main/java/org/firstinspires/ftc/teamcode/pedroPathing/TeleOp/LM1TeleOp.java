@@ -15,12 +15,15 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.turret;
 @TeleOp(name = "LM1teleop", group = "TeleOp")
 public class LM1TeleOp extends OpMode {
     private Follower follower;
+    Pose hiveTop = new Pose(84.3,81.4,0);
+    Pose hiveBottom = new Pose(84.3,56,0);
     private final Pose startPose = new Pose(0, 0, 0);
     private DepoLM1 depo;
     private intakeLM0 intake;
     private turret turret;
     private final ElapsedTime shotTimer = new ElapsedTime();
     private boolean shotTimerRunning = false;
+    private boolean isTracking = false;
 
     ///pretty basic stuff just defines things
 
@@ -67,7 +70,7 @@ public class LM1TeleOp extends OpMode {
             gamepad1.rumbleBlips(1);
         }
         if (gamepad1.options) {
-            follower.setPose(new Pose(0, 0, Math.toRadians(0)));
+            follower.setPose(new Pose(86.5, 133.3, Math.toRadians(270)));
         }
         follower.setTeleOpDrive(
                 -gamepad1.left_stick_y * speedShift,
@@ -107,6 +110,18 @@ public class LM1TeleOp extends OpMode {
     public void useturret() {
         if (gamepad2.optionsWasPressed() || gamepad2.startWasPressed()) {
             turret.setPositionDeg(0);
+        }
+        if(gamepad1.leftBumperWasPressed()){
+            isTracking = !isTracking;
+        }
+        if(isTracking){
+            double opp,adj;//relative to pose
+            opp=hiveTop.getX()-follower.getPose().getX();
+            adj=hiveTop.getY()-follower.getPose().getY();
+            double angle= Math.atan(opp/adj);
+            double turAngle;
+            turAngle = 180+angle-Math.toDegrees(follower.getPose().getHeading());
+            turret.setPositionDeg(turAngle);
         }
     }
     ///no cliue why this is here

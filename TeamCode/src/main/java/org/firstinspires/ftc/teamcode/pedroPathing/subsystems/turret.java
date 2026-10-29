@@ -38,7 +38,7 @@ public class turret {
     }
     public void setPositionDeg(double x) {
         if(x < -90) x += 360;
-        targetPos = 3.47778 * x;
+        targetPos = 0.566667 * x;
     }
 
     public void run_using_pid() {
@@ -62,7 +62,7 @@ public class turret {
     }
 
     public double getPositionDeg() {
-        return turret.getCurrentPosition() / 3.47778;
+        return turret.getCurrentPosition() / 0.566667;
     }
 
     // blue hive cell in field coordinates (my estimate, edit these two if you know better)
