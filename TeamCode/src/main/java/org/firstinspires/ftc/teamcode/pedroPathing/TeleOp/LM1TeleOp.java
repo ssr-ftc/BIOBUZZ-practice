@@ -22,6 +22,8 @@ public class LM1TeleOp extends OpMode {
     private final ElapsedTime shotTimer = new ElapsedTime();
     private boolean shotTimerRunning = false;
 
+    ///pretty basic stuff just defines things
+
     @Override
     public void init() {
         follower = Constants.createFollower(hardwareMap);
@@ -30,6 +32,7 @@ public class LM1TeleOp extends OpMode {
         intake = new intakeLM0(hardwareMap);
         turret = new turret(hardwareMap);
     }
+    ///what happens on init
 
     @Override
     public void start() {
@@ -38,6 +41,7 @@ public class LM1TeleOp extends OpMode {
         intake.start();
         turret.setPositionDeg(0);
     }
+    ///what happens on start and sets turret to facing forward
 
     @Override
     public void loop() {
@@ -73,6 +77,7 @@ public class LM1TeleOp extends OpMode {
         );
         follower.update();
     }
+    ///uses pedro follower to make driving stuff easier, also slows down after right trigger and rumbles
     public void useIntake() {
         if (gamepad2.right_bumper) {
             intake.turn_on_intake();
@@ -82,6 +87,7 @@ public class LM1TeleOp extends OpMode {
             intake.turn_off_intake();
         }
     }
+    ///hold right trigger to intake because I like that better
 
     public void otherControls() {
         if (gamepad1.triangleWasPressed()) {
@@ -95,6 +101,7 @@ public class LM1TeleOp extends OpMode {
             turret.setPositionDeg(0);
         }
     }
+    ///flower and options reset button
 
 
     public void useturret() {
@@ -102,6 +109,7 @@ public class LM1TeleOp extends OpMode {
             turret.setPositionDeg(0);
         }
     }
+    ///no cliue why this is here
 
     public void manualTurretPosition(){
         /*
@@ -117,6 +125,7 @@ public class LM1TeleOp extends OpMode {
             turret.setPositionDeg(turret.getPositionDeg() + 5);
         }
     }
+    ///manual turret position change
 
     public void useDepo() {
         depo.run_using_pid();
@@ -138,6 +147,8 @@ public class LM1TeleOp extends OpMode {
             intake.turn_off_intake();
         }
     }
+    ///launches depo. Basically depo turns on and when it hits target velocity, it runs intake and opens hatch for
+    /// a certain period of time and then after timer hits 2 seconds it turns everything off.
 
     public void telemtry() {
         telemetry.addData("CURRENT SERVO POSITION", turret.getPositionDeg());
@@ -158,6 +169,7 @@ public class LM1TeleOp extends OpMode {
         telemetry.addLine("X = turret left");
         telemetry.addLine("Start/options = reset turret 0");
     }
+    ///controls
 
     @Override
     public void stop() {
