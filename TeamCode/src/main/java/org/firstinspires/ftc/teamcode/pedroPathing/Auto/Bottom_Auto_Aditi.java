@@ -26,8 +26,8 @@ public class Bottom_Auto_Aditi extends OpMode {
     private static final int RED_MIN = 30,  RED_MAX = 33;    // red side tags
     private static final int BLUE_MIN = 38, BLUE_MAX = 41;   // blue side tags
 
-    private static final double INTAKE_TIME_SECONDS = 1.0;   // TODO tune
-    private static final double SHOOT_TIME_SECONDS  = 1.5;   // TODO tune
+    private static final double INTAKE_TIME_SECONDS = 1.0;   // TODO needs tuning
+    private static final double SHOOT_TIME_SECONDS  = 1.5;   // TODO needs tuning
 
     // =====================================================================
     //  POSES  (Pedro Visualizer, heading in degrees)
@@ -146,9 +146,7 @@ public class Bottom_Auto_Aditi extends OpMode {
         if (portal != null) portal.close();
     }
 
-    // =====================================================================
     //  PATH STATE MACHINE
-    // =====================================================================
     private void updatePathState() {
         switch (pathState) {
 
