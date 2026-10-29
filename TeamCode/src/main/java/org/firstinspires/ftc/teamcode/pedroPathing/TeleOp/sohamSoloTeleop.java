@@ -58,7 +58,7 @@ public class sohamSoloTeleop extends OpMode {
 
     public void drive() {
         double speedShift = 0.9;
-        if (gamepad1.leftTriggerWasPressed()) {
+        if (gamepad1.rightTriggerWasPressed()) {
             speedShift = 0.25;
             gamepad1.rumbleBlips(1);
         }
@@ -104,11 +104,14 @@ public class sohamSoloTeleop extends OpMode {
     }
 
     public void manualTurretPosition(){
+        /*
         if (gamepad1.rightTriggerWasPressed()) {
             turret.setPositionDeg(turret.getPositionDeg() - 10);
         } else if (gamepad1.leftTriggerWasPressed()) {
             turret.setPositionDeg(turret.getPositionDeg() + 10);
-        } else if (gamepad1.yWasPressed()) {
+
+         */
+         if (gamepad1.yWasPressed()) {
             turret.setPositionDeg(turret.getPositionDeg() - 5);
         } else if (gamepad1.xWasPressed()) {
             turret.setPositionDeg(turret.getPositionDeg() + 5);
@@ -141,17 +144,17 @@ public class sohamSoloTeleop extends OpMode {
         telemetry.addLine("                 ");
         telemetry.addLine("-------------CONTROLS---------------");
         telemetry.addLine("                          ");
-        telemetry.addLine("Base driver:");
         telemetry.addLine("Left Joystick = forward and backward (up-down)");
-        telemetry.addLine("Left Joystick = strafes (left-right)");
+        telemetry.addLine("Right Joystick = strafes (left-right)");
         telemetry.addLine("Right Trigger = Lowers speed by 70%");
-        telemetry.addLine("Three Lines = resets the Compass");
-        telemetry.addLine("                          ");
-        telemetry.addLine("Shooter driver:");
-        telemetry.addLine("Cross = shooter");
+        telemetry.addLine("Three Lines = resets the turret to 0");
+        telemetry.addLine("A = shooter");
         telemetry.addLine("Right Bumper = intake");
         telemetry.addLine("Left Bumper = outtake");
-        telemetry.addLine("Triangle = flower");
+        telemetry.addLine("B = flower");
+        telemetry.addLine("Y = turret right");
+        telemetry.addLine("X = turret left");
+
     }
 
     @Override

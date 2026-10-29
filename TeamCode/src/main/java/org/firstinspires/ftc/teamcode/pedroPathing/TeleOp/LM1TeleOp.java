@@ -104,11 +104,14 @@ public class LM1TeleOp extends OpMode {
     }
 
     public void manualTurretPosition(){
+        /*
         if (gamepad2.rightTriggerWasPressed()) {
             turret.setPositionDeg(turret.getPositionDeg() - 10);
         } else if (gamepad2.leftTriggerWasPressed()) {
             turret.setPositionDeg(turret.getPositionDeg() + 10);
-        } else if (gamepad2.yWasPressed()) {
+
+         */
+        if (gamepad2.yWasPressed()) {
             turret.setPositionDeg(turret.getPositionDeg() - 5);
         } else if (gamepad2.xWasPressed()) {
             turret.setPositionDeg(turret.getPositionDeg() + 5);
@@ -143,15 +146,17 @@ public class LM1TeleOp extends OpMode {
         telemetry.addLine("                          ");
         telemetry.addLine("Base driver:");
         telemetry.addLine("Left Joystick = forward and backward (up-down)");
-        telemetry.addLine("Left Joystick = strafes (left-right)");
+        telemetry.addLine("Right Joystick = strafes (left-right)");
         telemetry.addLine("Right Trigger = Lowers speed by 70%");
-        telemetry.addLine("Three Lines = resets the Compass");
+        telemetry.addLine("Y = Flower ");
         telemetry.addLine("                          ");
         telemetry.addLine("Shooter driver:");
-        telemetry.addLine("Cross = shooter");
+        telemetry.addLine("A = shooter");
         telemetry.addLine("Right Bumper = intake");
         telemetry.addLine("Left Bumper = outtake");
-        telemetry.addLine("Triangle = flower");
+        telemetry.addLine("Y = turret right");
+        telemetry.addLine("X = turret left");
+        telemetry.addLine("Start/options = reset turret 0");
     }
 
     @Override

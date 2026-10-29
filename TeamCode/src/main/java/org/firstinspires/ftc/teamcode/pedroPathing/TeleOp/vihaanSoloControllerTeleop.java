@@ -135,17 +135,14 @@ public class vihaanSoloControllerTeleop extends OpMode {
         telemetry.addLine("                 ");
         telemetry.addLine("-------------CONTROLS---------------");
         telemetry.addLine("                          ");
-        telemetry.addLine("Base driver:");
         telemetry.addLine("Left Joystick = forward and backward (up-down)");
-        telemetry.addLine("Left Joystick = strafes (left-right)");
+        telemetry.addLine("Right Joystick = strafes (left-right)");
         telemetry.addLine("Right Trigger = Lowers speed by 70%");
-        telemetry.addLine("Three Lines = resets the Compass");
-        telemetry.addLine("                          ");
-        telemetry.addLine("Shooter driver:");
-        telemetry.addLine("Cross = shooter");
+        telemetry.addLine("Three Lines = redets turret to 0");
+        telemetry.addLine("A = shooter");
         telemetry.addLine("Right Bumper = intake");
         telemetry.addLine("Left Bumper = outtake");
-        telemetry.addLine("Triangle = flower");
+        telemetry.addLine("Y = flower");
     }
 
     @Override
