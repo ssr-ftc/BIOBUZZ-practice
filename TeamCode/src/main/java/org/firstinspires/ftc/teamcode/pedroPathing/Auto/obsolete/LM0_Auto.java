@@ -6,7 +6,7 @@ package org.firstinspires.ftc.teamcode.pedroPathing.Auto.obsolete;
 //import static com.pedropathing.ivy.pedro.PedroCommands.*;
 
 
-import static org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turret.turretAngle;
+import static org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turretLM0.turretAngle;
 
 import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
@@ -36,7 +36,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.CustomFollower;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.depoLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.intakeLM0;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turret;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turretLM0;
 
 
 @Autonomous(name = "AutoLM0", group = "Season")
@@ -45,7 +45,7 @@ public class LM0_Auto extends OpMode {
     private DcMotorEx depo1;
     private depoLM0 depo;
     private intakeLM0 intake;
-    private turret turret;
+    private turretLM0 turret;
     private Servo hatch;
     private CRServo turret_servo;
     private CustomFollower follower;
@@ -120,7 +120,7 @@ public class LM0_Auto extends OpMode {
         follower = new CustomFollower(hardwareMap, telemetry);
         intake = new intakeLM0(hardwareMap);
         depo = new depoLM0(hardwareMap);
-        turret = new turret(hardwareMap);
+        turret = new turretLM0(hardwareMap);
         initAprilTag();
         telemetry.addLine("Ready. Press Y for Blue, A for Red.");
         telemetry.addLine("Press X for Small Blue, B for Small Red.");

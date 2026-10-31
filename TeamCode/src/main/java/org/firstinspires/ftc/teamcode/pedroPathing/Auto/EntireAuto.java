@@ -6,10 +6,10 @@ package org.firstinspires.ftc.teamcode.pedroPathing.Auto;
 //import static com.pedropathing.ivy.pedro.PedroCommands.*;
 
 
-import static org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turret.turretAngleBlueGarden;
-import static org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turret.turretAngleBlueOpposite;
-import static org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turret.turretAngleRedGarden;
-import static org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turret.turretAngleRedOpposite;
+import static org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turretLM0.turretAngleBlueGarden;
+import static org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turretLM0.turretAngleBlueOpposite;
+import static org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turretLM0.turretAngleRedGarden;
+import static org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turretLM0.turretAngleRedOpposite;
 
 import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
@@ -40,7 +40,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.CustomFollower;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.depoLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.intakeLM0;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turret;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turretLM0;
 
 
 @Autonomous(name = "EntireAuto", group = "Season")
@@ -49,7 +49,7 @@ public class EntireAuto extends OpMode {
     private DcMotorEx depo1;
     private depoLM0 depo;
     private intakeLM0 intake;
-    private turret turret;
+    private turretLM0 turret;
     private Servo hatch;
     private CRServo turret_servo;
     private CustomFollower follower;
@@ -137,7 +137,7 @@ public class EntireAuto extends OpMode {
         follower = new CustomFollower(hardwareMap, telemetry);
         intake = new intakeLM0(hardwareMap);
         depo = new depoLM0(hardwareMap);
-        turret = new turret(hardwareMap);
+        turret = new turretLM0(hardwareMap);
         initAprilTag();
         telemetry.addLine("READY. PRESS Y FOR BLUE, A FOR RED.");
         telemetry.addLine("PRESS X FOR SMALL BLUE, B FOR SMALL RED.");
