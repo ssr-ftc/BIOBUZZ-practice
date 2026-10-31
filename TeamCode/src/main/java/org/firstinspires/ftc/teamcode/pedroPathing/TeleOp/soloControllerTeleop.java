@@ -7,7 +7,6 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.DepoLM1;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.depoLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.intakeLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.turret;
 
@@ -47,7 +46,7 @@ public class soloControllerTeleop extends OpMode {
         useDepo();
         useturret();
         telemetry.addData("Status", depo.isDepositOn() ? "ON" : "OFF");
-        telemetry.addData("Target Velocity", depoLM0.ON_VELOCITY);
+        telemetry.addData("Target Velocity", DepoLM1.ON_VELOCITY);
         telemetry.addData("Current Velocity", "%.1f", depo.getVelocity());
         telemetry.addLine("                             ");
         telemtry();

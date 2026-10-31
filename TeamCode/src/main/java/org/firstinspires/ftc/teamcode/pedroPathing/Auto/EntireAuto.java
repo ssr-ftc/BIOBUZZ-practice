@@ -6,10 +6,11 @@ package org.firstinspires.ftc.teamcode.pedroPathing.Auto;
 //import static com.pedropathing.ivy.pedro.PedroCommands.*;
 
 
-import static org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turretLM0.turretAngleBlueGarden;
-import static org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turretLM0.turretAngleBlueOpposite;
-import static org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turretLM0.turretAngleRedGarden;
-import static org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turretLM0.turretAngleRedOpposite;
+// Turret angle helpers disabled — turret not used in auto for now.
+// import static org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turret.turretAngleBlueGarden;
+// import static org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turret.turretAngleBlueOpposite;
+// import static org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turret.turretAngleRedGarden;
+// import static org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turret.turretAngleRedOpposite;
 
 import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
@@ -38,22 +39,23 @@ import java.util.List;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.CustomFollower;
 //import static com.pedropathing.ivy.pedro.PedroCommands.*;
 
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.depoLM0;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.DepoLM1;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.intakeLM0;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turretLM0;
+// import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turret;
 
 
 @Autonomous(name = "EntireAuto", group = "Season")
 public class EntireAuto extends OpMode {
     //boolean needDepo = true;
     private DcMotorEx depo1;
-    private depoLM0 depo;
+    private DepoLM1 depo;
     private intakeLM0 intake;
-    private turretLM0 turret;
+    // private turret turret;
     private Servo hatch;
-    private CRServo turret_servo;
+    // private CRServo turret_servo;
     private CustomFollower follower;
     Pose start, sample1, point2, sample2, shoot2, sample3, done;
+    static Pose teleop;
     Pose garden, flowerBackup, farSide, turnaround;
     private PathChain shootToSample1, sample1ToPoint2, point2ToSample2, sample2ToShoot2, shoot2ToSample3, sample3ToDone;
 
@@ -97,7 +99,7 @@ public class EntireAuto extends OpMode {
     private AutoState autoState;
     private ShootState shootState;
     // Close enough to the commanded turret angle to open the hatch.
-    private static final double TURRET_TOLERANCE_DEG = 3.0;
+    // private static final double TURRET_TOLERANCE_DEG = 3.0;
     // ---------------- APRILTAG (read during INIT) ----------------
     private final AprilTagDetector aprilTag = new AprilTagDetector();
     private boolean cameraStarted = false;       // ca  mera was created without an error
@@ -122,6 +124,7 @@ public class EntireAuto extends OpMode {
     private int unmappedDetectionCount = 0;
     private int badHammingCount = 0;
     private boolean previousBothBumpers = false;
+
     public void subsystems() {
         //intake = new intake(hardwareMap);
         // turret = new turret(hardwareMap);
@@ -136,8 +139,8 @@ public class EntireAuto extends OpMode {
         timers = new org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer();
         follower = new CustomFollower(hardwareMap, telemetry);
         intake = new intakeLM0(hardwareMap);
-        depo = new depoLM0(hardwareMap);
-        turret = new turretLM0(hardwareMap);
+        // depo = new DepoLM1(hardwareMap); // flywheel and hatch disabled
+        // turret = new turret(hardwareMap);
         initAprilTag();
         telemetry.addLine("READY. PRESS Y FOR BLUE, A FOR RED.");
         telemetry.addLine("PRESS X FOR SMALL BLUE, B FOR SMALL RED.");
@@ -160,9 +163,10 @@ public class EntireAuto extends OpMode {
     public void start() {
         opModeTimer.resetTimer();
         pathTimer.resetTimer();
-        intake.start();
-        depo.start();
-        turret.holdCurrentPosition();
+        intake.flower_up();
+        // intake.start(); // also commands the intake motor
+        // depo.start();
+        // turret.holdCurrentPosition();
         timers.createNew("depo");
         sample1ToPoint2Started = false;
         point2ToSample2Started = false;
@@ -172,19 +176,20 @@ public class EntireAuto extends OpMode {
         flowerIntakeDone = false;
         setShootState(ShootState.SHOOTOFFSET);
         isShootOffset = true;
-        turnOnShooter();
+        // turnOnShooter(); // flywheel disabled
     }
 
     @Override
     public void loop() {
         follower.update();
-        turret.run_using_pid();
-        depo.run_using_pid();
+        // turret.run_using_pid();
+        // depo.run_using_pid();
+        updateShootState();
         updateAutoState();
         telemetry.addData("SELECTED", selectedScenario());
         updateAprilTag();
         updateTelemetry();
-        updateShootState();
+        telemetry.update();
     }
 
     @Override
@@ -350,8 +355,7 @@ public class EntireAuto extends OpMode {
                     follower.followPath(shootToSample1, true);
                     if (isBlue || isRed || isBlue2) {
                         setPathState(AutoState.SAMPLE1TOPOINT2);
-                    }
-                    else {
+                    } else {
                         setPathState(AutoState.SAMPLE3TODONE);
                     }
                 }
@@ -394,8 +398,7 @@ public class EntireAuto extends OpMode {
                 if (pathTimer.getElapsedTimeSeconds() >= 3) {
                     if (isBlueSample || isRedSample) {
                         setPathState(AutoState.SAMPLE3TODONE);
-                    }
-                    else {
+                    } else {
                         setPathState(AutoState.SAMPLE2TOSHOOT2);
                     }
                 }
@@ -454,8 +457,7 @@ public class EntireAuto extends OpMode {
                         follower.followPath(sample3ToDone, true);
                         setPathState(AutoState.DONE);
                     }
-                }
-                else {
+                } else {
                     // Small paths build their one curve in shootToSample1.
                     follower.followPath(shootToSample1, true);
                     setPathState(AutoState.DONE);
@@ -474,39 +476,21 @@ public class EntireAuto extends OpMode {
     private void updateShootState() {
         switch (shootState) {
             case INTAKE:
-                //needDepo = false;
-                intake.turn_on_intake();
+                // intake motor disabled
+                // intake.turn_on_intake();
                 break;
             case SHOOT:
                 isShootOffset = false;
-                //needDepo = true;
-                turret.setPositionDeg(90);
-                intake.turn_on_intake();
-                if (Math.abs(turret.getPositionDeg() - 90) <= TURRET_TOLERANCE_DEG || timers.isRunning("depo")) {
-                    runAutoDepo();
-                }
+                // intake motor, flywheel, and hatch disabled — do not block the path
+                // intake.turn_on_intake();
+                // runAutoDepo();
+                isHatchClosed = true;
                 break;
             case SHOOTOFFSET:
                 isShootOffset = true;
-                //needDepo = true;
-                double robotX = follower.getPose().getX();
-                double robotY = follower.getPose().getY();
-                double headingDeg = Math.toDegrees(follower.getPose().getHeading());
-                double offsetDeg;
-                if (isBlueOpposite) {
-                    offsetDeg = turretAngleBlueOpposite(robotX, robotY, headingDeg);
-                } else if (isRedGarden) {
-                    offsetDeg = turretAngleRedGarden(robotX, robotY, headingDeg);
-                } else if (isRedOpposite) {
-                    offsetDeg = turretAngleRedOpposite(robotX, robotY, headingDeg);
-                } else {
-                    offsetDeg = turretAngleBlueGarden(robotX, robotY, headingDeg);
-                }
-                if (offsetDeg < -90) offsetDeg += 360;
-                turret.setPositionDeg(offsetDeg);
-                if (Math.abs(turret.getPositionDeg() - offsetDeg) <= TURRET_TOLERANCE_DEG || timers.isRunning("depo")) {
-                    runAutoDepo();
-                }
+                // intake motor, flywheel, and hatch disabled — do not block the path
+                // runAutoDepo();
+                isHatchClosed = true;
                 break;
             case FLOWERINTAKE:
                 if (pathTimer.getElapsedTimeSeconds() >= 3) {
@@ -514,11 +498,8 @@ public class EntireAuto extends OpMode {
                 }
                 if (!flowerIntakeDone) {
                     intake.flower_down();
-                    intake.turn_on_intake();
-                }
-                else {
+                } else {
                     intake.flower_up();
-                    intake.turn_off_intake();
                 }
                 break;
 
@@ -595,21 +576,18 @@ public class EntireAuto extends OpMode {
     private void buildPaths() {
         if (isBlue || isRed || isBlue2) {
             buildAkashRoute();
-        }
-        else if(isSmallBlue) {
+        } else if (isSmallBlue) {
             shootToSample1 = follower.pathBuilder()
                     .addPath(new BezierCurve(start, new Pose(73.47804878048782, 23.213414634146346), done))
                     .setLinearHeadingInterpolation(start.getHeading(), done.getHeading())
                     .build();
 
-        }
-        else if(isSmallRed) {
+        } else if (isSmallRed) {
             shootToSample1 = follower.pathBuilder()
                     .addPath(new BezierCurve(start, new Pose(70.52195121951218, 120.78658536585365), done))
                     .setLinearHeadingInterpolation(start.getHeading(), done.getHeading())
                     .build();
-        }
-        else if(isBlueSample) {
+        } else if (isBlueSample) {
             point2ToSample2 = follower.pathBuilder()
                     .addPath(new BezierCurve(start, new Pose(88.3183, 28.3902), sample1))
                     .setLinearHeadingInterpolation(start.getHeading(), sample1.getHeading())
@@ -619,8 +597,7 @@ public class EntireAuto extends OpMode {
                     .addPath(new BezierLine(sample1, done))
                     .setLinearHeadingInterpolation(sample1.getHeading(), done.getHeading())
                     .build();
-        }
-        else if(isRedSample) {
+        } else if (isRedSample) {
             point2ToSample2 = follower.pathBuilder()
                     .addPath(new BezierCurve(start, new Pose(55.6817, 115.6098), sample1))
                     .setLinearHeadingInterpolation(start.getHeading(), sample1.getHeading())
@@ -675,49 +652,85 @@ public class EntireAuto extends OpMode {
 
     public void gamepadSide() {
         if (gamepad1.y) {
-            isBlue = true; isRed = false; isSmallBlue = false; isSmallRed = false; isBlueSample = false; isRedSample = false; isBlue2 = false;
+            isBlue = true;
+            isRed = false;
+            isSmallBlue = false;
+            isSmallRed = false;
+            isBlueSample = false;
+            isRedSample = false;
+            isBlue2 = false;
             poses();
             buildPaths();
             follower.setPose(start);
             autoState = AutoState.SHOOTTOSAMPLE1;
-        }
-        else if(gamepad1.a) {
-            isRed = true; isBlue = false; isSmallBlue = false; isSmallRed = false; isBlueSample = false; isRedSample = false; isBlue2 = false;
+        } else if (gamepad1.a) {
+            isRed = true;
+            isBlue = false;
+            isSmallBlue = false;
+            isSmallRed = false;
+            isBlueSample = false;
+            isRedSample = false;
+            isBlue2 = false;
             poses();
             buildPaths();
             follower.setPose(start);
             autoState = AutoState.SHOOTTOSAMPLE1;
-        }
-        else if(gamepad1.x) {
-            isSmallBlue = true; isBlue = false; isRed = false; isSmallRed = false; isBlueSample = false; isRedSample = false; isBlue2 = false;
+        } else if (gamepad1.x) {
+            isSmallBlue = true;
+            isBlue = false;
+            isRed = false;
+            isSmallRed = false;
+            isBlueSample = false;
+            isRedSample = false;
+            isBlue2 = false;
             poses();
             buildPaths();
             follower.setPose(start);
             autoState = AutoState.SAMPLE3TODONE;
-        }
-        else if(gamepad1.b) {
-            isSmallRed = true; isSmallBlue = false; isBlue = false; isRed = false; isBlueSample = false; isRedSample = false; isBlue2 = false;
+        } else if (gamepad1.b) {
+            isSmallRed = true;
+            isSmallBlue = false;
+            isBlue = false;
+            isRed = false;
+            isBlueSample = false;
+            isRedSample = false;
+            isBlue2 = false;
             poses();
             buildPaths();
             follower.setPose(start);
             autoState = AutoState.SAMPLE3TODONE;
-        }
-        else if(gamepad1.dpad_up) {
-            isBlueSample = true; isBlue = false; isRed = false; isSmallBlue = false; isSmallRed = false; isRedSample = false; isBlue2 = false;
+        } else if (gamepad1.dpad_up) {
+            isBlueSample = true;
+            isBlue = false;
+            isRed = false;
+            isSmallBlue = false;
+            isSmallRed = false;
+            isRedSample = false;
+            isBlue2 = false;
             poses();
             buildPaths();
             follower.setPose(start);
             autoState = AutoState.POINT2TOSAMPLE2;
-        }
-        else if(gamepad1.dpad_down) {
-            isRedSample = true; isBlue = false; isRed = false; isSmallBlue = false; isSmallRed = false; isBlueSample = false; isBlue2 = false;
+        } else if (gamepad1.dpad_down) {
+            isRedSample = true;
+            isBlue = false;
+            isRed = false;
+            isSmallBlue = false;
+            isSmallRed = false;
+            isBlueSample = false;
+            isBlue2 = false;
             poses();
             buildPaths();
             follower.setPose(start);
             autoState = AutoState.POINT2TOSAMPLE2;
-        }
-        else if(gamepad1.dpad_left) {
-            isBlue2 = true; isBlue = false; isRed = false; isSmallBlue = false; isSmallRed = false; isBlueSample = false; isRedSample = false;
+        } else if (gamepad1.dpad_left) {
+            isBlue2 = true;
+            isBlue = false;
+            isRed = false;
+            isSmallBlue = false;
+            isSmallRed = false;
+            isBlueSample = false;
+            isRedSample = false;
             poses();
             buildPaths();
             follower.setPose(start);
@@ -737,24 +750,18 @@ public class EntireAuto extends OpMode {
     }
 
     public void runAutoDepo() {
-        depo.run_using_pid();
-
-        if (depo.reachedvelocity() && !timers.isRunning("depo")){
-            timers.start("depo");
-            depo.open_hatch(turret.getPositionDeg());
-            intake.turn_on_intake();
-            isHatchClosed = false;
-        }
-        if (timers.checkSecondsLast("depo", 2)){
-            depo.turn_off_deposit();
-            depo.close_hatch();
-            intake.turn_off_intake();
-            isHatchClosed = true;
-        }
+        // Flywheel, hatch, and intake motor disabled.
+        // depo.run_using_pid();
+        // depo.open_hatch();
+        // depo.turn_off_deposit();
+        // depo.close_hatch();
+        // intake.turn_on_intake();
+        // intake.turn_off_intake();
+        isHatchClosed = true;
     }
 
     private void turnOnShooter() {
-        depo.turn_on_deposit(isShootOffset ? 1495 : 1485);
+        // depo.turn_on_deposit();
     }
 
     public boolean isShootingOffset() {
@@ -771,9 +778,28 @@ public class EntireAuto extends OpMode {
             telemetry.addData("heading (deg)", Math.toDegrees(pose.getHeading()));
         }
         telemetry.addData("path time", pathTimer.getElapsedTimeSeconds());
+        telemetry.addData("depo", "disabled");
+        telemetry.addData("shoot gate (isHatchClosed)", isHatchClosed);
+        telemetry.addData("follower busy", follower.isBusy());
         telemetry.addData("Tag filter", tagAlliance == null ? "ALL" : tagAlliance.name());
         telemetry.addData("Last accepted tag", seenTag == null ? "none" : seenTag.id);
         telemetry.addData("Selected hive", selectedHive == null ? "UNKNOWN" : selectedHive.displayName());
         telemetry.addData("Opposite hive", oppositeHive == null ? "UNRESOLVED" : oppositeHive.displayName());
+    }
+
+
+    /** Lets TeleOp call {@link #returnCoordinates()} with the same follower that is being driven. */
+    public void bindFollower(CustomFollower follower) {
+        this.follower = follower;
+    }
+
+    public static Pose getSavedTeleopPose() {
+        return teleop;
+    }
+
+    public Pose returnCoordinates() {
+        teleop = new Pose(follower.getPose().getX(), follower.getPose().getY(), follower.getPose().getHeading());
+
+        return teleop;
     }
 }

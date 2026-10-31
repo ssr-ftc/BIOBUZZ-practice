@@ -374,7 +374,7 @@ public class LM0_Auto extends OpMode {
                 break;
             case SHOOTOFFSET:
                 //needDepo = true;
-                double offsetDeg = turretAngle(follower.getPose().getX(), follower.getPose().getY(), Math.toDegrees(follower.getPose().getHeading()));
+                double offsetDeg = turretAngle(follower.getPose());
                 turret.setPositionDeg(offsetDeg);
                 intake.turn_on_intake();
                 if(turret.getPositionDeg() >= offsetDeg) {
