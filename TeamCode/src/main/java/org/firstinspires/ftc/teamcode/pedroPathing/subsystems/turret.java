@@ -13,6 +13,7 @@ public class turret {
     private static final double HIVE_Y = 81.4;
    static double deg;
    static double totalDeg;
+   final double scalerToDegrees = -2.1;
 
     private DcMotorEx turret;
     public Servo cam;
@@ -27,10 +28,10 @@ public class turret {
     }
     PIDFController pid;
     public double power;
-    public static double p = 0.0015; //0.002
-    public static double i = 0.05; //0
-    public static double d = 0.0005; //0
-    public static double kF = 0.000;
+    public static double p = 0.0078; //0.002
+    public static double i = 0.055; //0
+    public static double d = 0.00039; //0
+    public static double kF = 0.0002;
     private double targetPos = 0;
 
     public void setPositionTicks(double x) {
@@ -38,7 +39,7 @@ public class turret {
     }
     public void setPositionDeg(double x) {
         if(x < -90) x += 360;
-        targetPos = 0.566667 * x;
+        targetPos = scalerToDegrees * x;
     }
 
     public void run_using_pid() {
@@ -62,7 +63,7 @@ public class turret {
     }
 
     public double getPositionDeg() {
-        return turret.getCurrentPosition() / 0.566667;
+        return turret.getCurrentPosition() / scalerToDegrees;
     }
 
     // blue hive cell in field coordinates (my estimate, edit these two if you know better)
