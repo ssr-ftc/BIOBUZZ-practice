@@ -1,7 +1,7 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.Tests;
 
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -17,7 +17,7 @@ public class HatchTest extends OpMode {
     @Override
     public void init() {
         follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(new Pose(0, 0, 0));
+        follower.setPose(new Pose(0, 0, 0));
         hatch = hardwareMap.get(Servo.class, "hatch");
         hatch.setPosition(0);
     }

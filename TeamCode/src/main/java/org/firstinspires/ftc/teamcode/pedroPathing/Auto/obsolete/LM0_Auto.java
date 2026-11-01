@@ -8,12 +8,13 @@ package org.firstinspires.ftc.teamcode.pedroPathing.Auto.obsolete;
 
 import static org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turret.turretAngle;
 
-import com.pedropathing.geometry.BezierCurve;
-import com.pedropathing.geometry.BezierLine;
-import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.HeadingInterpolator;
-import com.pedropathing.paths.PathChain;
-import com.pedropathing.util.Timer;
+import com.pedropathing.math.Pose;
+import com.pedropathing.paths.Path;
+import com.pedropathing.paths.interpolator.Interpolator;
+import com.pedropathing.utils.Timer;
+
+import static com.pedropathing.api.Paths.curve;
+import static com.pedropathing.api.Paths.line;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -50,7 +51,7 @@ public class LM0_Auto extends OpMode {
     private CRServo turret_servo;
     private CustomFollower follower;
     Pose start, sample1, point2, shoot, sample2, done;
-    private PathChain startToSample1, sample1ToPoint2, sample1ToShoot, shootToDone;
+    private Path startToSample1, sample1ToPoint2, sample1ToShoot, shootToDone;
 
     private Timer pathTimer, opModeTimer;
     // pedroPathing's Timer is already imported above, so the team's own Timer (same one soloTeleop uses) needs its full name
@@ -137,8 +138,8 @@ public class LM0_Auto extends OpMode {
 
     @Override
     public void start() {
-        opModeTimer.resetTimer();
-        pathTimer.resetTimer();
+        opModeTimer.reset();
+        pathTimer.reset();
         intake.start();
         depo.start();
         turret.ResetTurretEncoders();
@@ -308,7 +309,7 @@ public class LM0_Auto extends OpMode {
 
         switch (autoState) {
             case STARTTOSAMPLE1:
-                if (pathTimer.getElapsedTimeSeconds() > 1.25) {
+                if (pathTimer.seconds() > 1.25) {
                     setShootState(ShootState.INTAKE);
                     follower.acceleration(0.5, 1.0, 1.0, 0.5);
                     follower.followPath(startToSample1, true);
@@ -374,7 +375,7 @@ public class LM0_Auto extends OpMode {
                 break;
             case SHOOTOFFSET:
                 //needDepo = true;
-                double offsetDeg = turretAngle(follower.getPose().getX(), follower.getPose().getY(), Math.toDegrees(follower.getPose().getHeading()));
+                double offsetDeg = turretAngle(follower.getPose().x(), follower.getPose().y(), Math.toDegrees(follower.getPose().heading()));
                 turret.setPositionDeg(offsetDeg);
                 intake.turn_on_intake();
                 if(turret.getPositionDeg() >= offsetDeg) {
@@ -387,7 +388,7 @@ public class LM0_Auto extends OpMode {
 
     private void setPathState(AutoState newState) {
         autoState = newState;
-        pathTimer.resetTimer();
+        pathTimer.reset();
     }
 
     private void setShootState(ShootState newState) {
@@ -442,97 +443,44 @@ public class LM0_Auto extends OpMode {
 
     private void buildPaths() {
         if (isBlue) {
-            startToSample1 = follower.pathBuilder()
-                    .addPath(new BezierLine(start, sample1))
-                    .setLinearHeadingInterpolation(start.getHeading(), sample1.getHeading())
-                    .build();
-
-            sample1ToShoot = follower.pathBuilder()
-                    .addPath(new BezierCurve(sample1, new Pose(125.05243902439025, 65.78780487804879), new Pose(112.61829268292684, 29.90365853658537), shoot))
-                    .setHeadingInterpolation(HeadingInterpolator.piecewise(new HeadingInterpolator.PiecewiseNode(0, 0.15, HeadingInterpolator.linear(sample1.getHeading(), shoot.getHeading())),
-                            new HeadingInterpolator.PiecewiseNode(0.15, 1, HeadingInterpolator.constant(Math.toRadians(-90)))))
-                    .build();
-
-            shootToDone = follower.pathBuilder()
-                    .addPath(new BezierCurve(shoot, new Pose(98.33658536585365, 38.026829268292694), done))
-                    .setLinearHeadingInterpolation(shoot.getHeading(), done.getHeading())
-                    .build();
-        }
-
-        else if(isRed) {
-            startToSample1 = follower.pathBuilder()
-                    .addPath(new BezierLine(start, sample1))
-                    .setLinearHeadingInterpolation(start.getHeading(), sample1.getHeading())
-                    .build();
-
-            sample1ToShoot = follower.pathBuilder()
-                    .addPath(new BezierCurve(sample1, new Pose(18.94756097560975, 78.21219512195121), new Pose(31.38170731707316, 114.09634146341463), shoot))
-                    .setHeadingInterpolation(HeadingInterpolator.piecewise(new HeadingInterpolator.PiecewiseNode(0, 0.15, HeadingInterpolator.linear(sample1.getHeading(), shoot.getHeading())),
-                            new HeadingInterpolator.PiecewiseNode(0.15, 1, HeadingInterpolator.constant(Math.toRadians(90)))))
-                    .build();
-
-            shootToDone = follower.pathBuilder()
-                    .addPath(new BezierCurve(shoot, new Pose(45.66341463414635, 105.97317073170731), done))
-                    .setLinearHeadingInterpolation(shoot.getHeading(), done.getHeading())
-                    .build();
-        }
-        else if(isSmallBlue) {
-            startToSample1 = follower.pathBuilder()
-                    .addPath(new BezierCurve(start, new Pose(73.47804878048782, 23.213414634146346), done))
-                    .setLinearHeadingInterpolation(start.getHeading(), done.getHeading())
-                    .build();
-
-        }
-        else if(isSmallRed) {
-            startToSample1 = follower.pathBuilder()
-                    .addPath(new BezierCurve(start, new Pose(70.52195121951218, 120.78658536585365), done))
-                    .setLinearHeadingInterpolation(start.getHeading(), done.getHeading())
-                    .build();
-        }
-        else if(isBlueSample) {
-            sample1ToShoot = follower.pathBuilder()
-                    .addPath(new BezierCurve(start, new Pose(88.3183, 28.3902), sample1))
-                    .setLinearHeadingInterpolation(start.getHeading(), sample1.getHeading())
-                    .build();
-
-            shootToDone = follower.pathBuilder()
-                    .addPath(new BezierLine(sample1, done))
-                    .setLinearHeadingInterpolation(sample1.getHeading(), done.getHeading())
-                    .build();
-        }
-        else if(isRedSample) {
-            sample1ToShoot = follower.pathBuilder()
-                    // Exactly reflected control point (144 - X, 144 - Y)
-                    .addPath(new BezierCurve(start, new Pose(55.6817, 115.6098), sample1))
-                    .setLinearHeadingInterpolation(start.getHeading(), sample1.getHeading())
-                    .build();
-
-            shootToDone = follower.pathBuilder()
-                    .addPath(new BezierLine(sample1, done))
-                    .setLinearHeadingInterpolation(sample1.getHeading(), done.getHeading())
-                    .build();
-        }
-        else if(isBlue2) {
-            startToSample1 = follower.pathBuilder()
-                    .addPath(new BezierLine(start, sample1))
-                    .setLinearHeadingInterpolation(start.getHeading(), sample1.getHeading())
-                    .build();
-
-            sample1ToPoint2 = follower.pathBuilder()
-                    .addPath(new BezierLine(sample1, point2))
-                    .setLinearHeadingInterpolation(sample1.getHeading(), point2.getHeading())
-                    .build();
-
-            sample1ToShoot = follower.pathBuilder()
-                    .addPath(new BezierCurve(point2, new Pose(118.3537, 26.6378), shoot))
-                    .setHeadingInterpolation(HeadingInterpolator.piecewise(new HeadingInterpolator.PiecewiseNode(0, 0.15, HeadingInterpolator.linear(point2.getHeading(), shoot.getHeading())),
-                            new HeadingInterpolator.PiecewiseNode(0.15, 1, HeadingInterpolator.constant(Math.toRadians(-90)))))
-                    .build();
-
-            shootToDone = follower.pathBuilder()
-                    .addPath(new BezierCurve(shoot, new Pose(98.33658536585365, 38.026829268292694), done))
-                    .setLinearHeadingInterpolation(shoot.getHeading(), done.getHeading())
-                    .build();
+            startToSample1 = line(start, sample1).linear(start.heading(), sample1.heading());
+            sample1ToShoot = curve(sample1, new Pose(125.05243902439025, 65.78780487804879), new Pose(112.61829268292684, 29.90365853658537), shoot)
+                    .heading(Interpolator.piecewise()
+                            .until(0.15, Interpolator.linear(sample1.heading(), shoot.heading()))
+                            .until(1, Interpolator.constant(Math.toRadians(-90))));
+            shootToDone = curve(shoot, new Pose(98.33658536585365, 38.026829268292694), done)
+                    .linear(shoot.heading(), done.heading());
+        } else if (isRed) {
+            startToSample1 = line(start, sample1).linear(start.heading(), sample1.heading());
+            sample1ToShoot = curve(sample1, new Pose(18.94756097560975, 78.21219512195121), new Pose(31.38170731707316, 114.09634146341463), shoot)
+                    .heading(Interpolator.piecewise()
+                            .until(0.15, Interpolator.linear(sample1.heading(), shoot.heading()))
+                            .until(1, Interpolator.constant(Math.toRadians(90))));
+            shootToDone = curve(shoot, new Pose(45.66341463414635, 105.97317073170731), done)
+                    .linear(shoot.heading(), done.heading());
+        } else if (isSmallBlue) {
+            startToSample1 = curve(start, new Pose(73.47804878048782, 23.213414634146346), done)
+                    .linear(start.heading(), done.heading());
+        } else if (isSmallRed) {
+            startToSample1 = curve(start, new Pose(70.52195121951218, 120.78658536585365), done)
+                    .linear(start.heading(), done.heading());
+        } else if (isBlueSample) {
+            sample1ToShoot = curve(start, new Pose(88.3183, 28.3902), sample1)
+                    .linear(start.heading(), sample1.heading());
+            shootToDone = line(sample1, done).linear(sample1.heading(), done.heading());
+        } else if (isRedSample) {
+            sample1ToShoot = curve(start, new Pose(55.6817, 115.6098), sample1)
+                    .linear(start.heading(), sample1.heading());
+            shootToDone = line(sample1, done).linear(sample1.heading(), done.heading());
+        } else if (isBlue2) {
+            startToSample1 = line(start, sample1).linear(start.heading(), sample1.heading());
+            sample1ToPoint2 = line(sample1, point2).linear(sample1.heading(), point2.heading());
+            sample1ToShoot = curve(point2, new Pose(118.3537, 26.6378), shoot)
+                    .heading(Interpolator.piecewise()
+                            .until(0.15, Interpolator.linear(point2.heading(), shoot.heading()))
+                            .until(1, Interpolator.constant(Math.toRadians(-90))));
+            shootToDone = curve(shoot, new Pose(98.33658536585365, 38.026829268292694), done)
+                    .linear(shoot.heading(), done.heading());
         }
     }
 
@@ -615,11 +563,11 @@ public class LM0_Auto extends OpMode {
         telemetry.addData("auto state", autoState);
         Pose pose = follower.getPose();
         if (pose != null) {
-            telemetry.addData("x", pose.getX());
-            telemetry.addData("y", pose.getY());
-            telemetry.addData("heading (deg)", Math.toDegrees(pose.getHeading()));
+            telemetry.addData("x", pose.x());
+            telemetry.addData("y", pose.y());
+            telemetry.addData("heading (deg)", Math.toDegrees(pose.heading()));
         }
-        telemetry.addData("path time", pathTimer.getElapsedTimeSeconds());
+        telemetry.addData("path time", pathTimer.seconds());
         telemetry.addData("Tag filter", tagAlliance == null ? "ALL" : tagAlliance.name());
         telemetry.addData("Last accepted tag", seenTag == null ? "none" : seenTag.id);
         telemetry.addData("Selected hive", selectedHive == null ? "UNKNOWN" : selectedHive.displayName());

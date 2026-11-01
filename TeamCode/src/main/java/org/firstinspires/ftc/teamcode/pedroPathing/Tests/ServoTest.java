@@ -1,7 +1,7 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.Tests;
 
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -22,7 +22,7 @@ public class ServoTest extends OpMode {
     @Override
     public void init() {//this is called once when the driver presses init
         follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(new Pose(0, 0, 0));
+        follower.setPose(new Pose(0, 0, 0));
         hatch = hardwareMap.get(Servo.class,"hatch");
         flower = hardwareMap.get(Servo.class,"flower_intake");
         cam = hardwareMap.get(Servo.class,"camera");
@@ -38,7 +38,6 @@ public class ServoTest extends OpMode {
         flower.setPosition(0.5);
         hatch.setPosition(0.54);
         cam.setPosition(0.5);
-        follower.startTeleopDrive();
     }
 
     @Override
@@ -65,7 +64,7 @@ public class ServoTest extends OpMode {
         double strafe = gamepad1.left_stick_x  * speedScale;
         double turn = gamepad1.right_stick_x * speedScale;
 
-        follower.setTeleOpDrive(forward, strafe, turn, true);
+        follower.manual(forward, strafe, turn);
     }
 
 

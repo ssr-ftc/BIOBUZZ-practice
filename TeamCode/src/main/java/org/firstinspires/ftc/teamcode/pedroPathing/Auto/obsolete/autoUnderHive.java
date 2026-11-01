@@ -1,12 +1,12 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.Auto.obsolete;
 
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.BezierCurve;
-import com.pedropathing.geometry.BezierLine;
-import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.HeadingInterpolator;
-import com.pedropathing.paths.PathChain;
-import com.pedropathing.util.Timer;
+import com.pedropathing.math.Pose;
+import com.pedropathing.paths.Path;
+import com.pedropathing.utils.Timer;
+
+import static com.pedropathing.api.Paths.curve;
+import static com.pedropathing.api.Paths.line;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
@@ -48,63 +48,20 @@ public class autoUnderHive extends OpMode {
     private final Pose oppositFlower = new Pose(52, 114.5, Math.toRadians(103));
     private final Pose endPath4 = new Pose(11, 109, Math.toRadians(0));
 
-    private PathChain start_path1, path1_path2, path2_shoot, shoot_approachFlower, apprpoach_nearFlower, nearFlower_oppFlower, shoot2_oppFlower, flower_park;
+    private Path start_path1, path1_path2, path2_shoot, shoot_approachFlower, apprpoach_nearFlower, nearFlower_oppFlower, shoot2_oppFlower, flower_park;
 
     public void buildPaths() {
-        start_path1 = follower.pathBuilder()
-                .addPath(new BezierLine(startingCoordinate, endPath1))
-                .setTangentHeadingInterpolation()
-                .build();
-        path1_path2 = follower.pathBuilder()
-                .addPath(new BezierLine(endPath1, endPath2))
-                .setTangentHeadingInterpolation()
-                .build();
-        path2_shoot = follower.pathBuilder()
-                .addPath(new BezierLine(endPath2,
-                        endPathnew))
-
-                        //new Pose(61.5, 12),
-                        //new Pose(48.5, 27.5),
-                        //new Pose(63.5, 109),
-
-                /*
-                .setHeadingInterpolation(HeadingInterpolator.piecewise(
-                        HeadingInterpolator.PiecewiseNode.linear(0, 0.313, endPath2.getHeading(), Math.toRadians(63)),
-                        new HeadingInterpolator.PiecewiseNode(0.313, 0.741, HeadingInterpolator.tangent),
-                        HeadingInterpolator.PiecewiseNode.linear(0.741, 1, Math.toRadians(105), endPath3.getHeading())
-                ))
-                 */
-                .setHeadingInterpolation(HeadingInterpolator.tangent.reverse())
-                .build();
-        shoot_approachFlower = follower.pathBuilder()
-                .addPath(new BezierLine(endPathnew, approachingFlower))
-                .setLinearHeadingInterpolation(endPathnew.getHeading(), approachingFlower.getHeading())
-                .build();
-        apprpoach_nearFlower = follower.pathBuilder()
-                .addPath(new BezierLine(approachingFlower, flowerNearSlow))
-                .setTangentHeadingInterpolation()
-                .build();
-        /*
-        shoot2_oppFlower = follower.pathBuilder()
-                .addPath(new BezierCurve(endPathnew,
-                        new Pose(60,69),
-                        oppositFlower))
-                .setTangentHeadingInterpolation()
-                .build();
-         */
-        nearFlower_oppFlower = follower.pathBuilder()
-                .addPath(new BezierCurve(flowerNearSlow,
-                        new Pose(26.5, 100),
-                        oppositFlower))
-                .build();
-        flower_park = follower.pathBuilder()
-                .addPath(new BezierLine(oppositFlower, endPath4))
-                .setTangentHeadingInterpolation()
-                .build();
+        start_path1 = line(startingCoordinate, endPath1).tangent();
+        path1_path2 = line(endPath1, endPath2).tangent();
+        path2_shoot = line(endPath2, endPathnew).reverseTangent();
+        shoot_approachFlower = line(endPathnew, approachingFlower).linear(endPathnew.heading(), approachingFlower.heading());
+        apprpoach_nearFlower = line(approachingFlower, flowerNearSlow).tangent();
+        nearFlower_oppFlower = curve(flowerNearSlow, new Pose(26.5, 100), oppositFlower).tangent();
+        flower_park = line(oppositFlower, endPath4).tangent();
     }
 
     public boolean waitFor(double seconds) {
-        return pathTimer.getElapsedTimeSeconds() > seconds;
+        return pathTimer.seconds() > seconds;
     }
 
 
@@ -124,7 +81,7 @@ public class autoUnderHive extends OpMode {
 
 
     public void statePathUpdate() {
-        double timeElapsed = pathTimer.getElapsedTimeSeconds();
+        double timeElapsed = pathTimer.seconds();
         switch (pathState) {
             case SHOOT1:
                 if (timeElapsed > 1 && !depo.isDepositOn()) {
@@ -135,32 +92,33 @@ public class autoUnderHive extends OpMode {
             case STARTING_COORDINATE:
                 if (!depo.isDepositOn()) {
                     //depo.turn_off_deposit();
-                    follower.followPath(start_path1, true);
+                    follower.follow(start_path1);
                     setPathState(PathState.END_PATH_1);
                 }
                 break;
             case END_PATH_1:
                 if (!follower.isBusy()) {
                     intake.turn_on_intake();
-                    follower.followPath(path1_path2, 0.4,  true);
+                    Constants.setPathPower(0.4);
+                    follower.follow(path1_path2);
                     setPathState(PathState.END_PATH_2);
                 }
                 break;
             case END_PATH_2:
                 if (!follower.isBusy()) {
                     //intake.turn_off_intake();
-                    //follower.followPath(path2_shoot, true);
+                    //follower.follow(path2_shoot);
                     setPathState(PathState.END_PATH_NEW);
                 }
                 break;
             case END_PATH_NEW:
-                if (pathTimer.getElapsedTimeSeconds() > 1) {
-                    follower.followPath(path2_shoot,  true);
+                if (pathTimer.seconds() > 1) {
+                    follower.follow(path2_shoot);
                     setPathState(PathState.SHOOT2);
                 }
                 break;
             case SHOOT2:
-                if (!follower.isBusy() && pathTimer.getElapsedTimeSeconds() > 1) {
+                if (!follower.isBusy() && pathTimer.seconds() > 1) {
                     depo.turn_on_deposit();
                     setPathState(PathState.NEARFLOWER);
                 }
@@ -168,14 +126,15 @@ public class autoUnderHive extends OpMode {
             case NEARFLOWER:
                 if (!follower.isBusy() && !depo.isDepositOn()) {
                     intake.flower_down();
-                    follower.followPath(shoot_approachFlower, true);
+                    follower.follow(shoot_approachFlower);
                     setPathState(PathState.INTAKEFLOWER);
                 }
                 break;
             case INTAKEFLOWER:
                 if (!follower.isBusy()) {
                     intake.turn_on_intake();
-                    follower.followPath(apprpoach_nearFlower, 0.5, true);
+                    Constants.setPathPower(0.5);
+                    follower.follow(apprpoach_nearFlower);
                     setPathState(PathState.WAITATFLOWER);
                 }
                 break;
@@ -185,22 +144,22 @@ public class autoUnderHive extends OpMode {
                 }
                 break;
             case NEAR_OPPFLOWER:
-                if (!follower.isBusy() && pathTimer.getElapsedTimeSeconds() > 2) {
-                    follower.followPath(nearFlower_oppFlower, true);
+                if (!follower.isBusy() && pathTimer.seconds() > 2) {
+                    follower.follow(nearFlower_oppFlower);
                     setPathState(PathState.END_PATH_3);
                 }
                 break;
                 /*
             case WAIT_AT_PATH2:
                 if (!follower.isBusy() && !depo.isDepositOn()) {
-                    follower.followPath(shoot2_oppFlower);
+                    follower.follow(shoot2_oppFlower);
                     setPathState(PathState.END_PATH_3);
                 }
                 break;
                  */
             case END_PATH_3:
-                if (pathTimer.getElapsedTimeSeconds() > 2) {
-                    follower.followPath(flower_park, true);
+                if (pathTimer.seconds() > 2) {
+                    follower.follow(flower_park);
                     setPathState(PathState.DONE);
                 }
                 break;
@@ -217,7 +176,7 @@ public class autoUnderHive extends OpMode {
 
     public void setPathState(PathState newState) {
         pathState = newState;
-        pathTimer.resetTimer();
+        pathTimer.reset();
     }
 
     @Override
@@ -225,8 +184,6 @@ public class autoUnderHive extends OpMode {
         pathTimer = new Timer();
         opModeTimer = new Timer();
         follower = Constants.createFollower(hardwareMap);
-        follower.setCentripetalScaling(0.0015);
-        follower.getConstants().setBEZIER_CURVE_SEARCH_LIMIT(100);
         //intake = hardwareMap.get(DcMotorEx.class, "intake");
         intake = new intakeLM0(hardwareMap);
         depo = new depoLM0(hardwareMap);
@@ -238,7 +195,7 @@ public class autoUnderHive extends OpMode {
     }
     @Override
     public void start() {
-        opModeTimer.resetTimer();
+        opModeTimer.reset();
         setPathState(pathState);
         intake.start();
         depo.start();
@@ -250,9 +207,9 @@ public class autoUnderHive extends OpMode {
         useDepo();
         statePathUpdate();
         telemetry.addData("State", pathState);
-        telemetry.addData("X", follower.getPose().getX());
-        telemetry.addData("Y", follower.getPose().getY());
-        telemetry.addData("Heading (Deg)", Math.toDegrees(follower.getPose().getHeading()));
+        telemetry.addData("X", follower.pose().x());
+        telemetry.addData("Y", follower.pose().y());
+        telemetry.addData("Heading (Deg)", Math.toDegrees(follower.pose().heading()));
         telemetry.update();
     }
 }

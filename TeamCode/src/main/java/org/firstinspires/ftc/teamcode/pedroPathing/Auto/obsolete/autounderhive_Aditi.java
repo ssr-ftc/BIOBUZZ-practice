@@ -1,11 +1,11 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.Auto.obsolete;
 //Needs near fine tuning version 0.1.3.0
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.BezierLine;
-import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.HeadingInterpolator;
-import com.pedropathing.paths.PathChain;
-import com.pedropathing.util.Timer;
+import com.pedropathing.math.Pose;
+import com.pedropathing.paths.Path;
+import com.pedropathing.utils.Timer;
+
+import static com.pedropathing.api.Paths.line;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
@@ -100,59 +100,20 @@ public class autounderhive_Aditi extends OpMode {
     private final Pose getready4flower2 = new Pose(45.5631, 124.8262, Math.toRadians(90));
     private final Pose parkEnd = new Pose(2.2065, 113.9036, Math.toRadians(0));
 
-    private PathChain straightGardenIntake, straightGardenIntake2, path3, path4, path5, path6, shoot2, path8, path7, park;
+    private Path straightGardenIntake, straightGardenIntake2, path3, path4, path5, path6, shoot2, path8, path7, park;
 
     public void buildPaths() {
-        straightGardenIntake = follower.pathBuilder()
-                .addPath(new BezierLine(start, straightGardenIntakeEnd))
-                .setTangentHeadingInterpolation()
-                .build();
-
-        straightGardenIntake2 = follower.pathBuilder()
-                .addPath(new BezierLine(straightGardenIntakeEnd, straightGardenIntake2End))
-                .setTangentHeadingInterpolation()
-                .build();
-
-        path3 = follower.pathBuilder()
-                .addPath(new BezierLine(straightGardenIntake2End, shootaftergarden))
-                .setLinearHeadingInterpolation(straightGardenIntake2End.getHeading(), shootaftergarden.getHeading())
-                .build();
-
-        path4 = follower.pathBuilder()
-                .addPath(new BezierLine(shootaftergarden, flower1))
-                .setLinearHeadingInterpolation(shootaftergarden.getHeading(), flower1.getHeading())
-                .build();
-
-        path5 = follower.pathBuilder()
-                .addPath(new BezierLine(flower1, exitflower1))
-                .setHeadingInterpolation(HeadingInterpolator.tangent.reverse())
-                .build();
-
-        path6 = follower.pathBuilder()
-                .addPath(new BezierLine(exitflower1, shootflower1))
-                .setConstantHeadingInterpolation(shootflower1.getHeading())
-                .build();
-
-        shoot2 = follower.pathBuilder()
-                .addPath(new BezierLine(shootflower1, shoot2End))
-                .setHeadingInterpolation(HeadingInterpolator.tangent.reverse())
-                .build();
-
+        straightGardenIntake = line(start, straightGardenIntakeEnd).tangent();
+        straightGardenIntake2 = line(straightGardenIntakeEnd, straightGardenIntake2End).tangent();
+        path3 = line(straightGardenIntake2End, shootaftergarden).linear(straightGardenIntake2End.heading(), shootaftergarden.heading());
+        path4 = line(shootaftergarden, flower1).linear(shootaftergarden.heading(), flower1.heading());
+        path5 = line(flower1, exitflower1).reverseTangent();
+        path6 = line(exitflower1, shootflower1).constant(shootflower1.heading());
+        shoot2 = line(shootflower1, shoot2End).reverseTangent();
         // Turns to 90 degrees over the first part of the drive, then holds 90 to flower2.
-        path8 = follower.pathBuilder()
-                .addPath(new BezierLine(shoot2End, flower2))
-                .setLinearHeadingInterpolation(shoot2End.getHeading(), flower2.getHeading(), FLOWER2_TURN_END_T)
-                .build();
-
-        path7 = follower.pathBuilder()
-                .addPath(new BezierLine(flower2, getready4flower2))
-                .setConstantHeadingInterpolation(getready4flower2.getHeading())
-                .build();
-
-        park = follower.pathBuilder()
-                .addPath(new BezierLine(getready4flower2, parkEnd))
-                .setLinearHeadingInterpolation(getready4flower2.getHeading(), parkEnd.getHeading())
-                .build();
+        path8 = line(shoot2End, flower2).linear(shoot2End.heading(), flower2.heading(), FLOWER2_TURN_END_T);
+        path7 = line(flower2, getready4flower2).constant(getready4flower2.heading());
+        park = line(getready4flower2, parkEnd).linear(getready4flower2.heading(), parkEnd.heading());
     }
 
     /**
@@ -176,22 +137,23 @@ public class autounderhive_Aditi extends OpMode {
     public void statePathUpdate() {
         switch (pathState) {
             case SHOOT1:
-                if (pathTimer.getElapsedTimeSeconds() > 1 && !depo.isDepositOn() && turretAimed()) {
+                if (pathTimer.seconds() > 1 && !depo.isDepositOn() && turretAimed()) {
                     depo.turn_on_deposit();
                     setPathState(PathState.PATH1);
                 }
                 break;
             case PATH1:
                 if (!depo.isDepositOn()) {
-                    follower.followPath(straightGardenIntake, true);
+                    follower.follow(straightGardenIntake);
                     setPathState(PathState.PATH2);
                 }
                 break;
             case PATH2:
                 if (!follower.isBusy()) {
                     intake.turn_on_intake();
-                    //follower.setMaxPower(GARDEN_INTAKE_POWER);
-                    follower.followPath(straightGardenIntake2, 0.4, true);
+                    //Constants.setPathPower(GARDEN_INTAKE_POWER);
+                    Constants.setPathPower(0.4);
+                    follower.follow(straightGardenIntake2);
                     setPathState(PathState.PATH3);
                 }
                 break;
@@ -200,20 +162,20 @@ public class autounderhive_Aditi extends OpMode {
                     break;
                 }
                 if (!gardenHoldStarted) {
-                    pathTimer.resetTimer();
+                    pathTimer.reset();
                     gardenHoldStarted = true;
                     break;
                 }
-                if (pathTimer.getElapsedTimeSeconds() > GARDEN_HOLD_SECONDS) {
+                if (pathTimer.seconds() > GARDEN_HOLD_SECONDS) {
                     intake.turn_off_intake();
-                    follower.setMaxPower(1.0);
+                    Constants.setPathPower(1.0);
                     aimTurret(150);
-                    follower.followPath(path3, true);
+                    follower.follow(path3);
                     setPathState(PathState.SHOOT2);
                 }
                 break;
             case SHOOT2:
-                if (!follower.isBusy() && pathTimer.getElapsedTimeSeconds() > 1 && turretAimed()) {
+                if (!follower.isBusy() && pathTimer.seconds() > 1 && turretAimed()) {
                     depo.turn_on_deposit();
                     setPathState(PathState.PATH4);
                 }
@@ -221,17 +183,17 @@ public class autounderhive_Aditi extends OpMode {
             case PATH4:
                 if (!path4Started) {
                     if (!follower.isBusy() && !depo.isDepositOn()) {
-                        follower.setMaxPower(1.0);
+                        Constants.setPathPower(1.0);
                         intake.turn_off_intake();
                         intake.flower_up();
-                        follower.followPath(path4, true);
+                        follower.follow(path4);
                         path4Started = true;
                     }
                     break;
                 }
-                boolean path4Slow = follower.getCurrentTValue() >= PATH4_SLOW_START;
+                boolean path4Slow = follower.parametricCompletion() >= PATH4_SLOW_START;
                 if (path4Slow && !flowerPush) {
-                    follower.setMaxPower(PATH4_SLOW_POWER);
+                    Constants.setPathPower(PATH4_SLOW_POWER);
                 }
                 if (!path4FlowerDown && leadTimeReached(exitflower1, FLOWER_LEAD_SECONDS)) {
                     intake.flower_down();
@@ -244,27 +206,27 @@ public class autounderhive_Aditi extends OpMode {
                 }
                 break;
             case PATH4_INTAKE:
-                if (pathTimer.getElapsedTimeSeconds() > FLOWER_INTAKE_SECONDS) {
+                if (pathTimer.seconds() > FLOWER_INTAKE_SECONDS) {
                     intake.turn_off_intake();
                     intake.flower_up();
-                    follower.setMaxPower(1.0);
-                    follower.followPath(path5, true);
+                    Constants.setPathPower(1.0);
+                    follower.follow(path5);
                     setPathState(PathState.PATH5);
                 }
                 break;
             case PATH5:
                 if (!follower.isBusy()) {
-                    follower.setMaxPower(1.0);
+                    Constants.setPathPower(1.0);
                     flowerPush = false;
                     setTurretDeg(SECOND_HIVE_TURRET_DEG);
-                    follower.followPath(path6, true);
+                    follower.follow(path6);
                     setPathState(PathState.PATH6);
                 }
                 break;
             case PATH6:
                 if (!follower.isBusy()) {
-                    follower.setMaxPower(1.0);
-                    follower.followPath(shoot2, true);
+                    Constants.setPathPower(1.0);
+                    follower.follow(shoot2);
                     setPathState(PathState.DRIVE_SHOOT2);
                 }
                 break;
@@ -280,36 +242,36 @@ public class autounderhive_Aditi extends OpMode {
                 if (depo.isDepositOn()) {
                     break;
                 }
-                if (pathTimer.getElapsedTimeSeconds() > 1) {
-                    follower.setMaxPower(1.0);
+                if (pathTimer.seconds() > 1) {
+                    Constants.setPathPower(1.0);
                     flowerPush = false;
                     intake.flower_up();
-                    follower.followPath(path8, true);
+                    follower.follow(path8);
                     setPathState(PathState.PATH8);
                 }
                 break;
             case PATH8:
                 if (!follower.isBusy()) {
-                    follower.setMaxPower(1.0);
+                    Constants.setPathPower(1.0);
                     flowerPush = false;
-                    follower.followPath(path7, true);
+                    follower.follow(path7);
                     setPathState(PathState.PATH7);
                 }
                 break;
             case INTAKE_FLOWER:
-                if (pathTimer.getElapsedTimeSeconds() > FLOWER_INTAKE_SECONDS) {
+                if (pathTimer.seconds() > FLOWER_INTAKE_SECONDS) {
                     intake.flower_up();
                     depo.turn_on_deposit();
                     setPathState(PathState.SHOOT4);
                 }
                 break;
             case SHOOT4:
-                if (!depo.isDepositOn() && pathTimer.getElapsedTimeSeconds() > 1) {
+                if (!depo.isDepositOn() && pathTimer.seconds() > 1) {
                     intake.flower_up();
                     intake.turn_off_intake();
-                    follower.setMaxPower(1.0);
+                    Constants.setPathPower(1.0);
                     flowerPush = false;
-                    follower.followPath(park, true);
+                    follower.follow(park);
                     setPathState(PathState.PARK);
                 }
                 break;
@@ -317,19 +279,19 @@ public class autounderhive_Aditi extends OpMode {
                 if (!flower2Approach && distanceTo(getready4flower2) <= FAR_FLOWER_APPROACH_INCHES) {
                     flower2Approach = true;
                     intake.flower_down();
-                    follower.setMaxPower(FAR_FLOWER_APPROACH_POWER);
+                    Constants.setPathPower(FAR_FLOWER_APPROACH_POWER);
                 }
                 if (!reachedFlower(flower2Approach)) {
                     break;
                 }
                 if (!flower2ClearStarted) {
                     flower2ClearStarted = true;
-                    pathTimer.resetTimer();
-                    follower.setMaxPower(1.0);
+                    pathTimer.reset();
+                    Constants.setPathPower(1.0);
                     intake.flower_down();
                     break;
                 }
-                if (pathTimer.getElapsedTimeSeconds() < FLOWER2_CLEAR_SECONDS) {
+                if (pathTimer.seconds() < FLOWER2_CLEAR_SECONDS) {
                     intake.flower_down();
                     break;
                 }
@@ -377,20 +339,20 @@ public class autounderhive_Aditi extends OpMode {
         if (!follower.isBusy()) {
             return true;
         }
-        if (!slowApproach || follower.getVelocity().getMagnitude() > STALL_SPEED) {
-            stallTimer.resetTimer();
+        if (!slowApproach || follower.velocity().linSpeed() > STALL_SPEED) {
+            stallTimer.reset();
             return false;
         }
         if (!flowerPush) {
-            if (stallTimer.getElapsedTimeSeconds() > STALL_PUSH_SECONDS) {
+            if (stallTimer.seconds() > STALL_PUSH_SECONDS) {
                 flowerPush = true;
-                follower.setMaxPower(FLOWER_PUSH_POWER);
-                stallTimer.resetTimer();
+                Constants.setPathPower(FLOWER_PUSH_POWER);
+                stallTimer.reset();
             }
             return false;
         }
-        if (stallTimer.getElapsedTimeSeconds() > STALL_AT_FLOWER_SECONDS) {
-            follower.breakFollowing();
+        if (stallTimer.seconds() > STALL_AT_FLOWER_SECONDS) {
+            follower.stop();
             return true;
         }
         return false;
@@ -400,24 +362,24 @@ public class autounderhive_Aditi extends OpMode {
         if (!follower.isBusy()) {
             return true;
         }
-        double speed = follower.getVelocity().getMagnitude();
-        if (follower.getCurrentTValue() >= 0.8 && speed < 2.0 && distanceTo(target) <= 8) {
-            follower.breakFollowing();
+        double speed = follower.velocity().linSpeed();
+        if (follower.parametricCompletion() >= 0.8 && speed < 2.0 && distanceTo(target) <= 8) {
+            follower.stop();
             return true;
         }
         return false;
     }
 
     private double distanceTo(Pose target) {
-        Pose pose = follower.getPose();
-        double dx = target.getX() - pose.getX();
-        double dy = target.getY() - pose.getY();
+        Pose pose = follower.pose();
+        double dx = target.x() - pose.x();
+        double dy = target.y() - pose.y();
         return Math.hypot(dx, dy);
     }
 
     /** True once the robot is about {@code seconds} away from the pose at its current speed. */
     private boolean leadTimeReached(Pose target, double seconds) {
-        double speed = follower.getVelocity().getMagnitude();
+        double speed = follower.velocity().linSpeed();
         if (speed < 8) {
             return distanceTo(target) < 12;
         }
@@ -426,7 +388,7 @@ public class autounderhive_Aditi extends OpMode {
 
     public void setPathState(PathState newState) {
         pathState = newState;
-        pathTimer.resetTimer();
+        pathTimer.reset();
     }
 
     @Override
@@ -435,8 +397,6 @@ public class autounderhive_Aditi extends OpMode {
         opModeTimer = new Timer();
         stallTimer = new Timer();
         follower = Constants.createFollower(hardwareMap);
-        follower.setCentripetalScaling(0.0015);
-        follower.getConstants().setBEZIER_CURVE_SEARCH_LIMIT(100);
         intake = new intakeLM0(hardwareMap);
         intake.flower_up();
         depo = new depoLM0(hardwareMap);
@@ -451,7 +411,7 @@ public class autounderhive_Aditi extends OpMode {
 
     @Override
     public void start() {
-        opModeTimer.resetTimer();
+        opModeTimer.reset();
         setPathState(pathState);
         intake.start();
         depo.start();
@@ -469,9 +429,9 @@ public class autounderhive_Aditi extends OpMode {
         useDepo();
         statePathUpdate();
         telemetry.addData("State", pathState);
-        telemetry.addData("X", follower.getPose().getX());
-        telemetry.addData("Y", follower.getPose().getY());
-        telemetry.addData("Heading (Deg)", Math.toDegrees(follower.getPose().getHeading()));
+        telemetry.addData("X", follower.pose().x());
+        telemetry.addData("Y", follower.pose().y());
+        telemetry.addData("Heading (Deg)", Math.toDegrees(follower.pose().heading()));
         telemetry.addData("Turret target", turretTargetDeg);
         telemetry.addData("Turret deg", turret.getPositionDeg());
         telemetry.update();

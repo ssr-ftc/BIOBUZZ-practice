@@ -1,9 +1,10 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.Auto;
 
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.BezierLine;
-import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.PathChain;
+import com.pedropathing.math.Pose;
+import com.pedropathing.paths.Path;
+
+import static com.pedropathing.api.Paths.line;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -78,7 +79,7 @@ public class Bottom_Auto_Aditi extends OpMode {
     private boolean forcedPark = false;
 
     private Follower follower;
-    private PathChain gotoFlowerPath, flowerPath, shootFlowerPath, parkPath;
+    private Path gotoFlowerPath, flowerPath, shootFlowerPath, parkPath;
 
     private AprilTagProcessor tagProcessor;
     private VisionPortal portal;
@@ -93,7 +94,7 @@ public class Bottom_Auto_Aditi extends OpMode {
     @Override
     public void init() {
         follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(start);
+        follower.setPose(start);
         buildPaths();
 
         tagProcessor = new AprilTagProcessor.Builder().build();
@@ -154,14 +155,14 @@ public class Bottom_Auto_Aditi extends OpMode {
 
             case WAIT_FOR_TAG:
                 if (tagSeen) {
-                    follower.followPath(gotoFlowerPath, true);
+                    follower.follow(gotoFlowerPath);
                     setPathState(PathState.GO_TO_FLOWER);
                 }
                 break;
 
             case GO_TO_FLOWER:
                 if (!follower.isBusy()) {
-                    follower.followPath(flowerPath, true);
+                    follower.follow(flowerPath);
                     setActionState(ActionState.INTAKE);          // intake while going to the flower
                     setPathState(PathState.FLOWER);
                 }
@@ -170,7 +171,7 @@ public class Bottom_Auto_Aditi extends OpMode {
             case FLOWER:
                 // wait for BOTH the path and the intake to finish
                 if (!follower.isBusy() && actionState == ActionState.IDLE) {
-                    follower.followPath(shootFlowerPath, true);
+                    follower.follow(shootFlowerPath);
                     setPathState(PathState.SHOOT_FLOWER);
                 }
                 break;
@@ -184,7 +185,7 @@ public class Bottom_Auto_Aditi extends OpMode {
 
             case SHOOTING:
                 if (actionState == ActionState.IDLE) {           // shot finished
-                    follower.followPath(parkPath, true);
+                    follower.follow(parkPath);
                     setPathState(PathState.PARK);
                 }
                 break;
@@ -249,16 +250,13 @@ public class Bottom_Auto_Aditi extends OpMode {
         if (autoTimer.seconds() >= PARK_TIME_SECONDS && !forcedPark && !alreadyParking) {
             forcedPark = true;
 
-            follower.breakFollowing();                 // cancel the current path
-            setActionState(ActionState.STOPPED);       // stop intake/shooter
+            follower.stop();
+            setActionState(ActionState.STOPPED);
 
-            Pose here = follower.getPose();
-            PathChain direct = follower.pathBuilder()
-                    .addPath(new BezierLine(here, park))
-                    .setLinearHeadingInterpolation(here.getHeading(), park.getHeading())
-                    .build();
+            Pose here = follower.pose();
+            Path direct = line(here, park).linear(here.heading(), park.heading());
 
-            follower.followPath(direct, true);
+            follower.follow(direct);
             setPathState(PathState.PARK);              // no other paths run after this
         }
     }
@@ -284,25 +282,10 @@ public class Bottom_Auto_Aditi extends OpMode {
     //  PATH BUILDING
     // =====================================================================
     private void buildPaths() {
-        gotoFlowerPath = follower.pathBuilder()
-                .addPath(new BezierLine(start, gotoFlower))
-                .setLinearHeadingInterpolation(start.getHeading(), gotoFlower.getHeading())
-                .build();
-
-        flowerPath = follower.pathBuilder()
-                .addPath(new BezierLine(gotoFlower, flower))
-                .setLinearHeadingInterpolation(gotoFlower.getHeading(), flower.getHeading())
-                .build();
-
-        shootFlowerPath = follower.pathBuilder()
-                .addPath(new BezierLine(flower, shootFlower))
-                .setLinearHeadingInterpolation(flower.getHeading(), shootFlower.getHeading())
-                .build();
-
-        parkPath = follower.pathBuilder()
-                .addPath(new BezierLine(shootFlower, park))
-                .setLinearHeadingInterpolation(shootFlower.getHeading(), park.getHeading())
-                .build();
+        gotoFlowerPath = line(start, gotoFlower).linear(start.heading(), gotoFlower.heading());
+        flowerPath = line(gotoFlower, flower).linear(gotoFlower.heading(), flower.heading());
+        shootFlowerPath = line(flower, shootFlower).linear(flower.heading(), shootFlower.heading());
+        parkPath = line(shootFlower, park).linear(shootFlower.heading(), park.heading());
     }
 
     // =====================================================================
@@ -315,7 +298,7 @@ public class Bottom_Auto_Aditi extends OpMode {
         telemetry.addData("Action State", actionState);
         telemetry.addData("Auto Timer", "%.1f", autoTimer.seconds());
         telemetry.addData("Forced Park", forcedPark);
-        telemetry.addData("Pose", follower.getPose());
+        telemetry.addData("Pose", follower.pose());
         telemetry.update();
     }
 }
