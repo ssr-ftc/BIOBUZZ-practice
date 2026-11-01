@@ -8,6 +8,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.turret;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
@@ -22,10 +23,10 @@ public class TurretTestMotor extends LinearOpMode {
 
     // PID coefficients (tune these in dashboard)
     public double power;
-    public static double p = 0.09; //0.0027
-    public static double i = 0.04;
-    public static double d = 0.00067; //0.00001
-    public static double kF = 0; // adjust for your motor's max ticks/sec
+    public static double p = 0.0078; //0.002
+    public static double i = 0.055; //0
+    public static double d = 0.00039; //0
+    public static double kF = 0.0002; // adjust for your motor's max ticks/sec
 
     // Target velocity in ticks per second
     public static double targetPos = 0;

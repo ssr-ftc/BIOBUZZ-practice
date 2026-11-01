@@ -7,7 +7,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 @Config
-public class turret {
+public class turretLM0 {
     private static final double BLUE_GARDEN_HIVE_X = 84.36;
     private static final double BLUE_GARDEN_HIVE_Y = 81.4;
     private static final double BLUE_OPPOSITE_HIVE_X = 59.64;
@@ -22,7 +22,7 @@ public class turret {
 
     private DcMotorEx turret;
     public Servo cam;
-    public turret(HardwareMap hardwareMap) {
+    public turretLM0(HardwareMap hardwareMap) {
         turret = hardwareMap.get(DcMotorEx.class, "turret");
         turret.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 

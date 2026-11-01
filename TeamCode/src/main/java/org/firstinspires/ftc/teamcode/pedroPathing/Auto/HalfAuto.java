@@ -11,7 +11,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.depoLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.intakeLM0;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turret;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turretLM0;
 
 @Autonomous(name = "Half Auto", group = "Autonomous")
 public class HalfAuto extends OpMode {
@@ -20,7 +20,7 @@ public class HalfAuto extends OpMode {
     private org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer timers;
     private intakeLM0 intake;
     private depoLM0 depo;
-    private turret turret;
+    private turretLM0 turret;
 
     public enum PathState {
         SHOOT_PRELOAD,
@@ -285,7 +285,7 @@ public class HalfAuto extends OpMode {
         intake = new intakeLM0(hardwareMap);
         intake.flower_up();
         depo = new depoLM0(hardwareMap);
-        turret = new turret(hardwareMap);
+        turret = new turretLM0(hardwareMap);
         timers = new org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer();
 
         buildPaths();
