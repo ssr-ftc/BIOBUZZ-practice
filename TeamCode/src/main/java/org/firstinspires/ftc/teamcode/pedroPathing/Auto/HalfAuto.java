@@ -8,7 +8,7 @@ import com.pedropathing.utils.Timer;
 import static com.pedropathing.api.Paths.line;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.pedroPathing.Robot1;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.depoLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.intakeLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turretLM0;
@@ -119,7 +119,7 @@ public class HalfAuto extends OpMode {
             case DRIVE_GARDEN_SLOW:
                 if (!follower.isBusy()) {
                     intake.turn_on_intake();
-                    Constants.setPathPower(0.4);
+                    Robot1.setPathPower(0.4);
                     follower.follow(toGardenIntakeEnd);
                     setPathState(PathState.HOLD_GARDEN);
                 }
@@ -134,7 +134,7 @@ public class HalfAuto extends OpMode {
                     break;
                 }
                 if (pathTimer.seconds() > GARDEN_HOLD_SECONDS) {
-                    Constants.setPathPower(1.0);
+                    Robot1.setPathPower(1.0);
                     aimTurret(150);
                     follower.follow(toNearShoot);
                     setPathState(PathState.SHOOT_NEAR);
@@ -149,7 +149,7 @@ public class HalfAuto extends OpMode {
             case DRIVE_FLOWER1:
                 if (!flower1DriveStarted) {
                     if (!follower.isBusy() && !depo.isDepositOn()) {
-                        Constants.setPathPower(1.0);
+                        Robot1.setPathPower(1.0);
                         intake.turn_off_intake();
                         intake.flower_up();
                         follower.follow(toFlower1);
@@ -159,7 +159,7 @@ public class HalfAuto extends OpMode {
                 }
                 boolean flower1Slow = follower.parametricCompletion() >= FLOWER1_SLOW_START;
                 if (flower1Slow && !flowerPush) {
-                    Constants.setPathPower(FLOWER1_SLOW_POWER);
+                    Robot1.setPathPower(FLOWER1_SLOW_POWER);
                 }
                 if (!flower1Down && (flower1Slow || leadTimeReached(flower1, FLOWER_LEAD_SECONDS))) {
                     intake.flower_down();
@@ -177,7 +177,7 @@ public class HalfAuto extends OpMode {
                     intake.turn_off_intake();
                     intake.flower_up();
                     setTurretDeg(0);
-                    Constants.setPathPower(1.0);
+                    Robot1.setPathPower(1.0);
                     follower.follow(toPark);
                     setPathState(PathState.PARK);
                 }
@@ -231,7 +231,7 @@ public class HalfAuto extends OpMode {
         if (!flowerPush) {
             if (stallTimer.seconds() > STALL_PUSH_SECONDS) {
                 flowerPush = true;
-                Constants.setPathPower(FLOWER_PUSH_POWER);
+                Robot1.setPathPower(FLOWER_PUSH_POWER);
                 stallTimer.reset();
             }
             return false;
@@ -281,7 +281,7 @@ public class HalfAuto extends OpMode {
         pathTimer = new Timer();
         opModeTimer = new Timer();
         stallTimer = new Timer();
-        follower = Constants.createFollower(hardwareMap);
+        follower = Robot1.createFollower(hardwareMap);
         intake = new intakeLM0(hardwareMap);
         intake.flower_up();
         depo = new depoLM0(hardwareMap);
