@@ -65,6 +65,14 @@ public class Robot0 {
         c.naturalStrafeDeceleration.set(70.59153401642546);
     });
 
+    public static void setPathPower(double fractionOfMaxSpeed) {
+        if (fractionOfMaxSpeed >= 0.999) {
+            foresightConfig.maxPathSpeed.set(ForesightConfig.Constraint.NONE);
+        } else {
+            foresightConfig.maxPathSpeed.set(fractionOfMaxSpeed);
+        }
+    }
+
     public static Follower createFollower(HardwareMap hardwareMap) {
         return new Follower(
                 new PinpointLocalizer(hardwareMap, localizerConfig),
