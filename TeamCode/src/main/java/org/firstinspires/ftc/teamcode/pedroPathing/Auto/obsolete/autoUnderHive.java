@@ -9,7 +9,7 @@ import static com.pedropathing.api.Paths.curve;
 import static com.pedropathing.api.Paths.line;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.pedroPathing.Robot0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.depoLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.intakeLM0;
 
@@ -99,7 +99,7 @@ public class autoUnderHive extends OpMode {
             case END_PATH_1:
                 if (!follower.isBusy()) {
                     intake.turn_on_intake();
-                    Constants.setPathPower(0.4);
+                    Robot0.setPathPower(0.4);
                     follower.follow(path1_path2);
                     setPathState(PathState.END_PATH_2);
                 }
@@ -133,7 +133,7 @@ public class autoUnderHive extends OpMode {
             case INTAKEFLOWER:
                 if (!follower.isBusy()) {
                     intake.turn_on_intake();
-                    Constants.setPathPower(0.5);
+                    Robot0.setPathPower(0.5);
                     follower.follow(apprpoach_nearFlower);
                     setPathState(PathState.WAITATFLOWER);
                 }
@@ -183,7 +183,7 @@ public class autoUnderHive extends OpMode {
     public void init() {
         pathTimer = new Timer();
         opModeTimer = new Timer();
-        follower = Constants.createFollower(hardwareMap);
+        follower = Robot0.createFollower(hardwareMap);
         //intake = hardwareMap.get(DcMotorEx.class, "intake");
         intake = new intakeLM0(hardwareMap);
         depo = new depoLM0(hardwareMap);

@@ -5,7 +5,7 @@ import com.pedropathing.math.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.pedroPathing.Robot0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.DepoLM1;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.depoLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.intakeLM0;
@@ -24,7 +24,7 @@ public class soloTeleopWithManualTurret extends OpMode {
 
     @Override
     public void init() {
-        follower = Constants.createFollower(hardwareMap);
+        follower = Robot0.createFollower(hardwareMap);
         follower.setPose(startPose);
         depo = new DepoLM1(hardwareMap);
         intake = new intakeLM0(hardwareMap);

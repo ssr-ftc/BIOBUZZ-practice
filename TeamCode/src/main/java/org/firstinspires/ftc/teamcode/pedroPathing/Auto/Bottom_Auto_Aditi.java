@@ -10,7 +10,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.pedroPathing.Robot0;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
@@ -93,7 +93,7 @@ public class Bottom_Auto_Aditi extends OpMode {
     // =====================================================================
     @Override
     public void init() {
-        follower = Constants.createFollower(hardwareMap);
+        follower = Robot0.createFollower(hardwareMap);
         follower.setPose(start);
         buildPaths();
 

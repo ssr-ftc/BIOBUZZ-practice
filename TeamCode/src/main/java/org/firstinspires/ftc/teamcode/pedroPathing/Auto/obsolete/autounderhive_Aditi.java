@@ -8,7 +8,7 @@ import com.pedropathing.utils.Timer;
 import static com.pedropathing.api.Paths.line;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.pedroPathing.Robot0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.depoLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.intakeLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turretLM0;
@@ -151,8 +151,8 @@ public class autounderhive_Aditi extends OpMode {
             case PATH2:
                 if (!follower.isBusy()) {
                     intake.turn_on_intake();
-                    //Constants.setPathPower(GARDEN_INTAKE_POWER);
-                    Constants.setPathPower(0.4);
+                    //Robot0.setPathPower(GARDEN_INTAKE_POWER);
+                    Robot0.setPathPower(0.4);
                     follower.follow(straightGardenIntake2);
                     setPathState(PathState.PATH3);
                 }
@@ -168,7 +168,7 @@ public class autounderhive_Aditi extends OpMode {
                 }
                 if (pathTimer.seconds() > GARDEN_HOLD_SECONDS) {
                     intake.turn_off_intake();
-                    Constants.setPathPower(1.0);
+                    Robot0.setPathPower(1.0);
                     aimTurret(150);
                     follower.follow(path3);
                     setPathState(PathState.SHOOT2);
@@ -183,7 +183,7 @@ public class autounderhive_Aditi extends OpMode {
             case PATH4:
                 if (!path4Started) {
                     if (!follower.isBusy() && !depo.isDepositOn()) {
-                        Constants.setPathPower(1.0);
+                        Robot0.setPathPower(1.0);
                         intake.turn_off_intake();
                         intake.flower_up();
                         follower.follow(path4);
@@ -193,7 +193,7 @@ public class autounderhive_Aditi extends OpMode {
                 }
                 boolean path4Slow = follower.parametricCompletion() >= PATH4_SLOW_START;
                 if (path4Slow && !flowerPush) {
-                    Constants.setPathPower(PATH4_SLOW_POWER);
+                    Robot0.setPathPower(PATH4_SLOW_POWER);
                 }
                 if (!path4FlowerDown && leadTimeReached(exitflower1, FLOWER_LEAD_SECONDS)) {
                     intake.flower_down();
@@ -209,14 +209,14 @@ public class autounderhive_Aditi extends OpMode {
                 if (pathTimer.seconds() > FLOWER_INTAKE_SECONDS) {
                     intake.turn_off_intake();
                     intake.flower_up();
-                    Constants.setPathPower(1.0);
+                    Robot0.setPathPower(1.0);
                     follower.follow(path5);
                     setPathState(PathState.PATH5);
                 }
                 break;
             case PATH5:
                 if (!follower.isBusy()) {
-                    Constants.setPathPower(1.0);
+                    Robot0.setPathPower(1.0);
                     flowerPush = false;
                     setTurretDeg(SECOND_HIVE_TURRET_DEG);
                     follower.follow(path6);
@@ -225,7 +225,7 @@ public class autounderhive_Aditi extends OpMode {
                 break;
             case PATH6:
                 if (!follower.isBusy()) {
-                    Constants.setPathPower(1.0);
+                    Robot0.setPathPower(1.0);
                     follower.follow(shoot2);
                     setPathState(PathState.DRIVE_SHOOT2);
                 }
@@ -243,7 +243,7 @@ public class autounderhive_Aditi extends OpMode {
                     break;
                 }
                 if (pathTimer.seconds() > 1) {
-                    Constants.setPathPower(1.0);
+                    Robot0.setPathPower(1.0);
                     flowerPush = false;
                     intake.flower_up();
                     follower.follow(path8);
@@ -252,7 +252,7 @@ public class autounderhive_Aditi extends OpMode {
                 break;
             case PATH8:
                 if (!follower.isBusy()) {
-                    Constants.setPathPower(1.0);
+                    Robot0.setPathPower(1.0);
                     flowerPush = false;
                     follower.follow(path7);
                     setPathState(PathState.PATH7);
@@ -269,7 +269,7 @@ public class autounderhive_Aditi extends OpMode {
                 if (!depo.isDepositOn() && pathTimer.seconds() > 1) {
                     intake.flower_up();
                     intake.turn_off_intake();
-                    Constants.setPathPower(1.0);
+                    Robot0.setPathPower(1.0);
                     flowerPush = false;
                     follower.follow(park);
                     setPathState(PathState.PARK);
@@ -279,7 +279,7 @@ public class autounderhive_Aditi extends OpMode {
                 if (!flower2Approach && distanceTo(getready4flower2) <= FAR_FLOWER_APPROACH_INCHES) {
                     flower2Approach = true;
                     intake.flower_down();
-                    Constants.setPathPower(FAR_FLOWER_APPROACH_POWER);
+                    Robot0.setPathPower(FAR_FLOWER_APPROACH_POWER);
                 }
                 if (!reachedFlower(flower2Approach)) {
                     break;
@@ -287,7 +287,7 @@ public class autounderhive_Aditi extends OpMode {
                 if (!flower2ClearStarted) {
                     flower2ClearStarted = true;
                     pathTimer.reset();
-                    Constants.setPathPower(1.0);
+                    Robot0.setPathPower(1.0);
                     intake.flower_down();
                     break;
                 }
@@ -346,7 +346,7 @@ public class autounderhive_Aditi extends OpMode {
         if (!flowerPush) {
             if (stallTimer.seconds() > STALL_PUSH_SECONDS) {
                 flowerPush = true;
-                Constants.setPathPower(FLOWER_PUSH_POWER);
+                Robot0.setPathPower(FLOWER_PUSH_POWER);
                 stallTimer.reset();
             }
             return false;
@@ -396,7 +396,7 @@ public class autounderhive_Aditi extends OpMode {
         pathTimer = new Timer();
         opModeTimer = new Timer();
         stallTimer = new Timer();
-        follower = Constants.createFollower(hardwareMap);
+        follower = Robot0.createFollower(hardwareMap);
         intake = new intakeLM0(hardwareMap);
         intake.flower_up();
         depo = new depoLM0(hardwareMap);

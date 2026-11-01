@@ -58,7 +58,7 @@ public class EntireAuto extends OpMode {
     private CustomFollower follower;
     Pose start, sample1, point2, sample2, shoot2, sample3, done;
     Pose garden, flowerBackup, farSide, turnaround;
-    private Path shootToSample1, sample1ToPoint2, point2ToSample2, sample2ToShoot2, shoot2ToSample3, sample3ToDone;
+    private Path shootToSample1, sample1ToPoint2, point2ToSample2, sample2ToShoot2, shoot2ToSample3, point4ToPoint5, sample3ToDone;
 
     private Timer pathTimer, opModeTimer;
     // pedroPathing's Timer is already imported above, so the team's own Timer (same one soloTeleop uses) needs its full name
@@ -67,6 +67,7 @@ public class EntireAuto extends OpMode {
     boolean isBlue, isRed, isSmallBlue, isSmallRed, isBlueSample, isRedSample, isBlue2, isHatchClosed, isShootOffset;
     boolean isBlueGarden, isBlueOpposite, isRedGarden, isRedOpposite;
     // True once that drive has been started, so the case does not restart the path when the follower goes idle.
+    private boolean shootToSample1Started = false;
     private boolean sample1ToPoint2Started = false;
     private boolean point2ToSample2Started = false;
     private boolean sample2ToShoot2Started = false;
@@ -75,7 +76,6 @@ public class EntireAuto extends OpMode {
     // False until the flower path is moving, then the flower stays down until that path ends.
     private boolean flowerPathStarted = false;
     private boolean flowerIntakeDone;
-    private int bluePath = 0;
     //intake intake;
     // turret turret;
 
@@ -168,9 +168,11 @@ public class EntireAuto extends OpMode {
         depo.start();
         turret.holdCurrentPosition();
         timers.createNew("depo");
+        shootToSample1Started = false;
         sample1ToPoint2Started = false;
         point2ToSample2Started = false;
         sample2ToShoot2Started = false;
+        shoot2ToSample3Started = false;
         sample3ToDoneStarted = false;
         flowerPathStarted = false;
         flowerIntakeDone = false;
@@ -338,10 +340,6 @@ public class EntireAuto extends OpMode {
         if (follower.isBusy()) {
             return;
         }
-        if (isBlue) {
-            updateBlueRoute();
-            return;
-        }
         switch (autoState) {
             case SHOOTTOSAMPLE1:
                 if (isRed) {
@@ -350,6 +348,14 @@ public class EntireAuto extends OpMode {
                 } else {
                     isBlueGarden = true;
                     isBlueOpposite = false;
+                }
+                if (!shootToSample1Started) {
+                    isHatchClosed = false;
+                    isShootOffset = true;
+                    turnOnShooter();
+                    setShootState(ShootState.SHOOTOFFSET);
+                    shootToSample1Started = true;
+                    break;
                 }
                 if (isHatchClosed) {
                     isHatchClosed = false;
@@ -430,25 +436,39 @@ public class EntireAuto extends OpMode {
                 if (isHatchClosed) {
                     isHatchClosed = false;
                     sample2ToShoot2Started = false;
-                    flowerIntakeDone = false;
-                    setShootState(ShootState.FLOWERINTAKE);
+                    if (isBlue) {
+                        setShootState(ShootState.INTAKE);
+                    }
+                    else {
+                        flowerIntakeDone = false;
+                        setShootState(ShootState.FLOWERINTAKE);
+                    }
                     setPathState(AutoState.SHOOT2TOSAMPLE3);
                 }
                 break;
 
             case SHOOT2TOSAMPLE3:
                 if (!shoot2ToSample3Started) {
-                    follower.followPath(shoot2ToSample3, true);
+                    if (isBlue) {
+                        follower.followPath(point4ToPoint5, true);
+                    }
+                    else {
+                        follower.followPath(shoot2ToSample3, true);
+                    }
                     shoot2ToSample3Started = true;
                     break;
                 }
-                if (pathTimer.seconds() >= 3) {
+                if (isBlue || pathTimer.seconds() >= 3) {
                     setPathState(AutoState.SAMPLE3TODONE);
                 }
                 break;
 
             case SAMPLE3TODONE:
-                if (isBlue || isRed || isBlueSample || isRedSample || isBlue2) {
+                if (isBlue) {
+                    follower.followPath(sample3ToDone, true);
+                    setPathState(AutoState.DONE);
+                }
+                else if (isRed || isBlueSample || isRedSample || isBlue2) {
                     if (!sample3ToDoneStarted) {
                         isHatchClosed = false;
                         isShootOffset = true;
@@ -480,9 +500,6 @@ public class EntireAuto extends OpMode {
     }
 
     private void updateShootState() {
-        if (isBlue) {
-            return;
-        }
         switch (shootState) {
             case INTAKE:
                 //needDepo = false;
@@ -536,32 +553,6 @@ public class EntireAuto extends OpMode {
         }
     }
 
-    private void updateBlueRoute() {
-        switch (bluePath) {
-            case 0:
-                depo.turn_off_deposit();
-                depo.close_hatch();
-                intake.turn_off_intake();
-                follower.followPath(shootToSample1, true);
-                bluePath = 1;
-                break;
-            case 1:
-                follower.followPath(sample1ToPoint2, true);
-                bluePath = 2;
-                break;
-            case 2:
-                follower.followPath(point2ToSample2, true);
-                bluePath = 3;
-                break;
-            case 3:
-                follower.followPath(sample3ToDone, true);
-                bluePath = 4;
-                break;
-            default:
-                break;
-        }
-    }
-
     private void setPathState(AutoState newState) {
         autoState = newState;
         pathTimer.reset();
@@ -590,8 +581,9 @@ public class EntireAuto extends OpMode {
             PoseFactory degrees = PoseFactory.degrees();
             start = degrees.of(98, 135, 0);
             sample1 = degrees.of(131.5, 135, 5);
+            sample3 = degrees.of(94.8651, 14.3682, -90);
             sample2 = degrees.of(133.7151, 92.924, 0);
-            sample3 = degrees.of(95.074, 9.5646, -90);
+            point2 = degrees.of(95.07, 9.56, -90);
             done = degrees.of(132.6912, 23.9385, 180);
         } else if (isBlue2) {
             // 144-reflection of Akash's red path.
@@ -669,16 +661,20 @@ public class EntireAuto extends OpMode {
         Pose sample1Segment1End = degrees.of(131.5, 135, 0);
         Pose sample1Segment2Start = degrees.of(131.5, 135, 0);
         Pose sample1Segment2End = degrees.of(131.5, 135, 5);
-        Pose sample2Control1 = degrees.of(119.969, 107.1804, 0);
-        Pose sample2Control2 = degrees.of(110.1279, 89.7387, 0);
-        Pose sample3Start = degrees.of(133.7151, 92.924, 0);
-        Pose doneStart = degrees.of(95.074, 9.5646, 270);
+        Pose sample3Control1 = degrees.of(120.0843, 72.9993, 0);
+        Pose sample2Control1 = degrees.of(131.0383, 108.6424, 0);
+        Pose sample2Control2 = degrees.of(115.5581, 90.1564, 0);
+        Pose point4 = degrees.of(94.87, 14.37, -90);
+        Pose point5 = degrees.of(95.07, 9.56, -90);
+        Pose doneStart = degrees.of(95.07, 9.56, 270);
 
         shootToSample1 = line(start, sample1).heading(Interpolator.piecewise()
                 .until(0.8, Interpolator.linear(sample1Segment1Start, sample1Segment1End))
                 .until(1, Interpolator.linear(sample1Segment2Start, sample1Segment2End)));
-        sample1ToPoint2 = curve(sample1, sample2Control1, sample2Control2, sample2).linear(sample1, sample2);
-        point2ToSample2 = line(sample3Start, sample3).linear(sample3Start, sample3);
+        sample1ToPoint2 = curve(sample1, sample3Control1, sample3).linear(sample1, sample3);
+        point2ToSample2 = curve(sample3, sample2Control1, sample2Control2, sample2).linear(sample3, sample2);
+        sample2ToShoot2 = line(sample2, point4).linear(sample2, point4);
+        point4ToPoint5 = line(point4, point5).constant(point5);
         sample3ToDone = line(doneStart, done).linear(doneStart, done);
     }
 
@@ -705,7 +701,6 @@ public class EntireAuto extends OpMode {
     public void gamepadSide() {
         if (gamepad1.y) {
             isBlue = true; isRed = false; isSmallBlue = false; isSmallRed = false; isBlueSample = false; isRedSample = false; isBlue2 = false;
-            bluePath = 0;
             poses();
             buildPaths();
             follower.setPose(start);

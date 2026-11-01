@@ -6,7 +6,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Servo;
 
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.pedroPathing.Robot0;
 
 @TeleOp(name = "Hatch Test")
 public class HatchTest extends OpMode {
@@ -16,7 +16,7 @@ public class HatchTest extends OpMode {
 
     @Override
     public void init() {
-        follower = Constants.createFollower(hardwareMap);
+        follower = Robot0.createFollower(hardwareMap);
         follower.setPose(new Pose(0, 0, 0));
         hatch = hardwareMap.get(Servo.class, "hatch");
         hatch.setPosition(0);

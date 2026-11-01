@@ -13,7 +13,7 @@ public class turret {
     private static final double HIVE_Y = 81.4;
    static double deg;
    static double totalDeg;
-   final double scalerToDegrees = -2.1;
+   final double scalerToDegrees = 2.1;
 
     private DcMotorEx turret;
     public Servo cam;
