@@ -1,11 +1,11 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.templates;
 
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.pedroPathing.Robot0;
 
 
 @TeleOp(name = "Template Pedro TeleOp", group = "Templates")
@@ -17,8 +17,8 @@ public class TemplateTeleOp extends OpMode {
 
     @Override
     public void init() {//this is called once when the driver presses init
-        follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(new Pose(0, 0, 0));
+        follower = Robot0.createFollower(hardwareMap);
+        follower.setPose(new Pose(0, 0, 0));
 
         telemetry.addLine("Initialized");
         telemetry.addData("Status", "Press start to run TeleOp");
@@ -30,7 +30,6 @@ public class TemplateTeleOp extends OpMode {
     @Override
     public void start() {//this is called once when the driver presses start
 
-        follower.startTeleopDrive();
     }
 
     @Override
@@ -46,7 +45,7 @@ public class TemplateTeleOp extends OpMode {
         double strafe = gamepad1.left_stick_x  * speedScale;
         double turn = gamepad1.right_stick_x * speedScale;
 
-        follower.setTeleOpDrive(forward, strafe, turn, true);
+        follower.manual(forward, strafe, turn);
     }
 
 

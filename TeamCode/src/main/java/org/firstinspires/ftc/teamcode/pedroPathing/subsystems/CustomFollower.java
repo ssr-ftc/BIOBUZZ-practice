@@ -2,14 +2,13 @@ package org.firstinspires.ftc.teamcode.pedroPathing.subsystems;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
+import com.pedropathing.algorithm.Foresight;
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Pose;
 import com.pedropathing.paths.Path;
-import com.pedropathing.paths.PathBuilder;
-import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.pedroPathing.Robot0;
 
 public class CustomFollower {
 
@@ -33,7 +32,15 @@ public class CustomFollower {
     public double lookaheadAmount = 0.05;
 
     public CustomFollower(HardwareMap hardwareMap, Telemetry telemetry) {
-        pedro = Constants.createFollower(hardwareMap);
+        this(telemetry, Robot0.createFollower(hardwareMap));
+    }
+
+    public CustomFollower(HardwareMap hardwareMap, Telemetry telemetry, Follower follower) {
+        this(telemetry, follower);
+    }
+
+    private CustomFollower(Telemetry telemetry, Follower follower) {
+        pedro = follower;
         this.telemetry = telemetry;
         this.isAuto = isAuto;
     }
@@ -67,19 +74,19 @@ public class CustomFollower {
 
     public void update() {
         if (pedro.isBusy()) {
-            double currentT = pedro.getCurrentTValue();
+            double currentT = pedro.parametricCompletion();
 
             // 1A. RUN PHYSICS MATH ENGINE (Now with Lookahead!)
             if (isAutoCalculating) {
 
                 // Calculate a future T-value to look ahead on the path
                 double lookaheadT = Math.min(1.0, currentT + lookaheadAmount);
-                double curvature = pedro.getCurrentPath().getCurvature(lookaheadT);
+                double curvature = pedro.curvatureAt(lookaheadT);
                 double radius = (Math.abs(curvature) < 0.00001) ? 10000.0 : Math.abs(1.0 / curvature);
                 double maxSafeSpeed = Math.sqrt(mu * gravity * radius);
                 double dynamicPowerLimit = maxSafeSpeed / robotMaxSpeed;
 
-                pedro.setMaxPower(Math.min(1.0, dynamicPowerLimit));
+                    setMaxPower(Math.min(1.0, dynamicPowerLimit));
 
                 // 1B. OR RUN MANUAL RAMPING ENGINE
             } else if (isRamping) {
@@ -87,12 +94,12 @@ public class CustomFollower {
                 rampLocked = true;
 
                 if (currentT < rampStartT) {
-                    pedro.setMaxPower(1.0);
+                    setMaxPower(1.0);
 
                 } else if (currentT <= rampEndT) {
                     double progress = (currentT - rampStartT) / Math.max(1e-6, rampEndT - rampStartT);
                     double smoothPower = rampStartPower + (progress * (rampEndPower - rampStartPower));
-                    pedro.setMaxPower(smoothPower);
+                    setMaxPower(smoothPower);
 
                 } else {
                     endRamp();
@@ -111,10 +118,9 @@ public class CustomFollower {
     }
 
     void telemetryForAcceleration() {
-        double liveT = pedro.isBusy() ? pedro.getCurrentTValue() : 0.0;
-        double liveV = pedro.isBusy() ? pedro.getVelocity().getMagnitude() : 0.0;
-        double liveA = pedro.isBusy() ? pedro.getAcceleration().getMagnitude() : 0.0;
-        double liveP = pedro.isBusy() ? pedro.getMaxPowerScaling() : 0.0;
+        double liveT = pedro.isBusy() ? pedro.parametricCompletion() : 0.0;
+        double liveV = pedro.isBusy() ? pedro.velocity().linSpeed() : 0.0;
+        double liveP = pedro.isBusy() ? currentMaxPower() : 0.0;
 
         if (telemetry != null) {
             telemetry.addData("Active Mode", isAutoCalculating ? "AUTO-PHYSICS" : (isRamping ? "MANUAL RAMPING" : "NONE"));
@@ -126,7 +132,7 @@ public class CustomFollower {
 
     // --- RAMP HELPERS ---
     private void endRamp() {
-        pedro.setMaxPower(1.0);
+        setMaxPower(1.0);
         isRamping = false;
         rampLocked = false;
     }
@@ -139,7 +145,7 @@ public class CustomFollower {
         if (isRamping && rampLocked) {
             endRamp();
         }
-        pedro.setMaxPower(1.0);
+        setMaxPower(1.0);
     }
 
     // --- DELEGATED PEDRO FOLLOWER METHODS ---
@@ -147,28 +153,19 @@ public class CustomFollower {
         return pedro.isBusy();
     }
 
-    public void followPath(PathChain pathChain, boolean holdEnd) {
-        prepareToFollow();
-        pedro.followPath(pathChain, holdEnd);
-    }
-
-    public void followPath(PathChain pathChain) {
-        prepareToFollow();
-        pedro.followPath(pathChain);
-    }
-
     public void followPath(Path path, boolean holdEnd) {
         prepareToFollow();
-        pedro.followPath(path, holdEnd);
+        pedro.holdEnd.set(holdEnd);
+        pedro.follow(path);
+    }
+
+    public void followPath(Path path, double maxPower, boolean holdEnd) {
+        followPath(path, holdEnd);
+        setMaxPower(maxPower);
     }
 
     public void followPath(Path path) {
-        prepareToFollow();
-        pedro.followPath(path);
-    }
-
-    public PathBuilder pathBuilder() {
-        return pedro.pathBuilder();
+        followPath(path, false);
     }
 
     public void setPose(Pose pose) {
@@ -176,14 +173,23 @@ public class CustomFollower {
     }
 
     public Pose getPose() {
-        return pedro.getPose();
+        return pedro.pose();
     }
 
     public void setMaxPower(double power) {
-        pedro.setMaxPower(power);
+        if (pedro.algorithm() instanceof Foresight) {
+            ((Foresight) pedro.algorithm()).config.maxPathSpeed.set(power);
+        }
+    }
+
+    private double currentMaxPower() {
+        if (pedro.algorithm() instanceof Foresight) {
+            return ((Foresight) pedro.algorithm()).config.maxPathSpeed.get();
+        }
+        return 1;
     }
 
     public double getCurrentTValue() {
-        return pedro.getCurrentTValue();
+        return pedro.parametricCompletion();
     }
 }

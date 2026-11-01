@@ -1,8 +1,9 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.Auto;
 
-import com.pedropathing.geometry.BezierLine;
-import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.PathChain;
+import com.pedropathing.math.Pose;
+import com.pedropathing.paths.Path;
+
+import static com.pedropathing.api.Paths.line;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -87,7 +88,7 @@ public class Bottom_Auto_Aditi extends OpMode {
     private double turretTargetDeg = 0;
 
     private CustomFollower follower;
-    private PathChain gotoFlowerPath, flowerPath, shootFlowerPath, parkPath;
+    private Path gotoFlowerPath, flowerPath, shootFlowerPath, parkPath;
 
     private intakeLM0 intake;
     private DepoLM1 depo;
@@ -308,7 +309,7 @@ public class Bottom_Auto_Aditi extends OpMode {
     /** Aims the turret at the hive from wherever the robot actually is right now. */
     private void aimTurret() {
         Pose p = follower.getPose();
-        turretTargetDeg = turret.turretAngle(p.getX(), p.getY(), Math.toDegrees(p.getHeading()));
+        turretTargetDeg = turret.turretAngle(p.x(), p.y(), Math.toDegrees(p.heading()));
         turretSub.setPositionDeg(turretTargetDeg);
     }
 
@@ -324,14 +325,11 @@ public class Bottom_Auto_Aditi extends OpMode {
         if (autoTimer.seconds() >= PARK_TIME_SECONDS && !forcedPark && !alreadyParking) {
             forcedPark = true;
 
-            follower.pedro.breakFollowing();           // cancel the current path
+            follower.pedro.stop();           // cancel the current path
             setActionState(ActionState.STOPPED);       // stop intake/deposit, close hatch
 
             Pose here = follower.getPose();
-            PathChain direct = follower.pathBuilder()
-                    .addPath(new BezierLine(here, park))
-                    .setLinearHeadingInterpolation(here.getHeading(), park.getHeading())
-                    .build();
+            Path direct = line(here, park).linear(here, park);
 
             follower.followPath(direct, true);
             setPathState(PathState.PARK);              // no other paths run after this
@@ -359,25 +357,10 @@ public class Bottom_Auto_Aditi extends OpMode {
     //  PATH BUILDING
     // =====================================================================
     private void buildPaths() {
-        gotoFlowerPath = follower.pathBuilder()
-                .addPath(new BezierLine(start, gotoFlower))
-                .setLinearHeadingInterpolation(start.getHeading(), gotoFlower.getHeading())
-                .build();
-
-        flowerPath = follower.pathBuilder()
-                .addPath(new BezierLine(gotoFlower, flower))
-                .setLinearHeadingInterpolation(gotoFlower.getHeading(), flower.getHeading())
-                .build();
-
-        shootFlowerPath = follower.pathBuilder()
-                .addPath(new BezierLine(flower, shootFlower))
-                .setLinearHeadingInterpolation(flower.getHeading(), shootFlower.getHeading())
-                .build();
-
-        parkPath = follower.pathBuilder()
-                .addPath(new BezierLine(shootFlower, park))
-                .setLinearHeadingInterpolation(shootFlower.getHeading(), park.getHeading())
-                .build();
+        gotoFlowerPath = line(start, gotoFlower).linear(start, gotoFlower);
+        flowerPath = line(gotoFlower, flower).linear(gotoFlower, flower);
+        shootFlowerPath = line(flower, shootFlower).linear(flower, shootFlower);
+        parkPath = line(shootFlower, park).linear(shootFlower, park);
     }
 
     // =====================================================================

@@ -1,20 +1,21 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.Auto;
 
-import com.pedropathing.paths.PathChain;
+import com.pedropathing.paths.Path;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.Pose;
-import com.pedropathing.geometry.BezierLine;
+import com.pedropathing.math.Pose;
 
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.pedroPathing.Robot0;
+
+import static com.pedropathing.api.Paths.line;
 
 @Autonomous(name = "leave auto blue", group = "Pedro")
 public class leaveAutoBlue extends OpMode {
 
     private Follower follower;
-    private PathChain leave;
+    private Path leave;
 
     private final Pose startPose = new Pose(56, 8, Math.toRadians(90));
 
@@ -22,29 +23,26 @@ public class leaveAutoBlue extends OpMode {
 
     @Override
     public void init() {
-        follower = Constants.createFollower(hardwareMap);
+        follower = Robot0.createFollower(hardwareMap);
 
-        follower.setStartingPose(startPose);
+        follower.setPose(startPose);
 
-        leave = follower.pathBuilder()
-                .addPath(new BezierLine(startPose, endPose))
-                .setLinearHeadingInterpolation(startPose.getHeading(), endPose.getHeading())
-                .build();
+        leave = line(startPose, endPose).linear(startPose, endPose);
     }
 
     @Override
     public void start() {
-        follower.followPath(leave);
+        follower.follow(leave);
     }
 
     @Override
     public void loop() {
         follower.update();
 
-        telemetry.addData("X", follower.getPose().getX());
-        telemetry.addData("Y", follower.getPose().getY());
+        telemetry.addData("X", follower.pose().x());
+        telemetry.addData("Y", follower.pose().y());
         telemetry.addData("Heading",
-                Math.toDegrees(follower.getPose().getHeading()));
+                Math.toDegrees(follower.pose().heading()));
         telemetry.update();
     }
 }

@@ -3,7 +3,7 @@ package org.firstinspires.ftc.teamcode.pedroPathing.Vision.ObjectDetection;
 import android.annotation.SuppressLint;
 
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -11,7 +11,7 @@ import org.firstinspires.ftc.easyobjd.ClusterInfo;
 import org.firstinspires.ftc.easyobjd.EasyOBJD;
 import org.firstinspires.ftc.easyobjd.EasyOBJDPipeline;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.pedroPathing.Robot0;
 import org.firstinspires.ftc.teamcode.pedroPathing.Vision.TeleOp__Vision.EasyOBJDUserConfig;
 import org.openftc.easyopencv.OpenCvCamera;
 import org.openftc.easyopencv.OpenCvCameraFactory;
@@ -34,8 +34,8 @@ public class EasyOBJDCluster extends OpMode {
     @SuppressLint("DiscouragedApi")
     @Override
     public void init() {
-        follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(new Pose(0, 0, 0));
+        follower = Robot0.createFollower(hardwareMap);
+        follower.setPose(new Pose(0, 0, 0));
 
         int cameraMonitorViewId = hardwareMap.appContext.getResources()
                 .getIdentifier(
@@ -93,7 +93,6 @@ public class EasyOBJDCluster extends OpMode {
 
     @Override
     public void start() {
-        follower.startTeleopDrive();
     }
 
     @Override
@@ -104,14 +103,14 @@ public class EasyOBJDCluster extends OpMode {
         double strafe = gamepad1.left_trigger - gamepad1.right_trigger;
         double turn = -gamepad1.right_stick_x;
 
-        follower.setTeleOpDrive(forward, strafe, turn, true);
+        follower.manual(forward, strafe, turn);
 
-        telemetry.addData("Robot X", "%.1f", follower.getPose().getX());
-        telemetry.addData("Robot Y", "%.1f", follower.getPose().getY());
+        telemetry.addData("Robot X", "%.1f", follower.pose().x());
+        telemetry.addData("Robot Y", "%.1f", follower.pose().y());
         telemetry.addData(
                 "Robot Heading",
                 "%.1f",
-                follower.getPose().getHeading()
+                follower.pose().heading()
         );
 
         // All vision telemetry is directly inside loop().

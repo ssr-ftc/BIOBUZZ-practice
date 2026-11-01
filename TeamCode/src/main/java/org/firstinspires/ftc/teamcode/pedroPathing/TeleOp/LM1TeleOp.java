@@ -1,11 +1,11 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.TeleOp;
 
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.pedroPathing.Robot0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.DepoLM1;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.depoLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.intakeLM0;
@@ -29,8 +29,8 @@ public class LM1TeleOp extends OpMode {
 
     @Override
     public void init() {
-        follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(startPose);
+        follower = Robot0.createFollower(hardwareMap);
+        follower.setPose(startPose);
         depo = new DepoLM1(hardwareMap);
         intake = new intakeLM0(hardwareMap);
         turret = new turret(hardwareMap);
@@ -39,7 +39,6 @@ public class LM1TeleOp extends OpMode {
 
     @Override
     public void start() {
-        follower.startTeleopDrive();
         depo.start();
         intake.start();
         turret.setPositionDeg(0);
@@ -72,11 +71,10 @@ public class LM1TeleOp extends OpMode {
         if (gamepad1.options) {
             follower.setPose(new Pose(86.5, 133.3, Math.toRadians(270)));
         }
-        follower.setTeleOpDrive(
+        follower.manual(
                 -gamepad1.left_stick_y * speedShift,
                 -gamepad1.left_stick_x * speedShift,
-                -gamepad1.right_stick_x * speedShift * 0.8,
-                true
+                -gamepad1.right_stick_x * speedShift * 0.8
         );
         follower.update();
     }
@@ -116,11 +114,11 @@ public class LM1TeleOp extends OpMode {
         }
         if(isTracking){
             double opp,adj;//relative to pose
-            opp=hiveTop.getX()-follower.getPose().getX();
-            adj=hiveTop.getY()-follower.getPose().getY();
+            opp=hiveTop.x()-follower.pose().x();
+            adj=hiveTop.y()-follower.pose().y();
             double angle= Math.atan(opp/adj);
             double turAngle;
-            turAngle = 180+angle-Math.toDegrees(follower.getPose().getHeading());
+            turAngle = 180+angle-Math.toDegrees(follower.pose().heading());
             turret.setPositionDeg(turAngle);
         }
     }

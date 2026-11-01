@@ -1,22 +1,22 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.Auto.obsolete;
 
-import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.BezierCurve;
-import com.pedropathing.geometry.BezierLine;
-import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.HeadingInterpolator;
-import com.pedropathing.paths.PathChain;
-import com.pedropathing.util.Timer;
+import com.pedropathing.math.Pose;
+import com.pedropathing.paths.Path;
+
+import static com.pedropathing.api.Paths.curve;
+import static com.pedropathing.api.Paths.line;
+import org.firstinspires.ftc.teamcode.pedroPathing.PathTimer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.pedroPathing.Robot0;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.CustomFollower;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.depoLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.intakeLM0;
 
 @Autonomous(name = "soham auto", group = "Autonomous")
 public class autoUnderHive extends OpMode {
-    private Follower follower;
-    private Timer pathTimer, opModeTimer;
+    private CustomFollower follower;
+    private PathTimer pathTimer, opModeTimer;
     private org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer timers;
     private intakeLM0 intake;
     private depoLM0 depo;
@@ -48,59 +48,16 @@ public class autoUnderHive extends OpMode {
     private final Pose oppositFlower = new Pose(52, 114.5, Math.toRadians(103));
     private final Pose endPath4 = new Pose(11, 109, Math.toRadians(0));
 
-    private PathChain start_path1, path1_path2, path2_shoot, shoot_approachFlower, apprpoach_nearFlower, nearFlower_oppFlower, shoot2_oppFlower, flower_park;
+    private Path start_path1, path1_path2, path2_shoot, shoot_approachFlower, apprpoach_nearFlower, nearFlower_oppFlower, shoot2_oppFlower, flower_park;
 
     public void buildPaths() {
-        start_path1 = follower.pathBuilder()
-                .addPath(new BezierLine(startingCoordinate, endPath1))
-                .setTangentHeadingInterpolation()
-                .build();
-        path1_path2 = follower.pathBuilder()
-                .addPath(new BezierLine(endPath1, endPath2))
-                .setTangentHeadingInterpolation()
-                .build();
-        path2_shoot = follower.pathBuilder()
-                .addPath(new BezierLine(endPath2,
-                        endPathnew))
-
-                        //new Pose(61.5, 12),
-                        //new Pose(48.5, 27.5),
-                        //new Pose(63.5, 109),
-
-                /*
-                .setHeadingInterpolation(HeadingInterpolator.piecewise(
-                        HeadingInterpolator.PiecewiseNode.linear(0, 0.313, endPath2.getHeading(), Math.toRadians(63)),
-                        new HeadingInterpolator.PiecewiseNode(0.313, 0.741, HeadingInterpolator.tangent),
-                        HeadingInterpolator.PiecewiseNode.linear(0.741, 1, Math.toRadians(105), endPath3.getHeading())
-                ))
-                 */
-                .setHeadingInterpolation(HeadingInterpolator.tangent.reverse())
-                .build();
-        shoot_approachFlower = follower.pathBuilder()
-                .addPath(new BezierLine(endPathnew, approachingFlower))
-                .setLinearHeadingInterpolation(endPathnew.getHeading(), approachingFlower.getHeading())
-                .build();
-        apprpoach_nearFlower = follower.pathBuilder()
-                .addPath(new BezierLine(approachingFlower, flowerNearSlow))
-                .setTangentHeadingInterpolation()
-                .build();
-        /*
-        shoot2_oppFlower = follower.pathBuilder()
-                .addPath(new BezierCurve(endPathnew,
-                        new Pose(60,69),
-                        oppositFlower))
-                .setTangentHeadingInterpolation()
-                .build();
-         */
-        nearFlower_oppFlower = follower.pathBuilder()
-                .addPath(new BezierCurve(flowerNearSlow,
-                        new Pose(26.5, 100),
-                        oppositFlower))
-                .build();
-        flower_park = follower.pathBuilder()
-                .addPath(new BezierLine(oppositFlower, endPath4))
-                .setTangentHeadingInterpolation()
-                .build();
+        start_path1 = line(startingCoordinate, endPath1).tangent();
+        path1_path2 = line(endPath1, endPath2).tangent();
+        path2_shoot = line(endPath2, endPathnew).reverseTangent();
+        shoot_approachFlower = line(endPathnew, approachingFlower).linear(endPathnew, approachingFlower);
+        apprpoach_nearFlower = line(approachingFlower, flowerNearSlow).tangent();
+        nearFlower_oppFlower = curve(flowerNearSlow, new Pose(26.5, 100), oppositFlower).tangent();
+        flower_park = line(oppositFlower, endPath4).tangent();
     }
 
     public boolean waitFor(double seconds) {
@@ -222,11 +179,9 @@ public class autoUnderHive extends OpMode {
 
     @Override
     public void init() {
-        pathTimer = new Timer();
-        opModeTimer = new Timer();
-        follower = Constants.createFollower(hardwareMap);
-        follower.setCentripetalScaling(0.0015);
-        follower.getConstants().setBEZIER_CURVE_SEARCH_LIMIT(100);
+        pathTimer = new PathTimer();
+        opModeTimer = new PathTimer();
+        follower = new CustomFollower(hardwareMap, telemetry, Robot0.createFollower(hardwareMap));
         //intake = hardwareMap.get(DcMotorEx.class, "intake");
         intake = new intakeLM0(hardwareMap);
         depo = new depoLM0(hardwareMap);
@@ -250,9 +205,9 @@ public class autoUnderHive extends OpMode {
         useDepo();
         statePathUpdate();
         telemetry.addData("State", pathState);
-        telemetry.addData("X", follower.getPose().getX());
-        telemetry.addData("Y", follower.getPose().getY());
-        telemetry.addData("Heading (Deg)", Math.toDegrees(follower.getPose().getHeading()));
+        telemetry.addData("X", follower.getPose().x());
+        telemetry.addData("Y", follower.getPose().y());
+        telemetry.addData("Heading (Deg)", Math.toDegrees(follower.getPose().heading()));
         telemetry.update();
     }
 }

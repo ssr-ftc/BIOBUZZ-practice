@@ -6,18 +6,18 @@ package org.firstinspires.ftc.teamcode.pedroPathing.Auto;
 //import static com.pedropathing.ivy.pedro.PedroCommands.*;
 
 
-// Turret angle helpers disabled — turret not used in auto for now.
-// import static org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turret.turretAngleBlueGarden;
-// import static org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turret.turretAngleBlueOpposite;
-// import static org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turret.turretAngleRedGarden;
-// import static org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turret.turretAngleRedOpposite;
+import static org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turretLM0.turretAngleBlueGarden;
+import static org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turretLM0.turretAngleBlueOpposite;
+import static org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turretLM0.turretAngleRedGarden;
+import static org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turretLM0.turretAngleRedOpposite;
 
-import com.pedropathing.geometry.BezierCurve;
-import com.pedropathing.geometry.BezierLine;
-import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.HeadingInterpolator;
-import com.pedropathing.paths.PathChain;
-import com.pedropathing.util.Timer;
+import com.pedropathing.math.Pose;
+import com.pedropathing.paths.Path;
+
+import static com.pedropathing.api.Paths.curve;
+import static com.pedropathing.api.Paths.line;
+import static com.pedropathing.api.Paths.path;
+import org.firstinspires.ftc.teamcode.pedroPathing.PathTimer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -36,12 +36,13 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Vision.AprilTagStuff.APRILTAG
 import org.firstinspires.ftc.teamcode.pedroPathing.Vision.AprilTagStuff.APRILTAG_Biobuzz.TagClusterMapper;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import java.util.List;
+import org.firstinspires.ftc.teamcode.pedroPathing.Robot0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.CustomFollower;
 //import static com.pedropathing.ivy.pedro.PedroCommands.*;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.DepoLM1;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.intakeLM0;
-// import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turret;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.turret;
 
 
 @Autonomous(name = "EntireAuto", group = "Season")
@@ -50,16 +51,16 @@ public class EntireAuto extends OpMode {
     private DcMotorEx depo1;
     private DepoLM1 depo;
     private intakeLM0 intake;
-    // private turret turret;
+    private turret turret;
     private Servo hatch;
     // private CRServo turret_servo;
     private CustomFollower follower;
     Pose start, sample1, point2, sample2, shoot2, sample3, done;
     static Pose teleop;
     Pose garden, flowerBackup, farSide, turnaround;
-    private PathChain shootToSample1, sample1ToPoint2, point2ToSample2, sample2ToShoot2, shoot2ToSample3, sample3ToDone;
+    private Path shootToSample1, sample1ToPoint2, point2ToSample2, sample2ToShoot2, shoot2ToSample3, sample3ToDone;
 
-    private Timer pathTimer, opModeTimer;
+    private PathTimer pathTimer, opModeTimer;
     // pedroPathing's Timer is already imported above, so the team's own Timer (same one soloTeleop uses) needs its full name
     private org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer timers;
 
@@ -99,7 +100,7 @@ public class EntireAuto extends OpMode {
     private AutoState autoState;
     private ShootState shootState;
     // Close enough to the commanded turret angle to open the hatch.
-    // private static final double TURRET_TOLERANCE_DEG = 3.0;
+    private static final double TURRET_TOLERANCE_DEG = 3.0;
     // ---------------- APRILTAG (read during INIT) ----------------
     private final AprilTagDetector aprilTag = new AprilTagDetector();
     private boolean cameraStarted = false;       // ca  mera was created without an error
@@ -134,13 +135,13 @@ public class EntireAuto extends OpMode {
     public void init() {
         //Scheduler.reset();
         subsystems();
-        pathTimer = new Timer();
-        opModeTimer = new Timer();
+        pathTimer = new PathTimer();
+        opModeTimer = new PathTimer();
         timers = new org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer();
-        follower = new CustomFollower(hardwareMap, telemetry);
+        follower = new CustomFollower(hardwareMap, telemetry, Robot0.createFollower(hardwareMap));
         intake = new intakeLM0(hardwareMap);
-        // depo = new DepoLM1(hardwareMap); // flywheel and hatch disabled
-        // turret = new turret(hardwareMap);
+        depo = new DepoLM1(hardwareMap);
+        turret = new turret(hardwareMap);
         initAprilTag();
         telemetry.addLine("READY. PRESS Y FOR BLUE, A FOR RED.");
         telemetry.addLine("PRESS X FOR SMALL BLUE, B FOR SMALL RED.");
@@ -163,10 +164,9 @@ public class EntireAuto extends OpMode {
     public void start() {
         opModeTimer.resetTimer();
         pathTimer.resetTimer();
-        intake.flower_up();
-        // intake.start(); // also commands the intake motor
-        // depo.start();
-        // turret.holdCurrentPosition();
+        intake.start();
+        depo.start();
+        turret.holdCurrentPosition();
         timers.createNew("depo");
         sample1ToPoint2Started = false;
         point2ToSample2Started = false;
@@ -176,14 +176,14 @@ public class EntireAuto extends OpMode {
         flowerIntakeDone = false;
         setShootState(ShootState.SHOOTOFFSET);
         isShootOffset = true;
-        // turnOnShooter(); // flywheel disabled
+        turnOnShooter();
     }
 
     @Override
     public void loop() {
         follower.update();
-        // turret.run_using_pid();
-        // depo.run_using_pid();
+        turret.run_using_pid();
+        depo.run_using_pid();
         updateShootState();
         updateAutoState();
         telemetry.addData("SELECTED", selectedScenario());
@@ -476,21 +476,36 @@ public class EntireAuto extends OpMode {
     private void updateShootState() {
         switch (shootState) {
             case INTAKE:
-                // intake motor disabled
-                // intake.turn_on_intake();
+                intake.turn_on_intake();
                 break;
             case SHOOT:
                 isShootOffset = false;
-                // intake motor, flywheel, and hatch disabled — do not block the path
-                // intake.turn_on_intake();
-                // runAutoDepo();
-                isHatchClosed = true;
+                turret.setPositionDeg(90);
+                intake.turn_on_intake();
+                if (Math.abs(turret.getPositionDeg() - 90) <= TURRET_TOLERANCE_DEG || timers.isRunning("depo")) {
+                    runAutoDepo();
+                }
                 break;
             case SHOOTOFFSET:
                 isShootOffset = true;
-                // intake motor, flywheel, and hatch disabled — do not block the path
-                // runAutoDepo();
-                isHatchClosed = true;
+                double robotX = follower.getPose().x();
+                double robotY = follower.getPose().y();
+                double headingDeg = Math.toDegrees(follower.getPose().heading());
+                double offsetDeg;
+                if (isBlueOpposite) {
+                    offsetDeg = turretAngleBlueOpposite(robotX, robotY, headingDeg);
+                } else if (isRedGarden) {
+                    offsetDeg = turretAngleRedGarden(robotX, robotY, headingDeg);
+                } else if (isRedOpposite) {
+                    offsetDeg = turretAngleRedOpposite(robotX, robotY, headingDeg);
+                } else {
+                    offsetDeg = turretAngleBlueGarden(robotX, robotY, headingDeg);
+                }
+                if (offsetDeg < -90) offsetDeg += 360;
+                turret.setPositionDeg(offsetDeg);
+                if (Math.abs(turret.getPositionDeg() - offsetDeg) <= TURRET_TOLERANCE_DEG || timers.isRunning("depo")) {
+                    runAutoDepo();
+                }
                 break;
             case FLOWERINTAKE:
                 if (pathTimer.getElapsedTimeSeconds() >= 3) {
@@ -498,8 +513,10 @@ public class EntireAuto extends OpMode {
                 }
                 if (!flowerIntakeDone) {
                     intake.flower_down();
+                    intake.turn_on_intake();
                 } else {
                     intake.flower_up();
+                    intake.turn_off_intake();
                 }
                 break;
 
@@ -577,77 +594,47 @@ public class EntireAuto extends OpMode {
         if (isBlue || isRed || isBlue2) {
             buildAkashRoute();
         } else if (isSmallBlue) {
-            shootToSample1 = follower.pathBuilder()
-                    .addPath(new BezierCurve(start, new Pose(73.47804878048782, 23.213414634146346), done))
-                    .setLinearHeadingInterpolation(start.getHeading(), done.getHeading())
-                    .build();
+            shootToSample1 = curve(start, new Pose(73.47804878048782, 23.213414634146346), done)
+                    .linear(start, done);
 
         } else if (isSmallRed) {
-            shootToSample1 = follower.pathBuilder()
-                    .addPath(new BezierCurve(start, new Pose(70.52195121951218, 120.78658536585365), done))
-                    .setLinearHeadingInterpolation(start.getHeading(), done.getHeading())
-                    .build();
+            shootToSample1 = curve(start, new Pose(70.52195121951218, 120.78658536585365), done)
+                    .linear(start, done);
         } else if (isBlueSample) {
-            point2ToSample2 = follower.pathBuilder()
-                    .addPath(new BezierCurve(start, new Pose(88.3183, 28.3902), sample1))
-                    .setLinearHeadingInterpolation(start.getHeading(), sample1.getHeading())
-                    .build();
+            point2ToSample2 = curve(start, new Pose(88.3183, 28.3902), sample1)
+                    .linear(start, sample1);
 
-            sample3ToDone = follower.pathBuilder()
-                    .addPath(new BezierLine(sample1, done))
-                    .setLinearHeadingInterpolation(sample1.getHeading(), done.getHeading())
-                    .build();
+            sample3ToDone = line(sample1, done).linear(sample1, done);
         } else if (isRedSample) {
-            point2ToSample2 = follower.pathBuilder()
-                    .addPath(new BezierCurve(start, new Pose(55.6817, 115.6098), sample1))
-                    .setLinearHeadingInterpolation(start.getHeading(), sample1.getHeading())
-                    .build();
+            point2ToSample2 = curve(start, new Pose(55.6817, 115.6098), sample1)
+                    .linear(start, sample1);
 
-            sample3ToDone = follower.pathBuilder()
-                    .addPath(new BezierLine(sample1, done))
-                    .setLinearHeadingInterpolation(sample1.getHeading(), done.getHeading())
-                    .build();
+            sample3ToDone = line(sample1, done).linear(sample1, done);
         }
     }
 
     private void buildAkashRoute() {
-        shootToSample1 = follower.pathBuilder()
-                .addPath(new BezierLine(start, garden))
-                .setTangentHeadingInterpolation()
-                .addPath(new BezierLine(garden, sample1))
-                .setTangentHeadingInterpolation()
-                .build();
+        shootToSample1 = path(
+                line(start, garden).tangent(),
+                line(garden, sample1).tangent()
+        );
 
-        sample1ToPoint2 = follower.pathBuilder()
-                .addPath(new BezierLine(sample1, point2))
-                .setLinearHeadingInterpolation(sample1.getHeading(), point2.getHeading())
-                .build();
+        sample1ToPoint2 = line(sample1, point2).linear(sample1, point2);
 
-        point2ToSample2 = follower.pathBuilder()
-                .addPath(new BezierLine(point2, sample2))
-                .setLinearHeadingInterpolation(point2.getHeading(), sample2.getHeading())
-                .build();
+        point2ToSample2 = line(point2, sample2).linear(point2, sample2);
 
-        sample2ToShoot2 = follower.pathBuilder()
-                .addPath(new BezierLine(sample2, flowerBackup))
-                .setHeadingInterpolation(HeadingInterpolator.tangent.reverse())
-                .addPath(new BezierLine(flowerBackup, farSide))
-                .setConstantHeadingInterpolation(farSide.getHeading())
-                .addPath(new BezierLine(farSide, shoot2))
-                .setHeadingInterpolation(HeadingInterpolator.tangent.reverse())
-                .build();
+        sample2ToShoot2 = path(
+                line(sample2, flowerBackup).reverseTangent(),
+                line(flowerBackup, farSide).constant(farSide.heading()),
+                line(farSide, shoot2).reverseTangent()
+        );
 
-        shoot2ToSample3 = follower.pathBuilder()
-                .addPath(new BezierLine(shoot2, turnaround))
-                .setHeadingInterpolation(HeadingInterpolator.tangent.reverse())
-                .addPath(new BezierLine(turnaround, sample3))
-                .setConstantHeadingInterpolation(sample3.getHeading())
-                .build();
+        shoot2ToSample3 = path(
+                line(shoot2, turnaround).reverseTangent(),
+                line(turnaround, sample3).constant(sample3.heading())
+        );
 
-        sample3ToDone = follower.pathBuilder()
-                .addPath(new BezierLine(sample3, done))
-                .setLinearHeadingInterpolation(sample3.getHeading(), done.getHeading())
-                .build();
+        sample3ToDone = line(sample3, done).linear(sample3, done);
     }
 
     public void gamepadSide() {
@@ -750,18 +737,25 @@ public class EntireAuto extends OpMode {
     }
 
     public void runAutoDepo() {
-        // Flywheel, hatch, and intake motor disabled.
-        // depo.run_using_pid();
-        // depo.open_hatch();
-        // depo.turn_off_deposit();
-        // depo.close_hatch();
-        // intake.turn_on_intake();
-        // intake.turn_off_intake();
-        isHatchClosed = true;
+        depo.run_using_pid();
+
+        if (depo.reachedvelocity() && !timers.isRunning("depo")) {
+            timers.start("depo");
+            depo.open_hatch();
+            intake.turn_on_intake();
+            isHatchClosed = false;
+        }
+        if (timers.checkSecondsLast("depo", 2)) {
+            depo.turn_off_deposit();
+            depo.close_hatch();
+            intake.turn_off_intake();
+            isHatchClosed = true;
+        }
     }
 
     private void turnOnShooter() {
-        // depo.turn_on_deposit();
+        depo.turn_on_deposit();
+        depo.set_target_velocity(isShootOffset ? 1495 : 1485);
     }
 
     public boolean isShootingOffset() {
@@ -773,12 +767,11 @@ public class EntireAuto extends OpMode {
         telemetry.addData("auto state", autoState);
         Pose pose = follower.getPose();
         if (pose != null) {
-            telemetry.addData("x", pose.getX());
-            telemetry.addData("y", pose.getY());
-            telemetry.addData("heading (deg)", Math.toDegrees(pose.getHeading()));
+            telemetry.addData("x", pose.x());
+            telemetry.addData("y", pose.y());
+            telemetry.addData("heading (deg)", Math.toDegrees(pose.heading()));
         }
         telemetry.addData("path time", pathTimer.getElapsedTimeSeconds());
-        telemetry.addData("depo", "disabled");
         telemetry.addData("shoot gate (isHatchClosed)", isHatchClosed);
         telemetry.addData("follower busy", follower.isBusy());
         telemetry.addData("Tag filter", tagAlliance == null ? "ALL" : tagAlliance.name());
@@ -798,7 +791,7 @@ public class EntireAuto extends OpMode {
     }
 
     public Pose returnCoordinates() {
-        teleop = new Pose(follower.getPose().getX(), follower.getPose().getY(), follower.getPose().getHeading());
+        teleop = new Pose(follower.getPose().x(), follower.getPose().y(), follower.getPose().heading());
 
         return teleop;
     }

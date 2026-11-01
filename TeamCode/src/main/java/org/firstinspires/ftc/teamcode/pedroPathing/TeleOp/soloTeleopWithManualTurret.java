@@ -1,11 +1,11 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.TeleOp;
 
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.pedroPathing.Robot0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.DepoLM1;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.intakeLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.turret;
@@ -23,8 +23,8 @@ public class soloTeleopWithManualTurret extends OpMode {
 
     @Override
     public void init() {
-        follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(startPose);
+        follower = Robot0.createFollower(hardwareMap);
+        follower.setPose(startPose);
         depo = new DepoLM1(hardwareMap);
         intake = new intakeLM0(hardwareMap);
         turret = new turret(hardwareMap);
@@ -32,7 +32,6 @@ public class soloTeleopWithManualTurret extends OpMode {
 
     @Override
     public void start() {
-        follower.startTeleopDrive();
         depo.start();
         intake.start();
         turret.setPositionDeg(0);
@@ -64,11 +63,10 @@ public class soloTeleopWithManualTurret extends OpMode {
         if (gamepad1.options) {
             follower.setPose(new Pose(0, 0, Math.toRadians(0)));
         }
-        follower.setTeleOpDrive(
+        follower.manual(
                 -gamepad1.left_stick_y * speedShift,
                 -gamepad1.left_stick_x * speedShift,
-                -gamepad1.right_stick_x * speedShift * 0.8,
-                true
+                -gamepad1.right_stick_x * speedShift * 0.8
         );
         follower.update();
     }
