@@ -16,7 +16,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Turret;
 public class LM1TeleOp_AutoTracking extends OpMode {
     private Follower follower;
     EntireAuto auto = new EntireAuto();
-    private final Pose startPose = new Pose(111.18, 8.27, -90);
+    private final Pose startPose = new Pose(111.18, 8.27, Math.toRadians(-90));
     private DepoLM1 depo;
     private intakeLM0 intake;
     private Turret turret;

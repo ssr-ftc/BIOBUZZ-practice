@@ -41,7 +41,7 @@ import java.util.List;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.CustomFollower;
 //import static com.pedropathing.ivy.pedro.PedroCommands.*;
 
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.depoLM0;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.DepoLM1;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.intakeLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turretLM0;
 
@@ -50,7 +50,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.turretLM0;
 public class EntireAuto extends OpMode {
     //boolean needDepo = true;
     private DcMotorEx depo1;
-    private depoLM0 depo;
+    private DepoLM1 depo;
     private intakeLM0 intake;
     private turretLM0 turret;
     private Servo hatch;
@@ -58,6 +58,7 @@ public class EntireAuto extends OpMode {
     private CustomFollower follower;
     Pose start, sample1, point2, sample2, shoot2, sample3, done;
     Pose garden, flowerBackup, farSide, turnaround;
+    Pose teleop;
     private Path shootToSample1, sample1ToPoint2, point2ToSample2, sample2ToShoot2, shoot2ToSample3, point4ToPoint5, sample3ToDone;
 
     private Timer pathTimer, opModeTimer;
@@ -140,7 +141,7 @@ public class EntireAuto extends OpMode {
         timers = new org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer();
         follower = new CustomFollower(hardwareMap, telemetry);
         intake = new intakeLM0(hardwareMap);
-        depo = new depoLM0(hardwareMap);
+        depo = new DepoLM1(hardwareMap);
         turret = new turretLM0(hardwareMap);
         initAprilTag();
         telemetry.addLine("READY. PRESS Y FOR BLUE, A FOR RED.");
@@ -375,6 +376,9 @@ public class EntireAuto extends OpMode {
                 if (isRed) {
                     isRedGarden = true;
                     isRedOpposite = false;
+                } else if (isBlue) {
+                    isBlueGarden = false;
+                    isBlueOpposite = true;
                 } else {
                     isBlueGarden = true;
                     isBlueOpposite = false;
@@ -492,6 +496,7 @@ public class EntireAuto extends OpMode {
 
             case DONE:
                 telemetry.addLine("Finished everything!");
+                teleop = new Pose(follower.getPose().x(), follower.getPose().y(), follower.getPose().heading());
                 break;
 
             default:
@@ -766,7 +771,7 @@ public class EntireAuto extends OpMode {
 
         if (depo.reachedvelocity() && !timers.isRunning("depo")){
             timers.start("depo");
-            depo.open_hatch(turret.getPositionDeg());
+            depo.open_hatch();
             intake.turn_on_intake();
             isHatchClosed = false;
         }
@@ -779,7 +784,11 @@ public class EntireAuto extends OpMode {
     }
 
     private void turnOnShooter() {
-        depo.turn_on_deposit(isShootOffset ? 1495 : 1485);
+        depo.turn_on_deposit();
+    }
+
+    public Pose returnToTeleop() {
+        return teleop;
     }
 
     public boolean isShootingOffset() {

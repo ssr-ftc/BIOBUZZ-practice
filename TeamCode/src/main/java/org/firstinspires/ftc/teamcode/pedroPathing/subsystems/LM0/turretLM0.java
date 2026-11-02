@@ -2,20 +2,17 @@ package org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.arcrobotics.ftclib.controller.PIDFController;
+import com.pedropathing.math.Pose;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 @Config
 public class turretLM0 {
-    private static final double BLUE_GARDEN_HIVE_X = 84.36;
-    private static final double BLUE_GARDEN_HIVE_Y = 81.4;
-    private static final double BLUE_OPPOSITE_HIVE_X = 59.64;
-    private static final double BLUE_OPPOSITE_HIVE_Y = 81.4;
-    private static final double RED_GARDEN_HIVE_X = 59.64;
-    private static final double RED_GARDEN_HIVE_Y = 62.6;
-    private static final double RED_OPPOSITE_HIVE_X = 84.36;
-    private static final double RED_OPPOSITE_HIVE_Y = 62.6;
+    private static final Pose BLUE_GARDEN_HIVE = new Pose(84.36, 81.4, 0);
+    private static final Pose BLUE_OPPOSITE_HIVE = new Pose(59.64, 81.4, 0);
+    private static final Pose RED_GARDEN_HIVE = new Pose(59.64, 62.6, 0);
+    private static final Pose RED_OPPOSITE_HIVE = new Pose(84.36, 62.6, 0);
    static double deg;
    static double totalDeg;
 
@@ -78,23 +75,23 @@ public class turretLM0 {
     }
 
     public static double turretAngleBlueGarden(double robotX, double robotY, double robotHeadingDeg) {
-        return turretAngleTo(BLUE_GARDEN_HIVE_X, BLUE_GARDEN_HIVE_Y, robotX, robotY, robotHeadingDeg);
+        return turretAngleTo(BLUE_GARDEN_HIVE, robotX, robotY, robotHeadingDeg);
     }
 
     public static double turretAngleBlueOpposite(double robotX, double robotY, double robotHeadingDeg) {
-        return turretAngleTo(BLUE_OPPOSITE_HIVE_X, BLUE_OPPOSITE_HIVE_Y, robotX, robotY, robotHeadingDeg);
+        return turretAngleTo(BLUE_OPPOSITE_HIVE, robotX, robotY, robotHeadingDeg);
     }
 
     public static double turretAngleRedGarden(double robotX, double robotY, double robotHeadingDeg) {
-        return turretAngleTo(RED_GARDEN_HIVE_X, RED_GARDEN_HIVE_Y, robotX, robotY, robotHeadingDeg);
+        return turretAngleTo(RED_GARDEN_HIVE, robotX, robotY, robotHeadingDeg);
     }
 
     public static double turretAngleRedOpposite(double robotX, double robotY, double robotHeadingDeg) {
-        return turretAngleTo(RED_OPPOSITE_HIVE_X, RED_OPPOSITE_HIVE_Y, robotX, robotY, robotHeadingDeg);
+        return turretAngleTo(RED_OPPOSITE_HIVE, robotX, robotY, robotHeadingDeg);
     }
 
-    private static double turretAngleTo(double hiveX, double hiveY, double robotX, double robotY, double robotHeadingDeg) {
-        double fieldDeg = Math.toDegrees(Math.atan2(hiveY - robotY, hiveX - robotX));
+    private static double turretAngleTo(Pose hive, double robotX, double robotY, double robotHeadingDeg) {
+        double fieldDeg = Math.toDegrees(Math.atan2(hive.y() - robotY, hive.x() - robotX));
         deg = -(fieldDeg - robotHeadingDeg);
         while (deg < -90) deg += 360;
         while (deg >= 270) deg -= 360;
