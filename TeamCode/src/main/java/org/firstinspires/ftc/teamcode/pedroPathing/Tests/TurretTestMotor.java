@@ -10,7 +10,6 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
-// Panels completely supports standard @Config variables out of the box
 @TeleOp(name = "turret test with motor", group = "tuning")
 @Config
 public class TurretTestMotor extends LinearOpMode {
@@ -18,15 +17,15 @@ public class TurretTestMotor extends LinearOpMode {
     PIDFController pid;
     private DcMotorEx turret;   // Has encoder
 
-    // PID coefficients (tune these live in Panels/Dashboard)
+    // PID coefficients (tune these live in FTC Dashboard)
     public double power;
-    public static double p = 0.0078;
-    public static double i = 0.055;
-    public static double d = 0.00039;
-    public static double kF = 0.0002;
+    public static volatile double p = 0.0078;
+    public static volatile double i = 0.055;
+    public static volatile double d = 0.00039;
+    public static volatile double kF = 0.0002;
 
     // Target velocity/position in ticks
-    public static double targetPos = 0;
+    public static volatile double targetPos = 0;
 
     private enum Mode {DRIVER, AUTO}
     private Mode mode = Mode.DRIVER;
@@ -41,13 +40,13 @@ public class TurretTestMotor extends LinearOpMode {
 
         pid = new PIDFController(p, i, d, kF);
 
-        // Panels seamlessly bridges with MultipleTelemetry just like standard Dashboard
+        // Send telemetry to both the Driver Station and FTC Dashboard.
         Telemetry telemetry = new MultipleTelemetry(this.telemetry, com.acmerobotics.dashboard.FtcDashboard.getInstance().getTelemetry());
 
         waitForStart();
 
         while (opModeIsActive()) {
-            // Continuously push updated static config variables from Panels into your controller
+            // Read the latest Dashboard PID values each loop.
             pid.setPIDF(p, i, d, kF);
 
             double curPos = turret.getCurrentPosition();

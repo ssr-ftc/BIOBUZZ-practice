@@ -21,7 +21,7 @@ dependencies {
 
     implementation 'com.pedropathing:revhub:3.0.2'
     implementation 'com.pedropathing:tuning:1.0.3'
-    implementation 'com.bylazar:fullpanels:1.0.12'
+    // implementation 'com.bylazar:fullpanels:1.0.12'
     implementation 'org.openftc:easyopencv:1.7.3'
 }
 
