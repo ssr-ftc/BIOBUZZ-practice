@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.subsystems;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -9,32 +10,36 @@ public class Intake {
 
 //the front intake is the passive one
     //the back intake is the one that spits
-    private DcMotor intakeMotor;
+    private DcMotorEx intakeMotor;
     private Servo flower;
     private Servo back;
     private Servo front;
 
-    private double flowerUpPos = 0.99;
-    private double flowerDownPos = 0.13;
-    private double frontUpPos = 0.99;
-    private double frontDownPos = 0.13;
-    private double backUpPos = 0.99;
-    private double backDownPos = 0.13;
+    private double flowerUpPos = 0.89;
+    private double flowerDownPos = 0.06;
+
+    private double frontUpPos = 0.38;
+    private double frontDownPos = 0.50;
+
+    private double backUpPos = 0.42;
+    private double backDownPos = 0.55;
     private static final double intake_power = -1;
     private static final double outtake_power = 1;
 
     public Intake(HardwareMap hardwareMap) {
-        intakeMotor = hardwareMap.get(DcMotor.class, "intake");
+        intakeMotor = hardwareMap.get(DcMotorEx.class, "intake");
         intakeMotor.setDirection(DcMotorSimple.Direction.REVERSE);
         intakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        flower = hardwareMap.get(Servo.class, "flower_intake");
-        front = hardwareMap.get(Servo.class, "front_intake");
-        back = hardwareMap.get(Servo.class, "back_intake");
+        flower = hardwareMap.get(Servo.class, "flower");
+        front = hardwareMap.get(Servo.class, "front");
+        back = hardwareMap.get(Servo.class, "back");
         front_up();
         back_up();
     }
     public void start(){
         intake_off();
+        front_up();
+        back_up();
         flower_up();
     }
 
@@ -70,6 +75,12 @@ public class Intake {
 
     public double getMotorPower() {
         return intakeMotor.getPower();
+    }
+    public boolean isBackUp(){
+        return back.getPosition()<backDownPos-0.03;
+    }
+    public boolean isFrontUp(){
+        return back.getPosition()<frontDownPos-0.03;
     }
 }
 //hi

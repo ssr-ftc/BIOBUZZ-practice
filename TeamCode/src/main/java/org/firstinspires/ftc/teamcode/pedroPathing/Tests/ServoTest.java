@@ -6,25 +6,24 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Servo;
 
-import org.firstinspires.ftc.teamcode.pedroPathing.Robot0;
+import org.firstinspires.ftc.teamcode.pedroPathing.Robot1;
 
-
-@TeleOp(name = "Servos tester")
+@TeleOp(name = "Servos tester depo (hood,hatch,cam)")
 public class ServoTest extends OpMode {
 
     private Follower follower;//this is pedropathing follower
     private double speedScale = 0.8;
     Servo hatch;
     Servo cam;
-    Servo flower;
+    Servo hood;
 
 
     @Override
     public void init() {//this is called once when the driver presses init
-        follower = Robot0.createFollower(hardwareMap);
+        follower = Robot1.createFollower(hardwareMap);
         follower.setPose(new Pose(0, 0, 0));
         hatch = hardwareMap.get(Servo.class,"hatch");
-        flower = hardwareMap.get(Servo.class,"flower_intake");
+        hood = hardwareMap.get(Servo.class,"hood");
         cam = hardwareMap.get(Servo.class,"camera");
         telemetry.addLine("Initialized");
         telemetry.addData("Status", "Press start to run TeleOp");
@@ -32,11 +31,10 @@ public class ServoTest extends OpMode {
         telemetry.update();
     }
 
-
     @Override
     public void start() {//this is called once when the driver presses start
-        flower.setPosition(0.5);
-        hatch.setPosition(0.54);
+        hood.setPosition(0.5);
+        hatch.setPosition(0.5);
         cam.setPosition(0.5);
     }
 
@@ -44,11 +42,11 @@ public class ServoTest extends OpMode {
     public void loop() {//this is called repeatedly during the op mode
         follower.update();
 //        driveWithPedro();
-        if(gamepad1.dpadUpWasPressed()) hatch.setPosition(hatch.getPosition()+0.01);//dpad up/down for hatch
-        if(gamepad1.dpadDownWasPressed()) hatch.setPosition(hatch.getPosition()-0.01);
+        if(gamepad1.dpadRightWasPressed()) hatch.setPosition(hatch.getPosition()+0.01);//dpad left/right for hatch
+        if(gamepad1.dpadLeftWasPressed()) hatch.setPosition(hatch.getPosition()-0.01);
 
-        if(gamepad1.dpadLeftWasPressed()) flower.setPosition(flower.getPosition()-0.01);//dpad left/right for flower
-        if(gamepad1.dpadRightWasPressed()) flower.setPosition(flower.getPosition()+0.01);
+        if(gamepad1.dpadDownWasPressed()) hood.setPosition(hood.getPosition()-0.01);//dpad up/down for hood
+        if(gamepad1.dpadUpWasPressed()) hood.setPosition(hood.getPosition()+0.01);
 
         if(gamepad1.rightBumperWasPressed()) cam.setPosition(cam.getPosition()+0.01);//left and right bumpers for cam
         if(gamepad1.leftBumperWasPressed()) cam.setPosition(cam.getPosition()-0.01);
@@ -57,7 +55,6 @@ public class ServoTest extends OpMode {
         //0.66 is open2
         sendTelemetry();
     }
-
     private void driveWithPedro() {
 
         double forward = gamepad1.left_stick_y * speedScale;
@@ -66,13 +63,12 @@ public class ServoTest extends OpMode {
 
         follower.manual(forward, strafe, turn);
     }
-
-
-
     private void sendTelemetry() {
-        telemetry.addLine("this is telemetry");
+        telemetry.addLine("dpad left/right for hatch");
+        telemetry.addLine("dpad up/down for hood");
+        telemetry.addLine("left and right bumpers for cam");
         telemetry.addData("hatch",hatch.getPosition());
-        telemetry.addData("flower",flower.getPosition());
+        telemetry.addData("hood", hood.getPosition());
         telemetry.addData("camera",cam.getPosition());
         telemetry.update();
     }

@@ -7,7 +7,7 @@ import com.pedropathing.math.Pose;
 import com.pedropathing.paths.Path;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
-import org.firstinspires.ftc.teamcode.pedroPathing.Robot0;
+import org.firstinspires.ftc.teamcode.pedroPathing.Robot1;
 
 public class CustomFollower {
 
@@ -26,7 +26,7 @@ public class CustomFollower {
     public double lookaheadAmount = 0.05;
 
     public CustomFollower(HardwareMap hardwareMap, Telemetry telemetry) {
-        pedro = Robot0.createFollower(hardwareMap);
+        pedro = Robot1.createFollower(hardwareMap);
         this.telemetry = telemetry;
     }
 
@@ -137,7 +137,7 @@ public class CustomFollower {
     }
 
     public void setMaxPower(double power) {
-        Robot0.setPathPower(power);
+        Robot1.setPathPower(power);
     }
 
     public double getCurrentTValue() {

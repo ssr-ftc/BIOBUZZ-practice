@@ -6,13 +6,14 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 //@Config
-public class DepoLM1 {
+public class Depo {
     private DcMotorEx top;
     private DcMotorEx bottom;
     public Servo hatch;
+    public Servo hood;
     public Servo cam;
 
-    public DepoLM1(HardwareMap hardwareMap) {
+    public Depo(HardwareMap hardwareMap) {
         top = hardwareMap.get(DcMotorEx.class, "depo");
         bottom = hardwareMap.get(DcMotorEx.class, "depo1");
 
@@ -27,9 +28,8 @@ public class DepoLM1 {
         bottom.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
         hatch = hardwareMap.get(Servo.class,"hatch");
+//        hood = hardwareMap.get(Servo.class,"hood");
         cam = hardwareMap.get(Servo.class,"camera");
-
-        close_hatch();
 
         pid = new PIDFController(p, i, d, kF);
     }
@@ -50,12 +50,15 @@ public class DepoLM1 {
     private static double targetVelocity = 0;
 
     //important constatnts below
-    public static double ON_VELOCITY = 1520; // change the deposit speed here (prev 550)
-    public static double hatchopen = 0.11;
-    public static double hatchclose = 0;
-    public static double cam_up = 0.2;
-    public static double cam_down = 0.8;
-    public static double camMiddle = 0.5;
+    double ON_VELOCITY = 1520; // change the deposit speed here (prev 550)
+    double hatchopen = 0.48;
+    double hatchclose = 0.32;
+    double cam_up = 0.2;
+    double cam_down = 0.8;
+    double camMiddle = 0.5;
+    double hoodMax = 0.57;
+    double hoodMin = 0.5;
+
 
 
     public void set_target_velocity(double x) {

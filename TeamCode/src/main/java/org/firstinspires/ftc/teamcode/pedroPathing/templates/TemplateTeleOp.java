@@ -5,7 +5,7 @@ import com.pedropathing.math.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-import org.firstinspires.ftc.teamcode.pedroPathing.Robot0;
+import org.firstinspires.ftc.teamcode.pedroPathing.Robot1;
 
 
 @TeleOp(name = "Template Pedro TeleOp", group = "Templates")
@@ -17,7 +17,7 @@ public class TemplateTeleOp extends OpMode {
 
     @Override
     public void init() {//this is called once when the driver presses init
-        follower = Robot0.createFollower(hardwareMap);
+        follower = Robot1.createFollower(hardwareMap);
         follower.setPose(new Pose(0, 0, 0));
 
         telemetry.addLine("Initialized");

@@ -11,7 +11,7 @@ import org.firstinspires.ftc.easyobjd.ClusterInfo;
 import org.firstinspires.ftc.easyobjd.EasyOBJD;
 import org.firstinspires.ftc.easyobjd.EasyOBJDPipeline;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.firstinspires.ftc.teamcode.pedroPathing.Robot0;
+import org.firstinspires.ftc.teamcode.pedroPathing.Robot1;
 import org.firstinspires.ftc.teamcode.pedroPathing.Vision.TeleOp__Vision.EasyOBJDUserConfig;
 import org.openftc.easyopencv.OpenCvCamera;
 import org.openftc.easyopencv.OpenCvCameraFactory;
@@ -34,7 +34,7 @@ public class EasyOBJDCluster extends OpMode {
     @SuppressLint("DiscouragedApi")
     @Override
     public void init() {
-        follower = Robot0.createFollower(hardwareMap);
+        follower = Robot1.createFollower(hardwareMap);
         follower.setPose(new Pose(0, 0, 0));
 
         int cameraMonitorViewId = hardwareMap.appContext.getResources()
