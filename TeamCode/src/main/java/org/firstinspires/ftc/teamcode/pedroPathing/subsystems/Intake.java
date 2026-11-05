@@ -17,7 +17,7 @@ public class Intake {
     private Servo front;
 
     private double flowerUpPos = 0.89;
-    private double flowerDownPos = 0.06;
+    private double flowerDownPos = 0.0894;
 
     private double frontUpPos = 0.38;
     private double frontDownPos = 0.5;
@@ -74,7 +74,7 @@ public class Intake {
     }
 
     public boolean intaking() {
-        return intakeMotor.getPower() != 0;
+        return intakeMotor.getPower() < 0;
     }
     public boolean outtaking() {
         return intakeMotor.getPower() > 0;

@@ -12,7 +12,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Transfer;
 
 
-@TeleOp(name = "soloTeleop", group = "Templates")
+@TeleOp(name = "deandreAytonSCUKS", group = "Templates")
 public class soloTeleop extends OpMode {
 
     private Follower follower;//this is pedropathing follower
@@ -70,6 +70,13 @@ public class soloTeleop extends OpMode {
                 intake.intake_on();
             }
         }
+        if (gamepad1.leftBumperWasPressed()) {
+            if (intake.outtaking()) {
+                intake.intake_off();
+            } else {
+                intake.outtake();
+            }
+        }
         if(!de.isDepositOn()){
             countBalls();
         }
@@ -102,8 +109,12 @@ public class soloTeleop extends OpMode {
         if(timers.checkSecondsLast("depo", 2.5)){
             de.close_hatch();
             de.set_target_velocity(0);
+            intake.intake_off();
+            /*
             intake.front_down();
             intake.back_down();
+
+             */
             frontBalls=0;
             backBalls=0;
         }
@@ -136,6 +147,8 @@ public class soloTeleop extends OpMode {
         if (gamepad1.right_trigger > 0.1) {
             speedScale = 0.25;
             gamepad1.rumbleBlips(1);
+        } else {
+            speedScale = 0.9;
         }
         double forward = -gamepad1.left_stick_y * speedScale;
         double strafe = -gamepad1.left_stick_x  * speedScale;
@@ -145,13 +158,12 @@ public class soloTeleop extends OpMode {
     }
 
     private void flower() {
-        if (gamepad1.triangle) {
-            intake.flower_down();
-        } else {
-            intake.flower_up();
-        }
-        if (intake.intaking()) {
-            gamepad1.rumbleBlips(1);
+        if (gamepad1.triangleWasPressed()) {
+            if (intake.isFlowerDown()) {
+                intake.flower_up();
+            } else {
+                intake.flower_down();
+            }
         }
     }
 
