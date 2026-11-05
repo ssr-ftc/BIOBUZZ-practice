@@ -12,8 +12,10 @@ import com.qualcomm.robotcore.hardware.Servo;
 public class Turret {
     private static final Pose BLUE_GARDEN_HIVE = new Pose(84.36, 81.4, 0);
     private static final Pose BLUE_OPPOSITE_HIVE = new Pose(59.64, 81.4, 0);
-   static double deg;
-   final double scalerToDegrees = -0.838888;
+    private static final Pose RED_GARDEN_HIVE = new Pose(59.64, 62.6, 0);
+    private static final Pose RED_OPPOSITE_HIVE = new Pose(84.36, 62.6, 0);
+    public static double deg;
+    final double scalerToDegrees = -0.838888;
 
     private DcMotorEx turret;
     public Servo cam;
@@ -28,8 +30,8 @@ public class Turret {
     }
     PIDFController pid;
     public double power;
-    public static double p = 0.015; //
-    public static double i = 0.0; //
+    public static double p = 0.015;
+    public static double i = 0.0;
     public static double d = 0.0006;
     public static double kF = 0.000;
     private double targetPos = 0;
@@ -39,8 +41,8 @@ public class Turret {
     }
 
     public void setPositionDeg(double x) {
-        while (deg < -90) deg += 360;
-        while (deg >= 270) deg -= 360;
+        while (x < -90) x += 360;
+        while (x >= 270) x -= 360;
         targetPos = scalerToDegrees * x;
     }
 
@@ -68,20 +70,20 @@ public class Turret {
         return turret.getCurrentPosition() / scalerToDegrees;
     }
 
-    // blue hive cell in field coordinates (my estimate, edit these two if you know better)
-
-    // type the robot's field x, y and heading (degrees), get the turret angle (degrees)
-   /* public static double turretAngle(double robotX, double robotY, double robotHeadingDeg) {
-        return turretAngleBlueGarden(robotX, robotY, robotHeadingDeg);
-    }
-    */
-
     public void turretAngleBlueGarden(Pose robot) {
          AutoAllignTo(BLUE_GARDEN_HIVE, robot);
     }
 
     public void turretAngleBlueOpposite(Pose robot) {
          AutoAllignTo(BLUE_OPPOSITE_HIVE, robot);
+    }
+
+    public void turretAngleRedGarden(Pose robot) {
+         AutoAllignTo(RED_GARDEN_HIVE, robot);
+    }
+
+    public void turretAngleRedOpposite(Pose robot) {
+         AutoAllignTo(RED_OPPOSITE_HIVE, robot);
     }
 
     public void AutoAllignTo(Pose point, Pose robot) {

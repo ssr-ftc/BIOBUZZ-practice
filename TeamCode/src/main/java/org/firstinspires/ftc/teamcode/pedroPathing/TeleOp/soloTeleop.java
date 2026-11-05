@@ -10,6 +10,8 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Depo;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Transfer;
+import org.firstinspires.ftc.teamcode.pedroPathing.Auto.EntireAuto;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Turret;
 
 
 @TeleOp(name = "deandreAytonSCUKS", group = "Templates")
@@ -19,20 +21,26 @@ public class soloTeleop extends OpMode {
     Depo de;
     Intake intake;
     Transfer transfer;
+    Turret turret;
     Timer timers;
     double velo = 1500;
     private double speedScale = 0.9;
     boolean backState,frontState;
     double backBalls,frontBalls;
+    public static boolean isBlue;
+    public static boolean isRed;
 
 
     @Override
     public void init() {//this is called once when the driver presses init
+        isBlue = EntireAuto.whichSide()[0];
+        isRed = EntireAuto.whichSide()[1];
         follower = Robot1.createFollower(hardwareMap);
-        follower.setPose(new Pose(0, 0, 0));
+        follower.setPose(EntireAuto.returnToTeleop());
         intake = new Intake(hardwareMap);
         de = new Depo(hardwareMap);
         transfer = new Transfer(hardwareMap);
+        turret = new Turret(hardwareMap);
         timers = new Timer();
         telemetry.addLine("Initialized");
         telemetry.addData("Status", "Press start to run TeleOp");
@@ -52,6 +60,8 @@ public class soloTeleop extends OpMode {
     @Override
     public void loop() {//this is called repeatedly during the op mode
         de.run_using_pid();
+        turret.run_using_pid();
+        autoTracking();
 
         if(gamepad1.dpadUpWasPressed()){
             velo+=50;
@@ -167,12 +177,35 @@ public class soloTeleop extends OpMode {
         }
     }
 
+    public void autoTracking() {
+        if (isBlue) {
+            if (follower.pose().x() > 72 && follower.pose().y() < 72) {
+                turret.turretAngleBlueOpposite(new Pose(follower.pose().x(), follower.pose().y(), follower.pose().heading()));
+            }
+
+            else if (follower.pose().x() > 72 && follower.pose().y() > 72) {
+                turret.turretAngleBlueGarden(new Pose(follower.pose().x(), follower.pose().y(), follower.pose().heading()));
+            }
+        }
+
+        else if (isRed) {
+            if (follower.pose().x() < 72 && follower.pose().y() > 72) {
+                turret.turretAngleRedOpposite(new Pose(follower.pose().x(), follower.pose().y(), follower.pose().heading()));
+            }
+
+            else if (follower.pose().x() < 72 && follower.pose().y() < 72) {
+                turret.turretAngleRedGarden(new Pose(follower.pose().x(), follower.pose().y(), follower.pose().heading()));
+            }
+        }
+    }
+
 
 
     private void sendTelemetry() {
         telemetry.addData("velo",velo);
         telemetry.addData("depo velo",de.getVelocity());
         telemetry.addData("total balls",frontBalls+backBalls);
+        telemetry.addData("CURRENT TURRET ANGLE", turret.getPositionDeg());
 
         telemetry.update();
     }
