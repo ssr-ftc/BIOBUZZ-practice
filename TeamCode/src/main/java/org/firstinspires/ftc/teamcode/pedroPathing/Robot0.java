@@ -17,7 +17,8 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 /** LM0 robot. Values are the Quickstart AutoTune. */
-public class Robot0 {
+public class
+Robot0 {
     public static MecanumConfig drivetrainConfig = new MecanumConfig(c -> {
         c.frontLeftName.set("fl");
         c.frontRightName.set("rf");

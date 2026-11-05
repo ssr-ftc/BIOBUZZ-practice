@@ -9,7 +9,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Robot0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.DepoLM1;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.depoLM0;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.LM0.intakeLM0;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.turret;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Turret;
 
 @TeleOp(name = "soloControllerTeleop", group = "TeleOp")
 public class soloControllerTeleop extends OpMode {
@@ -17,7 +17,7 @@ public class soloControllerTeleop extends OpMode {
     private final Pose startPose = new Pose(0, 0, 0);
     private DepoLM1 depo;
     private intakeLM0 intake;
-    private turret turret;
+    private Turret turret;
     private final ElapsedTime shotTimer = new ElapsedTime();
     private boolean shotTimerRunning = false;
 
@@ -27,7 +27,7 @@ public class soloControllerTeleop extends OpMode {
         follower.setPose(startPose);
         depo = new DepoLM1(hardwareMap);
         intake = new intakeLM0(hardwareMap);
-        turret = new turret(hardwareMap);
+        turret = new Turret(hardwareMap);
     }
 
     @Override
