@@ -19,7 +19,7 @@ public class Intake {
     private double flowerDownPos = 0.06;
 
     private double frontUpPos = 0.38;
-    private double frontDownPos = 0.50;
+    private double frontDownPos = 0.5;
 
     private double backUpPos = 0.42;
     private double backDownPos = 0.55;

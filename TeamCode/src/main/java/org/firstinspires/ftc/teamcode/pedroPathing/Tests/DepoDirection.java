@@ -15,7 +15,7 @@ public class DepoDirection extends LinearOpMode {
         DcMotor depo1 = hardwareMap.get(DcMotor.class, "depo1");
 
         depo.setDirection(DcMotorSimple.Direction.FORWARD);
-        depo1.setDirection(DcMotorSimple.Direction.REVERSE);
+        depo1.setDirection(DcMotorSimple.Direction.FORWARD);
 
         waitForStart();
 

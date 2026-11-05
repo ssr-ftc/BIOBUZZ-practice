@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.Tests;
 
 import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.arcrobotics.ftclib.controller.PIDFController;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -21,6 +22,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
  * Options/start    = reset encoder and target to 0
  */
 @TeleOp(name = "turret test with motor", group = "tuning")
+@Config
 public class TurretTestMotor extends LinearOpMode {
 
     private static final double[] GAIN_STEPS = {0.0001, 0.001, 0.01, 0.1};
@@ -29,9 +31,9 @@ public class TurretTestMotor extends LinearOpMode {
     private DcMotorEx turret;
     private PIDFController pid;
 
-    private double p = 0.00;
+    private double p = 0.015;
     private double i = 0.00;
-    private double d = 0.000;
+    private double d = 0.0006;
     private double kF = 0;
     private double targetPos = 0;
 
