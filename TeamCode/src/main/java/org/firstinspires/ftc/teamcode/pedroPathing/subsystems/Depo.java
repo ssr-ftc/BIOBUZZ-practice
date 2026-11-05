@@ -43,10 +43,10 @@ public class Depo {
     }
     PIDFController pid;
     public double power;
-    public static double p = 0.004;
+    public static double p = 0.0191; //0.0188
     public static double i = 0.000;
     public static double d = 0.0000;
-    public static double kF = 0.0007;
+    public static double kF = 0.0004;
     private static double targetVelocity = 0;
 
     //important constatnts below
