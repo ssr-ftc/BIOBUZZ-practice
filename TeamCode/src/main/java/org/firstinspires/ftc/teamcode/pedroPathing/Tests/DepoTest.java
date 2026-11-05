@@ -32,11 +32,11 @@ public class DepoTest extends LinearOpMode {
     private DcMotorEx depo1;
     private PIDFController pid;
 
-    private double p = 0.004;
-    private double i = 0;
-    private double d = 0;
-    private double kF = 0.0007;
-    private double targetVelocity = 0;
+    public static double p = 0.004;
+    public static double i = 0;
+    public static double d = 0;
+    public static double kF = 0.0007;
+    public static double targetVelocity = 0;
 
     private enum Mode {DRIVER, AUTO}
     private Mode mode = Mode.DRIVER;

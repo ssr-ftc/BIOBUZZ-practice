@@ -45,7 +45,7 @@ public class HalfAuto3tip extends OpMode {
         timers.createNew("shoot");
         timers.createNew("hold");
 
-        turret.ResetTurretEncoders();
+        turret.resetTurretEncoders();
         turret.setPositionDeg(90);
         intake.flower_up();
         follower.update();

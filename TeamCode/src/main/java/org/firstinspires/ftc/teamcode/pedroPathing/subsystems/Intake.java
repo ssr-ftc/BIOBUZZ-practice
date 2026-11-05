@@ -11,6 +11,7 @@ public class Intake {
 //the front intake is the passive one
     //the back intake is the one that spits
     private DcMotorEx intakeMotor;
+    private DcMotorEx intakeMotor2;
     private Servo flower;
     private Servo back;
     private Servo front;
@@ -29,6 +30,9 @@ public class Intake {
     public Intake(HardwareMap hardwareMap) {
         intakeMotor = hardwareMap.get(DcMotorEx.class, "intake");
         intakeMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+        intakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        intakeMotor2 = hardwareMap.get(DcMotorEx.class, "intake2");
+        intakeMotor.setDirection(DcMotorSimple.Direction.FORWARD);
         intakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         flower = hardwareMap.get(Servo.class, "flower");
         front = hardwareMap.get(Servo.class, "front");
@@ -56,14 +60,17 @@ public class Intake {
     }
     public void intake_on() {
         intakeMotor.setPower(intake_power);
+        intakeMotor2.setPower(intake_power);
     }
 
     public void intake_off() {
         intakeMotor.setPower(0);
+        intakeMotor2.setPower(0);
     }
 
     public void outtake() {
         intakeMotor.setPower(outtake_power);
+        intakeMotor2.setPower(outtake_power);
     }
 
     public boolean intaking() {
