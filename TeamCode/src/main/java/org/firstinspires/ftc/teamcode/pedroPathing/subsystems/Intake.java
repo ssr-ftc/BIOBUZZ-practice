@@ -32,7 +32,7 @@ public class Intake {
         intakeMotor.setDirection(DcMotorSimple.Direction.REVERSE);
         intakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         intakeMotor2 = hardwareMap.get(DcMotorEx.class, "intake2");
-        intakeMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+        intakeMotor.setDirection(DcMotorSimple.Direction.REVERSE);
         intakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         flower = hardwareMap.get(Servo.class, "flower");
         front = hardwareMap.get(Servo.class, "front");
