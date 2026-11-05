@@ -50,7 +50,7 @@ public class Intake {
     public void flower_up(){
         flower.setPosition(flowerUpPos);
     }
-    public void flower_down(){flower.setPosition(flowerDownPos);}
+    public void flower_down() {flower.setPosition(flowerDownPos);}
     public void front_up(){front.setPosition(frontUpPos);}
     public void front_down(){front.setPosition(frontDownPos);}
     public void back_up(){back.setPosition(backUpPos);}

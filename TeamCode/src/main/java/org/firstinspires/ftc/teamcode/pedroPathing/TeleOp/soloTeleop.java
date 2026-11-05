@@ -21,7 +21,7 @@ public class soloTeleop extends OpMode {
     Transfer transfer;
     Timer timers;
     double velo = 1500;
-    private double speedScale = 1;
+    private double speedScale = 0.9;
     boolean backState,frontState;
     double backBalls,frontBalls;
 
@@ -60,9 +60,15 @@ public class soloTeleop extends OpMode {
         }
 
         if(gamepad1.rightBumperWasPressed()){
-            intake.back_down();
-            intake.front_down();
-            intake.intake_on();
+            if (intake.intaking()) {
+                intake.front_up();
+                intake.back_up();
+                intake.intake_off();
+            } else {
+                intake.front_down();
+                intake.back_down();
+                intake.intake_on();
+            }
         }
         if(!de.isDepositOn()){
             countBalls();
@@ -80,6 +86,7 @@ public class soloTeleop extends OpMode {
         }
 
         shootingFunc();
+        flower();
         driveWithPedro();
         sendTelemetry();
         follower.update();
@@ -126,13 +133,26 @@ public class soloTeleop extends OpMode {
     }
 
     private void driveWithPedro() {
-        double speedShift = 0.9;
-
+        if (gamepad1.right_trigger > 0.1) {
+            speedScale = 0.25;
+            gamepad1.rumbleBlips(1);
+        }
         double forward = -gamepad1.left_stick_y * speedScale;
         double strafe = -gamepad1.left_stick_x  * speedScale;
         double turn = -gamepad1.right_stick_x * speedScale;
 
         follower.manual(forward, strafe, turn);
+    }
+
+    private void flower() {
+        if (gamepad1.triangle) {
+            intake.flower_down();
+        } else {
+            intake.flower_up();
+        }
+        if (intake.intaking()) {
+            gamepad1.rumbleBlips(1);
+        }
     }
 
 
