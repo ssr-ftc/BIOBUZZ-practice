@@ -33,21 +33,10 @@ public class autoTrackingTeleOp extends OpMode {
 
     @Override
     public void init() {
-        boolean[] sides = EntireAuto.whichSide();
-        if (sides != null && sides.length >= 2) {
-            isBlue = sides[0];
-            isRed = sides[1];
-        } else {
-            isBlue = false;
-            isRed = false;
-        }
+        isBlue = EntireAuto.whichSide()[0];
+        isRed = EntireAuto.whichSide()[1];
         follower = Robot1.createFollower(hardwareMap);
-        Pose startPose = EntireAuto.returnToTeleop();
-        if (startPose != null) {
-            follower.setPose(startPose);
-        } else {
-            follower.setPose(new Pose(0, 0, 0));
-        }
+        follower.setPose(EntireAuto.returnToTeleop());
 
         intake = new Intake(hardwareMap);
         de = new Depo(hardwareMap);
@@ -187,24 +176,23 @@ public class autoTrackingTeleOp extends OpMode {
     }
 
     public void autoTracking() {
-        if (follower == null) {
-            return;
-        }
-        Pose currentPose = follower.pose();
-        if (currentPose == null) {
-            return;
-        }
         if (isBlue) {
-            if (currentPose.x() > 72 && currentPose.y() < 72) {
-                turret.turretAngleBlueOpposite(new Pose(currentPose.x(), currentPose.y(), currentPose.heading()));
-            } else if (currentPose.x() > 72 && currentPose.y() > 72) {
-                turret.turretAngleBlueGarden(new Pose(currentPose.x(), currentPose.y(), currentPose.heading()));
+            if (follower.pose().x() > 72 && follower.pose().y() < 72) {
+                turret.turretAngleBlueOpposite(new Pose(follower.pose().x(), follower.pose().y(), follower.pose().heading()));
             }
-        } else if (isRed) {
-            if (currentPose.x() < 72 && currentPose.y() > 72) {
-                turret.turretAngleRedOpposite(new Pose(currentPose.x(), currentPose.y(), currentPose.heading()));
-            } else if (currentPose.x() < 72 && currentPose.y() < 72) {
-                turret.turretAngleRedGarden(new Pose(currentPose.x(), currentPose.y(), currentPose.heading()));
+
+            else if (follower.pose().x() > 72 && follower.pose().y() > 72) {
+                turret.turretAngleBlueGarden(new Pose(follower.pose().x(), follower.pose().y(), follower.pose().heading()));
+            }
+        }
+
+        else if (isRed) {
+            if (follower.pose().x() < 72 && follower.pose().y() > 72) {
+                turret.turretAngleRedOpposite(new Pose(follower.pose().x(), follower.pose().y(), follower.pose().heading()));
+            }
+
+            else if (follower.pose().x() < 72 && follower.pose().y() < 72) {
+                turret.turretAngleRedGarden(new Pose(follower.pose().x(), follower.pose().y(), follower.pose().heading()));
             }
         }
     }
