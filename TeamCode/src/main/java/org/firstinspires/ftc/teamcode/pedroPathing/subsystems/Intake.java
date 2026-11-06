@@ -23,7 +23,7 @@ public class Intake {
     private double frontDownPos = 0.5;
 
     private double backUpPos = 0.42;
-    private double backDownPos = 0.55;
+    private double backDownPos = 0.54;
     private static final double intake_power = -1;
     private static final double outtake_power = 1;
 

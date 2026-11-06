@@ -14,8 +14,8 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Auto.EntireAuto;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Turret;
 
 
-@TeleOp(name = "deandreAytonSCUKS", group = "Templates")
-public class soloTeleop extends OpMode {
+@TeleOp(name = "Solo TeleOp with Auto Tracking", group = "Templates")
+public class autoTrackingTeleOp extends OpMode {
 
     private Follower follower;//this is pedropathing follower
     Depo de;
@@ -24,7 +24,7 @@ public class soloTeleop extends OpMode {
     Turret turret;
     Timer timers;
     double velo = 1500;
-    private double speedScale = 0.9;
+    private double speedScale = 0.85;
     boolean backState,frontState;
     double backBalls,frontBalls;
     public static boolean isBlue;
@@ -32,11 +32,23 @@ public class soloTeleop extends OpMode {
 
 
     @Override
-    public void init() {//this is called once when the driver presses init
-        isBlue = EntireAuto.whichSide()[0];
-        isRed = EntireAuto.whichSide()[1];
+    public void init() {
+        boolean[] sides = EntireAuto.whichSide();
+        if (sides != null && sides.length >= 2) {
+            isBlue = sides[0];
+            isRed = sides[1];
+        } else {
+            isBlue = false;
+            isRed = false;
+        }
         follower = Robot1.createFollower(hardwareMap);
-        follower.setPose(EntireAuto.returnToTeleop());
+        Pose startPose = EntireAuto.returnToTeleop();
+        if (startPose != null) {
+            follower.setPose(startPose);
+        } else {
+            follower.setPose(new Pose(0, 0, 0));
+        }
+
         intake = new Intake(hardwareMap);
         de = new Depo(hardwareMap);
         transfer = new Transfer(hardwareMap);
@@ -108,25 +120,22 @@ public class soloTeleop extends OpMode {
         sendTelemetry();
         follower.update();
     }
-    void shootingFunc(){
+    public void shootingFunc(){
         if(de.reachedvelocity() && !timers.isRunning("depo")){
             timers.start("depo");
         }
         if(timers.checkSeconds("depo",0.3)){
-            de.open_hatch();
             intake.intake_on();
+            de.open_hatch();
         }
         if(timers.checkSecondsLast("depo", 2.5)){
             de.close_hatch();
             de.set_target_velocity(0);
             intake.intake_off();
-            /*
-            intake.front_down();
-            intake.back_down();
-
-             */
-            frontBalls=0;
-            backBalls=0;
+            //intake.front_down();
+            //intake.back_down();
+            frontBalls = 0;
+            backBalls = 0;
         }
     }
 
@@ -138,7 +147,7 @@ public class soloTeleop extends OpMode {
         if(transfer.getDistanceBack_MM()<65 && !backState) backState=true;
         if(backState){
             if(transfer.getDistanceBack_MM()>80){
-                backBalls+=1;
+                backBalls += 1;
                 backState=false;
             }
         }
@@ -147,7 +156,7 @@ public class soloTeleop extends OpMode {
         if(transfer.getDistanceFront_MM()<65 && !frontState) frontState=true;
         if(frontState){
             if(transfer.getDistanceFront_MM()>80){
-                frontBalls+=1;
+                frontBalls += 1;
                 frontState=false;
             }
         }
@@ -178,23 +187,24 @@ public class soloTeleop extends OpMode {
     }
 
     public void autoTracking() {
-        if (isBlue) {
-            if (follower.pose().x() > 72 && follower.pose().y() < 72) {
-                turret.turretAngleBlueOpposite(new Pose(follower.pose().x(), follower.pose().y(), follower.pose().heading()));
-            }
-
-            else if (follower.pose().x() > 72 && follower.pose().y() > 72) {
-                turret.turretAngleBlueGarden(new Pose(follower.pose().x(), follower.pose().y(), follower.pose().heading()));
-            }
+        if (follower == null) {
+            return;
         }
-
-        else if (isRed) {
-            if (follower.pose().x() < 72 && follower.pose().y() > 72) {
-                turret.turretAngleRedOpposite(new Pose(follower.pose().x(), follower.pose().y(), follower.pose().heading()));
+        Pose currentPose = follower.pose();
+        if (currentPose == null) {
+            return;
+        }
+        if (isBlue) {
+            if (currentPose.x() > 72 && currentPose.y() < 72) {
+                turret.turretAngleBlueOpposite(new Pose(currentPose.x(), currentPose.y(), currentPose.heading()));
+            } else if (currentPose.x() > 72 && currentPose.y() > 72) {
+                turret.turretAngleBlueGarden(new Pose(currentPose.x(), currentPose.y(), currentPose.heading()));
             }
-
-            else if (follower.pose().x() < 72 && follower.pose().y() < 72) {
-                turret.turretAngleRedGarden(new Pose(follower.pose().x(), follower.pose().y(), follower.pose().heading()));
+        } else if (isRed) {
+            if (currentPose.x() < 72 && currentPose.y() > 72) {
+                turret.turretAngleRedOpposite(new Pose(currentPose.x(), currentPose.y(), currentPose.heading()));
+            } else if (currentPose.x() < 72 && currentPose.y() < 72) {
+                turret.turretAngleRedGarden(new Pose(currentPose.x(), currentPose.y(), currentPose.heading()));
             }
         }
     }
