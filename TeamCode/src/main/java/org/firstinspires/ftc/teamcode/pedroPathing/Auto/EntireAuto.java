@@ -190,6 +190,7 @@ public class EntireAuto extends OpMode {
 
     @Override
     public void loop() {
+        teleop = new Pose(follower.getPose().x(), follower.getPose().y(), follower.getPose().heading());
         follower.update();
         turret.run_using_pid();
         depo.run_using_pid();
@@ -502,7 +503,6 @@ public class EntireAuto extends OpMode {
 
             case DONE:
                 telemetry.addLine("Finished everything!");
-                teleop = new Pose(follower.getPose().x(), follower.getPose().y(), follower.getPose().heading());
                 break;
 
             default:

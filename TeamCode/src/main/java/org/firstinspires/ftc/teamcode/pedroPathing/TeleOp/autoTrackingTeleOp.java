@@ -36,7 +36,16 @@ public class autoTrackingTeleOp extends OpMode {
         isBlue = EntireAuto.whichSide()[0];
         isRed = EntireAuto.whichSide()[1];
         follower = Robot1.createFollower(hardwareMap);
-        follower.setPose(EntireAuto.returnToTeleop());
+
+        try {
+            follower.setPose(EntireAuto.returnToTeleop());
+        } catch (NullPointerException error) {
+            if (isBlue) {
+                follower.setPose(new Pose(124.6912, 23.9385, Math.toRadians(180)));
+            } else if (isRed) {
+                follower.setPose(new Pose(19.3088, 120.0615, Math.toRadians(0)));
+            }
+        }
 
         intake = new Intake(hardwareMap);
         de = new Depo(hardwareMap);
