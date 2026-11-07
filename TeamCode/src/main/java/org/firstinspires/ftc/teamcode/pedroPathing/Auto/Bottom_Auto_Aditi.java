@@ -14,7 +14,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Robot1;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Depo;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Transfer;
-// TURRET DISABLED: import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Turret;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Turret;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
@@ -32,6 +32,10 @@ public class Bottom_Auto_Aditi extends OpMode {
     private static final boolean FLOWER_SHOT_OPPOSITE  = true;
     private static final double PARK_START_HEADING_DEG = -90;    // park leg start heading (change to 90 if it snaps)
 
+    // --- turret angles (fixed, no hive auto-aim) ---
+    private static final double TURRET_START_DEG = -180;         // from init, through the preload shot and the flower trip
+    private static final double TURRET_SHOOT_DEG = -160;         // set when we leave the flower for the shootPose
+
     /** Right toggle = RED (tags 30-33), left toggle = BLUE (tags 38-41). Both use the same poses. */
     private enum Side {
         RED(30, 33), BLUE(38, 41);
@@ -43,9 +47,9 @@ public class Bottom_Auto_Aditi extends OpMode {
     private static Pose pose(double x, double y, double headingDeg) {
         return new Pose(x, y, Math.toRadians(headingDeg));
     }
-    private final Pose start      = pose(64.084, 133.1202, -90);
-    private final Pose leaveStart = pose(64.141, 108.3963, 90);
-    private final Pose gotoFlower = pose(47.0764, 108.512, 90);
+    private final Pose start      = pose(64.084, 133.1202, 90);
+    private final Pose leaveStart = pose(64.141, 117.5, 90);
+    private final Pose gotoFlower = pose(46.0764, 117.5, 90);
     private final Pose flower     = pose(46.8257, 128.0305, 90);
     private final Pose shootPose  = pose(46.9097, 119.2908, 90);
     private final Pose park       = pose(7.8308, 114.1196, 0);
@@ -67,7 +71,8 @@ public class Bottom_Auto_Aditi extends OpMode {
     private final ElapsedTime actionTimer = new ElapsedTime();
     private final ElapsedTime shotTimer = new ElapsedTime();
     private boolean shotStarted = false;     // depo reached speed and the hatch is open
-    private boolean shootOpposite = false;   // which turret aim the current shot uses (unused while turret is disabled)
+    private boolean shootOpposite = false;   // which turret aim the current shot uses (unused: turret uses fixed angles)
+    private double turretTargetDeg = TURRET_START_DEG;   // last angle sent to turret.setPositionDeg (telemetry only)
 
     private Side side = null;                // null until a toggle is pressed
     private boolean tagSeen = false;
@@ -77,7 +82,7 @@ public class Bottom_Auto_Aditi extends OpMode {
     private Depo depo;
     private Intake intake;
     private Transfer transfer;
-    // TURRET DISABLED: private Turret turret;
+    private Turret turret;
     private AprilTagProcessor tagProcessor;
     private VisionPortal portal;
 
@@ -88,7 +93,10 @@ public class Bottom_Auto_Aditi extends OpMode {
         depo = new Depo(hardwareMap);
         intake = new Intake(hardwareMap);
         transfer = new Transfer(hardwareMap);
-        // TURRET DISABLED: turret = new Turret(hardwareMap);
+        turret = new Turret(hardwareMap);
+        turret.start();                                  // load PIDF values
+        turretTargetDeg = TURRET_START_DEG;
+        turret.setPositionDeg(turretTargetDeg);          // face the start angle from init
 
         tagProcessor = new AprilTagProcessor.Builder().build();
         portal = new VisionPortal.Builder()
@@ -99,6 +107,8 @@ public class Bottom_Auto_Aditi extends OpMode {
 
     @Override
     public void init_loop() {
+        turret.run_using_pid();                          // actually drive the turret to the start angle during init
+
         Side picked = side;
         if (gamepad1.right_bumper || gamepad1.right_trigger > 0.5) picked = Side.RED;
         if (gamepad1.left_bumper  || gamepad1.left_trigger  > 0.5) picked = Side.BLUE;
@@ -111,6 +121,7 @@ public class Bottom_Auto_Aditi extends OpMode {
         telemetry.addData("Alliance", allianceLabel());
         telemetry.addData("APRILTAG", tagSeen ? "SEEN (id " + seenTagId + ")" : "NOT SEEN");
         telemetry.addData("Visible tag IDs", visibleTagIds());
+        telemetry.addData("Turret ticks / target deg", "%.0f / %.1f", turret.getPosition(), turretTargetDeg);
         telemetry.addLine(side == null ? "NOT READY" : "READY: press START");
         telemetry.update();
     }
@@ -122,8 +133,7 @@ public class Bottom_Auto_Aditi extends OpMode {
         intake.start();
         depo.start();
         transfer.start();
-        // TURRET DISABLED: turret.start();
-        // TURRET DISABLED: turret.holdCurrentPosition();
+        // turret keeps the start angle set in init(); nothing to do here
         setActionState(ActionState.IDLE);    // nothing moves till the aprtag is seen
     }
 
@@ -136,7 +146,7 @@ public class Bottom_Auto_Aditi extends OpMode {
         }
 
         follower.update();
-        // TURRET DISABLED: turret.run_using_pid();
+        turret.run_using_pid();
         depo.run_using_pid();
         checkForTag();
         updatePathState();
@@ -149,7 +159,7 @@ public class Bottom_Auto_Aditi extends OpMode {
         telemetry.addData("Path / Action", pathState + " / " + actionState);
         telemetry.addData("Auto timer", "%.1f / %.0f", autoTimer.seconds(), PARK_TIME_SECONDS);
         telemetry.addData("Depo velocity", depo.getVelocity());
-        // TURRET DISABLED: telemetry.addData("Turret deg / target", "%.1f / %.1f", turret.getPositionDeg(), Turret.deg);
+        telemetry.addData("Turret ticks / target deg", "%.0f / %.1f", turret.getPosition(), turretTargetDeg);
         telemetry.addData("Pose", follower.pose());
         telemetry.update();
     }
@@ -197,6 +207,8 @@ public class Bottom_Auto_Aditi extends OpMode {
                 if (!follower.isBusy() && actionTimer.seconds() >= FLOWER_INTAKE_SECONDS) {
                     follower.follow(drive(flower, shootPose));
                     shootOpposite = FLOWER_SHOT_OPPOSITE;
+                    turretTargetDeg = TURRET_SHOOT_DEG;
+                    turret.setPositionDeg(turretTargetDeg);      // start angle -> shoot angle while driving to the shootPose
                     setActionState(ActionState.SHOOT);
                     pathState = PathState.SHOOT_FLOWER;
                 }
@@ -252,7 +264,7 @@ public class Bottom_Auto_Aditi extends OpMode {
             case IDLE:
                 shooterOff();
                 intake.flower_up();
-                // TURRET DISABLED: turret.holdCurrentPosition();
+                // TURRET DISABLED: turret.holdCurrentPosition();   (left off on purpose: it would overwrite the start/shoot angle targets)
                 break;
             case SHOOT:
                 shotStarted = false;
@@ -277,7 +289,7 @@ public class Bottom_Auto_Aditi extends OpMode {
         intake.intake_off();
     }
 
-    // TURRET DISABLED: aimTurret() and turretOnTarget() are commented out until the turret is wired back in.
+    // TURRET DISABLED: hive auto-aim (aimTurret() and turretOnTarget()) stays commented out; the turret uses fixed angles above.
     // /** Aims the turret at the hive from the robot's live pose, using this side's garden/opposite method. */
     // private void aimTurret() {
     //     Pose p = follower.pose();
@@ -293,8 +305,8 @@ public class Bottom_Auto_Aditi extends OpMode {
     // /** Turret.deg holds the last requested aim; wrap it the same way Turret.setPositionDeg does. */
     // private boolean turretOnTarget() {
     //     double target = Turret.deg;
-    //     while (target < -90) target += 360;
-    //     while (target >= 270) target -= 360;
+    //     while (target < -370) target += 360;
+    //     while (target >= 17) target -= 360;
     //     return Math.abs(turret.getPositionDeg() - target) <= TURRET_TOLERANCE_DEG;
     // }
 
@@ -332,3 +344,4 @@ public class Bottom_Auto_Aditi extends OpMode {
                 : side + " (tags " + side.minTag + "-" + side.maxTag + ")";
     }
 }
+//hi
