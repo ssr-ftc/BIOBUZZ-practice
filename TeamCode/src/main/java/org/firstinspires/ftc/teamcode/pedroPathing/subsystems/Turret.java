@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.pedroPathing.subsystems;
 import com.acmerobotics.dashboard.config.Config;
 import com.arcrobotics.ftclib.controller.PIDFController;
 import com.pedropathing.math.Pose;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -15,13 +16,14 @@ public class Turret {
     private static final Pose RED_GARDEN_HIVE = new Pose(59.64, 62.6, 0);
     private static final Pose RED_OPPOSITE_HIVE = new Pose(84.36, 62.6, 0);
     public static double deg;
-    final double scalerToDegrees = -0.838888;
+    final double scalerToDegrees = 23.13888;
 
-    private DcMotorEx turret;
+    private DcMotorEx encoder;
+    CRServo turret;
     public Servo cam;
     public Turret(HardwareMap hardwareMap) {
-        turret = hardwareMap.get(DcMotorEx.class, "turret");
-        turret.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        turret = hardwareMap.get(CRServo.class, "turret");
+        encoder = hardwareMap.get(DcMotorEx.class, "intake2");
 
         pid = new PIDFController(p, i, d, kF);
     }
@@ -41,33 +43,32 @@ public class Turret {
     }
 
     public void setPositionDeg(double x) {
-        while (x < -90) x += 360;
-        while (x >= 270) x -= 360;
+        while (x < -370) x += 360;
+        while (x >= 17) x -= 360;
         targetPos = scalerToDegrees * x;
     }
 
     public void run_using_pid() {
         pid.setPIDF(p, i, d, kF);
-        power = pid.calculate(turret.getCurrentPosition(), targetPos);
+        power = pid.calculate(encoder.getCurrentPosition(), targetPos);
         power = Math.max(-1, Math.min(1, power));
         turret.setPower(power);
     }
 
     public void holdCurrentPosition() {
-        targetPos = turret.getCurrentPosition();
+        targetPos = encoder.getCurrentPosition();
     }
 
     public void resetTurretEncoders(){
-        turret.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        turret.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        encoder.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
     }
 
     public double getPosition() {
-        return turret.getCurrentPosition();
+        return encoder.getCurrentPosition();
     }
 
     public double getPositionDeg() {
-        return turret.getCurrentPosition() / scalerToDegrees;
+        return encoder.getCurrentPosition() * scalerToDegrees;
     }
 
     public void turretAngleBlueGarden(Pose robot) {

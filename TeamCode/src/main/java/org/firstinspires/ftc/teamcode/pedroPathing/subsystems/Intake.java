@@ -1,10 +1,13 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.subsystems;
 
+import com.qualcomm.hardware.rev.Rev2mDistanceSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
+
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 public class Intake {
 
@@ -15,6 +18,8 @@ public class Intake {
     private Servo flower;
     private Servo back;
     private Servo front;
+    Rev2mDistanceSensor front_bottom;
+    Rev2mDistanceSensor back_bottom;
 
     private double flowerUpPos = 0.89;
     private double flowerDownPos = 0.0894;
@@ -40,13 +45,19 @@ public class Intake {
         front_up();
         back_up();
     }
+
     public void start(){
         intake_off();
         front_up();
         back_up();
         flower_up();
     }
-
+    public double getDistanceFront_MM(){
+        return back_bottom.getDistance(DistanceUnit.MM);
+    }
+    public double getDistanceBack_MM(){
+        return front_bottom.getDistance(DistanceUnit.MM);
+    }
     public void flower_up(){
         flower.setPosition(flowerUpPos);
     }
