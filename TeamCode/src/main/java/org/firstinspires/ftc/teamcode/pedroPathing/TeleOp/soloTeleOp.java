@@ -61,6 +61,7 @@ public class soloTeleOp extends OpMode {
             velo-=50;
         }
 
+        // Right Bumper logic with flower dependency
         if(gamepad1.rightBumperWasPressed()){
             if (intake.intaking()) {
                 intake.front_up();
@@ -69,9 +70,13 @@ public class soloTeleOp extends OpMode {
                 IntakeAutoStopped = false;
                 manualOverride = false;
             } else {
-                intake.front_down();
-                intake.back_down();
                 intake.intake_on();
+
+                if (!intake.isFlowerDown()) {
+                    intake.front_down();
+                    intake.back_down();
+                }
+
                 IntakeAutoStopped = false;
                 if ((frontBalls + backBalls) >= 4) {
                     manualOverride = true;
@@ -112,6 +117,7 @@ public class soloTeleOp extends OpMode {
         sendTelemetry();
         follower.update();
     }
+
     void shootingFunc(){
         if(de.reachedvelocity() && !timers.isRunning("depo")){
             timers.start("depo");
@@ -124,11 +130,6 @@ public class soloTeleOp extends OpMode {
             de.close_hatch();
             de.set_target_velocity(0);
             intake.intake_off();
-            /*
-            intake.front_down();
-            intake.back_down();
-
-             */
             frontBalls=0;
             backBalls=0;
         }
@@ -138,6 +139,7 @@ public class soloTeleOp extends OpMode {
         countBack();
         countFront();
     }
+
     public void countBack(){
         if(transfer.getDistanceBack_MM()<65 && !backState) backState=true;
         if(backState){
@@ -147,6 +149,7 @@ public class soloTeleOp extends OpMode {
             }
         }
     }
+
     public void countFront(){
         if(transfer.getDistanceFront_MM()<65 && !frontState) frontState=true;
         if(frontState){
@@ -164,8 +167,9 @@ public class soloTeleOp extends OpMode {
         } else {
             speedScale = 0.9;
         }
+
         double forward = -gamepad1.left_stick_y * speedScale;
-        double strafe = -gamepad1.left_stick_x  * speedScale;
+        double strafe = -gamepad1.left_stick_x * speedScale;
         double turn = -gamepad1.right_stick_x * speedScale;
 
         follower.manual(forward, strafe, turn);
@@ -176,13 +180,10 @@ public class soloTeleOp extends OpMode {
             if (intake.isFlowerDown()) {
                 intake.flower_up();
             } else {
-                intake.front_up();
                 intake.flower_down();
             }
         }
     }
-
-
 
     private void sendTelemetry() {
         telemetry.addData("velo",velo);
