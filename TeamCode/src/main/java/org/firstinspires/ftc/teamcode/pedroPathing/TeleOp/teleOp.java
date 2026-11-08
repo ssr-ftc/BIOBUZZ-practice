@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.TeleOp;
 
+import static com.pedropathing.api.Paths.line;
+
 import com.pedropathing.follower.Follower;
 import com.pedropathing.math.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -26,6 +28,15 @@ public class teleOp extends OpMode {
     double backBalls,frontBalls;
     private boolean IntakeAutoStopped = false;
     private boolean manualOverride = false;
+
+    private final Pose leftReset = new Pose(81, 9, Math.toRadians(90));
+    private final Pose leftTarget = new Pose(79, 12, Math.toRadians(88.5));
+    private final Pose leftMiddle = new Pose(79, 28, Math.toRadians(90));
+
+    private final Pose rightTarget = new Pose(58, 12, Math.toRadians(90));
+    private final Pose rightReset = new Pose(58, 9, Math.toRadians(90));
+    private final Pose rightMiddle = new Pose(58, 28, Math.toRadians(90));
+    public boolean rightSide = false;
 
 
     @Override
@@ -59,6 +70,12 @@ public class teleOp extends OpMode {
             velo+=50;
         }if(gamepad2.dpadDownWasPressed()){
             velo-=50;
+        }
+        if(gamepad2.dpadRightWasPressed()){
+            de.setHood(de.getHood()+0.005);
+        }
+        if(gamepad2.dpadLeftWasPressed()){
+            de.setHood(de.getHood()-0.005);
         }
 
         if(gamepad2.rightBumperWasPressed()){
@@ -109,9 +126,11 @@ public class teleOp extends OpMode {
         shootingFunc();
         flower();
         driveWithPedro();
+        perfectShot();
         sendTelemetry();
         follower.update();
     }
+
     void shootingFunc(){
         if(de.reachedvelocity() && !timers.isRunning("depo")){
             timers.start("depo");
@@ -134,10 +153,31 @@ public class teleOp extends OpMode {
         }
     }
 
+    public void perfectShot() {
+        if (gamepad1.dpadLeftWasPressed()) {
+            follower.setPose(leftReset);
+            rightSide = false;
+        }
+        if (gamepad1.dpadRightWasPressed()) {
+            follower.setPose(rightReset);
+            rightSide = true;
+        }
+        if (gamepad1.squareWasPressed()) {
+            if (rightSide) {
+                follower.follow(line(follower.pose(), rightMiddle).linear(follower.pose().heading(), rightMiddle.heading()));
+                follower.follow(line(rightMiddle, rightTarget).linear(rightMiddle.heading(), rightTarget.heading()));
+            } else {
+                follower.follow(line(follower.pose(), leftMiddle).linear(follower.pose().heading(), leftMiddle.heading()));
+                follower.follow(line(leftMiddle, leftTarget).linear(leftMiddle.heading(), leftTarget.heading()));
+            }
+        }
+    }
+
     public void countBalls(){
         countBack();
         countFront();
     }
+
     public void countBack(){
         if(intake.getDistanceBack_MM()<65 && !backState) backState=true;
         if(backState){
@@ -147,6 +187,7 @@ public class teleOp extends OpMode {
             }
         }
     }
+
     public void countFront(){
         if(intake.getDistanceFront_MM()<65 && !frontState) frontState=true;
         if(frontState){
@@ -158,6 +199,9 @@ public class teleOp extends OpMode {
     }
 
     private void driveWithPedro() {
+        if (follower.isBusy()) {
+            return;
+        }
         if (gamepad1.right_trigger > 0.1) {
             speedScale = 0.25;
             gamepad1.rumbleBlips(1);
@@ -182,12 +226,33 @@ public class teleOp extends OpMode {
         }
     }
 
-
-
     private void sendTelemetry() {
         telemetry.addData("velo",velo);
         telemetry.addData("depo velo",de.getVelocity());
         telemetry.addData("total balls",frontBalls+backBalls);
+        telemetry.addData("Side", rightSide ? "RIGHT" : "LEFT");
+        telemetry.addData("Robot Pose", follower.pose().toString());
+        telemetry.addLine("");
+        telemetry.addLine("");
+        telemetry.addLine("     -----  CONTROLS  -----     ");
+        telemetry.addLine("Base driver:");
+        telemetry.addLine("Left Joystick: Move and Strafe");
+        telemetry.addLine("Right Joystick: Rotate");
+        telemetry.addLine("Right Trigger: Shift Speed");
+        telemetry.addLine("Y:  Flower up/down");
+        telemetry.addLine("X: Auto tleeop localize");
+        telemetry.addLine("Dpad left: Left localize");
+        telemetry.addLine("Dpad right: Right Localize");
+        telemetry.addLine("");
+        telemetry.addLine("Shoter driver:");
+        telemetry.addLine("Right Bymper: INtake");
+        telemetry.addLine("Left Bumper: Outtake");
+        telemetry.addLine("A: SHoot");
+        telemetry.addLine("Dpad up/down:  velocity +- 50");
+        telemetry.addLine("Dpad right: hoodup");
+        telemetry.addLine("Dpad right: hoodown");
+        telemetry.addLine("");
+        telemetry.addLine("please reference drivers if controls do not work");
         telemetry.update();
     }
 }
