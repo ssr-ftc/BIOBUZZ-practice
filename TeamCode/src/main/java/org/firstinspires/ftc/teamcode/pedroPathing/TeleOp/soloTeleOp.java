@@ -96,7 +96,7 @@ public class soloTeleOp extends OpMode {
         if(gamepad1.dpadLeftWasPressed()){
             depo.setHood(depo.getHood()-0.005);
         }
-        distanceToGoal = (follower.pose().y()>71)? turret.distanceToFlowerHive(follower.pose()) : turret.distanceToGardenHive(follower.pose());
+        distanceToGoal = (follower.pose().y()>71) ? turret.distanceToFlowerHive(follower.pose()) : turret.distanceToGardenHive(follower.pose());
 
         // Right Bumper logic with flower dependency
         if(gamepad1.rightBumperWasPressed()){

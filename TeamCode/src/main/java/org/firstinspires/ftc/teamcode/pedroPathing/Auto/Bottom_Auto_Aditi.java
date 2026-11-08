@@ -132,7 +132,7 @@ public class Bottom_Auto_Aditi extends OpMode {
         follower.setPose(start);
         intake.start();
         depo.start();
-        transfer.start();
+       // transfer.start();
         // turret keeps the start angle set in init(); nothing to do here
         setActionState(ActionState.IDLE);    // nothing moves till the aprtag is seen
     }

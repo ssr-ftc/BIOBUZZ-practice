@@ -531,16 +531,16 @@ public class EntireAuto extends OpMode {
                 Pose robot = new Pose(follower.getPose().x(), follower.getPose().y(), follower.getPose().heading());
 
                 if (isBlueGarden) {
-                    turret.turretAngleBlueGarden(robot);
+                    turret.faceGardenHive(robot);
                 }
                 if (isBlueOpposite) {
-                    turret.turretAngleBlueOpposite(robot);
+                    turret.faceFlowerHive(robot);
                 }
                 if (isRedGarden) {
-                    turret.turretAngleRedGarden(robot);
+                    turret.faceFlowerHive(robot);
                 }
                 if (isRedOpposite) {
-                    turret.turretAngleRedOpposite(robot);
+                    turret.faceGardenHive(robot);
                 }
 
                 if (Math.abs(turret.getPositionDeg() - Turret.deg) <= TURRET_TOLERANCE_DEG) {
