@@ -9,7 +9,7 @@ import com.qualcomm.robotcore.hardware.Servo;
 import org.firstinspires.ftc.teamcode.pedroPathing.Robot1;
 
 
-@TeleOp(name = "Servos tester intake (intakes,flower,flap)")
+@TeleOp(name = "Servos tester intake (intakes,flower)")
 public class ServoTest2 extends OpMode {
 
     private Follower follower;//this is pedropathing follower
@@ -17,14 +17,12 @@ public class ServoTest2 extends OpMode {
     Servo flower;
     Servo front;
     Servo back;
-    Servo flap;
 
     @Override
     public void init() {//this is called once when the driver presses init
         follower = Robot1.createFollower(hardwareMap);
         follower.setPose(new Pose(0, 0, 0));
         flower = hardwareMap.get(Servo.class,"flower");
-        flap = hardwareMap.get(Servo.class,"flap");
         front = hardwareMap.get(Servo.class,"front");
         back = hardwareMap.get(Servo.class,"back");
         telemetry.addLine("Initialized");
@@ -35,7 +33,7 @@ public class ServoTest2 extends OpMode {
 
     @Override
     public void start() {//this is called once when the driver presses start
-        flap.setPosition(0.5);
+//        flap.setPosition(0.5);
         flower.setPosition(0.5);
         front.setPosition(0.5);
         back.setPosition(0.5);
@@ -48,8 +46,8 @@ public class ServoTest2 extends OpMode {
         if(gamepad1.dpadUpWasPressed()) flower.setPosition(flower.getPosition()+0.01);//dpad up/down for flower intake
         if(gamepad1.dpadDownWasPressed()) flower.setPosition(flower.getPosition()-0.01);
 
-        if(gamepad1.dpadLeftWasPressed()) flap.setPosition(flap.getPosition()-0.01);//dpad left/right for flap
-        if(gamepad1.dpadRightWasPressed()) flap.setPosition(flap.getPosition()+0.01);
+//        if(gamepad1.dpadLeftWasPressed()) flap.setPosition(flap.getPosition()-0.01);//dpad left/right for flap
+//        if(gamepad1.dpadRightWasPressed()) flap.setPosition(flap.getPosition()+0.01);
 
         if(gamepad1.rightBumperWasPressed()) front.setPosition(front.getPosition()+0.01);//left and right bumpers for front intake
         if(gamepad1.leftBumperWasPressed()) front.setPosition(front.getPosition()-0.01);
@@ -71,11 +69,11 @@ public class ServoTest2 extends OpMode {
     }
     private void sendTelemetry() {
         telemetry.addLine("dpad up/down for flower intake");
-        telemetry.addLine("dpad left/right for flap");
+//        telemetry.addLine("dpad left/right for flap");
         telemetry.addLine("left and right bumpers for front intake");
         telemetry.addLine("left and right triggers for back intake");
         telemetry.addData("flower", flower.getPosition());
-        telemetry.addData("flap", flap.getPosition());
+//        telemetry.addData("flap", flap.getPosition());
         telemetry.addData("front", front.getPosition());
         telemetry.addData("back", back.getPosition());
         telemetry.update();

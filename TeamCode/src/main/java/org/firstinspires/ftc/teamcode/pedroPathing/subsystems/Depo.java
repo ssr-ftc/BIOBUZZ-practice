@@ -28,7 +28,7 @@ public class Depo {
         bottom.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
         hatch = hardwareMap.get(Servo.class,"hatch");
-//        hood = hardwareMap.get(Servo.class,"hood");
+        hood = hardwareMap.get(Servo.class,"hood");
         cam = hardwareMap.get(Servo.class,"camera");
 
         pid = new PIDFController(p, i, d, kF);
@@ -37,6 +37,7 @@ public class Depo {
         pid.setPIDF(p,i,d,kF);
         close_hatch();
         turn_off_deposit();
+        setHood(hoodMin);
     }
     public void updatePID(){
         pid.setPIDF(p,i,d,kF);
@@ -56,8 +57,8 @@ public class Depo {
     double cam_up = 0.2;
     double cam_down = 0.8;
     double camMiddle = 0.5;
-    double hoodMax = 0.57;
-    double hoodMin = 0.5;
+    public double hoodMax = 0.5;
+    public double hoodMin = 0.44;
 
 
 
@@ -115,6 +116,14 @@ public class Depo {
     }
     public void setCam_middle(){
         cam.setPosition(camMiddle);
+    }
+    public void setHood(double pos){
+        if(pos<=hoodMax && pos>=hoodMin) {
+            hood.setPosition(pos);
+        }
+    }
+    public double getHood(){
+        return hood.getPosition();
     }
 
     public double getVelocity() {

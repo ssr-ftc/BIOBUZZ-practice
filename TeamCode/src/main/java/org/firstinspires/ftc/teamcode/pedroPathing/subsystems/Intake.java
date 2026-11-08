@@ -31,6 +31,8 @@ public class Intake {
     private double backDownPos = 0.54;
     private static final double intake_power = -1;
     private static final double outtake_power = 1;
+    boolean backState,frontState;
+    double totalBalls;
 
     public Intake(HardwareMap hardwareMap) {
         intakeMotor = hardwareMap.get(DcMotorEx.class, "intake");
@@ -42,6 +44,8 @@ public class Intake {
         flower = hardwareMap.get(Servo.class, "flower");
         front = hardwareMap.get(Servo.class, "front");
         back = hardwareMap.get(Servo.class, "back");
+        front_bottom = hardwareMap.get(Rev2mDistanceSensor.class, "front_bottom");
+        back_bottom = hardwareMap.get(Rev2mDistanceSensor.class, "back_bottom");
         front_up();
         back_up();
     }
@@ -52,12 +56,7 @@ public class Intake {
         back_up();
         flower_up();
     }
-    public double getDistanceFront_MM(){
-        return back_bottom.getDistance(DistanceUnit.MM);
-    }
-    public double getDistanceBack_MM(){
-        return front_bottom.getDistance(DistanceUnit.MM);
-    }
+
     public void flower_up(){
         flower.setPosition(flowerUpPos);
     }
@@ -83,6 +82,12 @@ public class Intake {
         intakeMotor.setPower(outtake_power);
         intakeMotor2.setPower(outtake_power);
     }
+    public double getDistanceFront_MM(){
+        return back_bottom.getDistance(DistanceUnit.MM);
+    }
+    public double getDistanceBack_MM(){
+        return front_bottom.getDistance(DistanceUnit.MM);
+    }
 
     public boolean intaking() {
         return intakeMotor.getPower() < 0;
@@ -99,6 +104,36 @@ public class Intake {
     }
     public boolean isFrontUp(){
         return back.getPosition()<frontDownPos-0.03;
+    }
+    public void countBalls(){
+        countBack();
+        countFront();
+    }
+
+    public void countBack(){
+        if(getDistanceBack_MM()<65 && !backState) backState=true;
+        if(backState){
+            if(getDistanceBack_MM()>80){
+                totalBalls+=1;
+                backState=false;
+            }
+        }
+    }
+
+    public void countFront(){
+        if(getDistanceFront_MM()<65 && !frontState) frontState=true;
+        if(frontState){
+            if(getDistanceFront_MM()>80){
+                totalBalls+=1;
+                frontState=false;
+            }
+        }
+    }
+    public void resetBalls(){
+        totalBalls = 0;
+    }
+    public double getBalls(){
+        return totalBalls;
     }
 }
 //hi

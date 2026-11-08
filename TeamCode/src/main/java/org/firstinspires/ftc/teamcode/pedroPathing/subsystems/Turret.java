@@ -6,23 +6,23 @@ import com.pedropathing.math.Pose;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
 @Config
 public class Turret {
-    private static final Pose BLUE_GARDEN_HIVE = new Pose(84.36, 81.4, 0);
-    private static final Pose BLUE_OPPOSITE_HIVE = new Pose(59.64, 81.4, 0);
-    private static final Pose RED_GARDEN_HIVE = new Pose(59.64, 62.6, 0);
-    private static final Pose RED_OPPOSITE_HIVE = new Pose(84.36, 62.6, 0);
+    private static final Pose GARDEN_HIVE = new Pose(58, 55, 0);
+    private static final Pose FLOWER_HIVE = new Pose(58, 84, 0);
     public static double deg;
-    final double scalerToDegrees = 23.13888;
+    final double scalerToDegrees = -23.13888;
 
     private DcMotorEx encoder;
     CRServo turret;
     public Servo cam;
     public Turret(HardwareMap hardwareMap) {
         turret = hardwareMap.get(CRServo.class, "turret");
+        turret.setDirection(DcMotorSimple.Direction.REVERSE);
         encoder = hardwareMap.get(DcMotorEx.class, "intake2");
 
         pid = new PIDFController(p, i, d, kF);
@@ -32,10 +32,12 @@ public class Turret {
     }
     PIDFController pid;
     public double power;
-    public static double p = 0.015;
-    public static double i = 0.0;
-    public static double d = 0.0006;
-    public static double kF = 0.000;
+    public static double p = 0.0006;
+    public static double i = 0;
+    public static double d = 0.00003;
+    public static double kF = 0;
+    public static double kS = 0.04;
+    public static double Deadband = 70;
     private double targetPos = 0;
 
     public void setPositionTicks(double x) {
@@ -49,10 +51,20 @@ public class Turret {
     }
 
     public void run_using_pid() {
-        pid.setPIDF(p, i, d, kF);
-        power = pid.calculate(encoder.getCurrentPosition(), targetPos);
-        power = Math.max(-1, Math.min(1, power));
+        double currentPos = encoder.getCurrentPosition();
+        double error = targetPos - currentPos;
+        double pidOutput = pid.calculate(currentPos, targetPos);
+
+        // Only apply static friction if we actually have an error,
+        // otherwise it will chatter/oscillate around the setpoint.
+        double staticFriction = (Math.abs(error) > Deadband) ? Math.signum(error) * kS : 0;
+
+        power = pidOutput + staticFriction;
+        power = Math.max(-1.0, Math.min(1.0, power));
         turret.setPower(power);
+    }
+    public void turretOff(){
+        turret.setPower(0);
     }
 
     public void holdCurrentPosition() {
@@ -61,6 +73,7 @@ public class Turret {
 
     public void resetTurretEncoders(){
         encoder.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        encoder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
     }
 
     public double getPosition() {
@@ -68,23 +81,24 @@ public class Turret {
     }
 
     public double getPositionDeg() {
-        return encoder.getCurrentPosition() * scalerToDegrees;
+        return encoder.getCurrentPosition() / scalerToDegrees;
+    }
+    public double getTargetDeg(){
+        return targetPos / scalerToDegrees;
     }
 
-    public void turretAngleBlueGarden(Pose robot) {
-         AutoAllignTo(BLUE_GARDEN_HIVE, robot);
-    }
 
-    public void turretAngleBlueOpposite(Pose robot) {
-         AutoAllignTo(BLUE_OPPOSITE_HIVE, robot);
+    public void faceGardenHive(Pose robot) {
+         AutoAllignTo(GARDEN_HIVE, robot);
     }
-
-    public void turretAngleRedGarden(Pose robot) {
-         AutoAllignTo(RED_GARDEN_HIVE, robot);
+    public void faceFlowerHive(Pose robot) {
+         AutoAllignTo(FLOWER_HIVE, robot);
     }
-
-    public void turretAngleRedOpposite(Pose robot) {
-         AutoAllignTo(RED_OPPOSITE_HIVE, robot);
+    public double distanceToGardenHive(Pose robot) {
+         return distanceTo(GARDEN_HIVE, robot);
+    }
+    public double distanceToFlowerHive(Pose robot) {
+         return distanceTo(FLOWER_HIVE, robot);
     }
 
     public void AutoAllignTo(Pose point, Pose robot) {
@@ -92,5 +106,11 @@ public class Turret {
         double fieldDeg = Math.toDegrees(Math.atan2(point.y() - robot.y(), point.x() - robot.x()));
         deg = -(fieldDeg - headingDeg);
         setPositionDeg(deg);
+    }
+    public double distanceTo(Pose point, Pose robot){
+        double x = robot.x()-point.x();
+        double y = robot.y()-point.y();
+        double dist = Math.hypot(x,y);
+        return dist;
     }
 }

@@ -9,6 +9,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 /**
  * Tune the turret from the Driver Station only.
@@ -29,16 +30,18 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 public class TurretTestServo extends LinearOpMode {
 
     private static final double[] GAIN_STEPS = {0.0001, 0.001, 0.01, 0.1};
-    private static final String[] GAIN_NAMES = {"P", "I", "D", "kF"};
+    private static final String[] GAIN_NAMES = {"P", "I", "D", "kF","kS","Deadband"};
 
     private DcMotorEx encoder;
     CRServo turret;
     private PIDFController pid;
 
-    public static double p = 0.0008;
+    public static double p = 0.0006;
     public static double i = 0;
-    public static double d = 0.00004;
+    public static double d = 0.00003;
     public static double kF = 0;
+    public static double kS = 0.0533;
+    public static double Deadband = 70;
     private double targetPos = 0;
 
     private enum Mode {DRIVER, AUTO}
@@ -46,11 +49,13 @@ public class TurretTestServo extends LinearOpMode {
 
     private int gainIndex = 0;
     private int stepIndex = 1;
+    final double scalerToDegrees = -23.13888;
 
     @Override
     public void runOpMode() {
         encoder = hardwareMap.get(DcMotorEx.class, "intake2");
         turret = hardwareMap.get(CRServo.class, "turret");
+        turret.setDirection(DcMotorSimple.Direction.REVERSE);
 
         pid = new PIDFController(p, i, d, kF);
 
@@ -100,6 +105,7 @@ public class TurretTestServo extends LinearOpMode {
 
             if (gamepad1.optionsWasPressed() || gamepad1.startWasPressed()) {
                 encoder.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                encoder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
                 targetPos = 0;
                 pid.reset();
             }
@@ -112,29 +118,39 @@ public class TurretTestServo extends LinearOpMode {
             if (mode == Mode.DRIVER) {
                 power = gamepad1.left_stick_y;
                 turret.setPower(power);
-            } else {
-                power = pid.calculate(currentPos, targetPos);
-                power = Math.max(-1.0, Math.min(1.0, power));
-                turret.setPower(-power);
-            }
+            }  else {
+            double error = targetPos - currentPos;
+            double pidOutput = pid.calculate(currentPos, targetPos);
+
+            // Only apply static friction if we actually have an error,
+            // otherwise it will chatter/oscillate around the setpoint.
+            double staticFriction = (Math.abs(error) > Deadband) ? Math.signum(error) * kS : 0;
+
+            power = pidOutput + staticFriction;
+            power = Math.max(-1.0, Math.min(1.0, power));
+            turret.setPower(power);
+        }
 
             telemetry.addData("Mode", mode);
             telemetry.addData("targetPos", targetPos);
+            telemetry.addData("targetPos deg", targetPos/scalerToDegrees);
             telemetry.addData("currentPos", currentPos);
+            telemetry.addData("currentPos deg", currentPos/scalerToDegrees);
             telemetry.addData("error", targetPos - currentPos);
+            telemetry.addData("error deg", targetPos/scalerToDegrees - currentPos/scalerToDegrees);
             telemetry.addData("power", power);
 
             telemetry.addData("P","%.7f", p);
             telemetry.addData("I","%.7f", i);
             telemetry.addData("D","%.7f", d);
             telemetry.addData("kF","%.7f", kF);
+            telemetry.addData("kS","%.7f", kS);
+            telemetry.addData("Deadband", Deadband);
             telemetry.addData("Editing", GAIN_NAMES[gainIndex]);
             telemetry.addData("Gain step","%.7f", step);
             telemetry.addLine("Triggers = nudge gain, bumpers = step size");
             telemetry.update();
         }
-
-        encoder.setPower(0);
     }
 
     private void adjustGain(double delta) {
@@ -150,6 +166,12 @@ public class TurretTestServo extends LinearOpMode {
                 break;
             case 3:
                 kF = Math.max(0, kF + delta);
+                break;
+            case 4:
+                kS = Math.max(0, kS + delta*100);
+                break;
+            case 5:
+                Deadband = Math.max(0, Deadband + delta*100000);
                 break;
             default:
                 break;
