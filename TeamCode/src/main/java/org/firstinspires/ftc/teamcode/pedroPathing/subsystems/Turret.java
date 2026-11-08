@@ -12,8 +12,8 @@ import com.qualcomm.robotcore.hardware.Servo;
 
 @Config
 public class Turret {
-    private static final Pose GARDEN_HIVE = new Pose(58, 55, 0);
-    private static final Pose FLOWER_HIVE = new Pose(58, 84, 0);
+    private static final Pose GARDEN_HIVE = new Pose(63, 55, 0);
+    private static final Pose FLOWER_HIVE = new Pose(63, 84, 0);
     public static double deg;
     final double scalerToDegrees = -23.13888;
 

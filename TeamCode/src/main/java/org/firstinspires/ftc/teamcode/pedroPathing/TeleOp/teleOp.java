@@ -47,7 +47,7 @@ public class teleOp extends OpMode {
     public void start() {//this is called once when the driver presses start
         de.start();
         intake.start();
-        transfer.start();
+        //transfer.start();
         timers.createNew("depo");
     }
 
@@ -139,18 +139,18 @@ public class teleOp extends OpMode {
         countFront();
     }
     public void countBack(){
-        if(transfer.getDistanceBack_MM()<65 && !backState) backState=true;
+        if(intake.getDistanceBack_MM()<65 && !backState) backState=true;
         if(backState){
-            if(transfer.getDistanceBack_MM()>80){
+            if(intake.getDistanceBack_MM()>80){
                 backBalls+=1;
                 backState=false;
             }
         }
     }
     public void countFront(){
-        if(transfer.getDistanceFront_MM()<65 && !frontState) frontState=true;
+        if(intake.getDistanceFront_MM()<65 && !frontState) frontState=true;
         if(frontState){
-            if(transfer.getDistanceFront_MM()>80){
+            if(intake.getDistanceFront_MM()>80){
                 frontBalls+=1;
                 frontState=false;
             }

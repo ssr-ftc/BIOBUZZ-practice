@@ -160,8 +160,10 @@ public class soloTeleOp extends OpMode {
             timers.start("depo");
         }
         if(timers.checkSeconds("depo",0.3)){
-            intake.intake_on();
             depo.open_hatch();
+        }
+        if(timers.checkSeconds("depo", 0.6)){
+            intake.intake_on();
         }
         if(timers.checkSecondsLast("depo", 2.5)){
             depo.close_hatch();
