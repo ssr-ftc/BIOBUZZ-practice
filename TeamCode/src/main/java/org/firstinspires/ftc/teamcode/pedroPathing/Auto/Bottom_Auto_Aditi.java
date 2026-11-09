@@ -88,7 +88,8 @@ public class Bottom_Auto_Aditi extends OpMode {
         intake = new Intake(hardwareMap);
         new Transfer(hardwareMap);                       // Transfer no longer has start(); paste the new Transfer to wire the flap back in
         turret = new Turret(hardwareMap);
-        turret.start();                                  // load PIDF values
+
+        turret.resetTurretEncoders();                    // zero the encoder here (turret must be at its home position on init)
         turret.setPositionDeg(TURRET_START_DEG);         // face the start angle from init
 
         tagProcessor = new AprilTagProcessor.Builder().build();
@@ -100,7 +101,8 @@ public class Bottom_Auto_Aditi extends OpMode {
 
     @Override
     public void init_loop() {
-        turret.run_using_pid();                          // actually drive the turret to the start angle during init
+        turret.start();                                  // refresh PIDF every loop (so Dashboard tuning applies)
+        turret.run_using_pid();                          // hold the start angle during init
 
         Side picked = side;
         if (gamepad1.right_bumper || gamepad1.right_trigger > 0.5) picked = Side.RED;
@@ -125,7 +127,8 @@ public class Bottom_Auto_Aditi extends OpMode {
         follower.setPose(start);
         intake.start();
         depo.start();
-        // turret keeps the start angle set in init(); nothing to do here
+        turret.setPositionDeg(TURRET_START_DEG);         // set the target again at start
+        turret.start();
         setActionState(ActionState.IDLE);    // nothing moves till the AprilTag is seen
     }
 
