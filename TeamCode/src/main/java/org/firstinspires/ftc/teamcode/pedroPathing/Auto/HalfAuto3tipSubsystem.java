@@ -11,7 +11,6 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import org.firstinspires.ftc.teamcode.pedroPathing.Robot1;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Transfer;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Turret;
 
 @Autonomous(name = "Half Auto 3 Tip Subsystems", group = "Autonomous")
@@ -32,7 +31,6 @@ public class HalfAuto3tipSubsystem extends OpMode {
 
     private Follower follower;
     private Intake intake;
-    private Transfer transfer;
     private Turret turret;
     private Timer timers;
     private int pathState = 1;
@@ -43,7 +41,6 @@ public class HalfAuto3tipSubsystem extends OpMode {
         follower = Robot1.createFollower(hardwareMap);
         follower.setPose(start);
         intake = new Intake(hardwareMap);
-        transfer = new Transfer(hardwareMap);
         turret = new Turret(hardwareMap);
         timers = new Timer();
         timers.createNew("hold");

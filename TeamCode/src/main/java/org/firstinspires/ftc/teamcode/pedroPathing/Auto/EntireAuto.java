@@ -14,9 +14,7 @@ import com.pedropathing.utils.Timer;
 
 import static com.pedropathing.api.Paths.curve;
 import static com.pedropathing.api.Paths.line;
-import static com.pedropathing.api.Paths.path;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 //import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -51,13 +49,12 @@ public class EntireAuto extends OpMode {
     private Servo hatch;
     private CRServo turret_servo;
     private CustomFollower follower;
-    Pose start, sample1, point2, sample2, shoot2, sample3, done;
+    Pose start, sample1, point2, sample2, sample3, done;
     Pose point4, point5, doneStart;
     Pose sample3Control1, sample2Control1, sample2Control2;
     Pose sample1Segment1Start, sample1Segment1End, sample1Segment2Start, sample1Segment2End;
-    Pose garden, flowerBackup, farSide, turnaround;
     static Pose teleop;
-    private Path shootToSample1, sample1ToPoint2, point2ToSample2, sample2ToShoot2, shoot2ToSample3, point4ToPoint5, sample3ToDone;
+    private Path shootToSample1, sample1ToPoint2, point2ToSample2, sample2ToShoot2, point4ToPoint5, sample3ToDone;
 
     private Timer pathTimer, opModeTimer;
     // pedroPathing's Timer is already imported above, so the team's own Timer (same one soloTeleop uses) needs its full name
@@ -65,11 +62,6 @@ public class EntireAuto extends OpMode {
 
     static boolean isBlue;
     static boolean isRed;
-    boolean isSmallBlue;
-    boolean isSmallRed;
-    boolean isBlueSample;
-    boolean isRedSample;
-    boolean isBlue2;
     boolean isHatchClosed;
     boolean isShootOffset;
     boolean isBlueGarden, isBlueOpposite, isRedGarden, isRedOpposite;
@@ -79,7 +71,6 @@ public class EntireAuto extends OpMode {
     private boolean point2ToSample2Started = false;
     private boolean sample2ToShoot2Started = false;
     private boolean shoot2ToSample3Started = false;
-    private boolean sample3ToDoneStarted = false;
     // False until the flower path is moving, then the flower stays down until that path ends.
     private boolean flowerPathStarted = false;
     private boolean flowerIntakeDone;
@@ -151,9 +142,6 @@ public class EntireAuto extends OpMode {
         turret = new Turret(hardwareMap);
         initAprilTag();
         telemetry.addLine("READY. PRESS Y FOR BLUE, A FOR RED.");
-        telemetry.addLine("PRESS X FOR SMALL BLUE, B FOR SMALL RED.");
-        telemetry.addLine("PRESS D-PAD UP FOR BLUE SAMPLE, D-PAD DOWN FOR RED SAMPLE.");
-        telemetry.addLine("PRESS D-PAD LEFT FOR BLUE 2.");
         telemetry.update();
     }
 
@@ -161,8 +149,7 @@ public class EntireAuto extends OpMode {
     public void init_loop() {
         gamepadSide();
         selectTagAlliance();
-        telemetry.addLine("Y BLUE, A RED, X SMALL BLUE, B SMALL RED.");
-        telemetry.addLine("D-PAD UP BLUE SAMPLE, D-PAD DOWN RED SAMPLE, D-PAD LEFT BLUE 2.");
+        telemetry.addLine("Y = BLUE, A = RED.");
         telemetry.addData("SELECTED", selectedScenario());
         updateAprilTag();
     }
@@ -180,7 +167,6 @@ public class EntireAuto extends OpMode {
         point2ToSample2Started = false;
         sample2ToShoot2Started = false;
         shoot2ToSample3Started = false;
-        sample3ToDoneStarted = false;
         flowerPathStarted = false;
         flowerIntakeDone = false;
         setShootState(ShootState.SHOOTOFFSET);
@@ -370,12 +356,7 @@ public class EntireAuto extends OpMode {
                     setShootState(ShootState.INTAKE);
                     //follower.acceleration(0.5, 1.0, 1.0, 0.5);
                     follower.followPath(shootToSample1, true);
-                    if (isBlue || isRed || isBlue2) {
-                        setPathState(AutoState.SAMPLE1TOPOINT2);
-                    }
-                    else {
-                        setPathState(AutoState.SAMPLE3TODONE);
-                    }
+                    setPathState(AutoState.SAMPLE1TOPOINT2);
                 }
                 break;
 
@@ -383,12 +364,9 @@ public class EntireAuto extends OpMode {
                 if (isRed) {
                     isRedGarden = true;
                     isRedOpposite = false;
-                } else if (isBlue) {
+                } else {
                     isBlueGarden = false;
                     isBlueOpposite = true;
-                } else {
-                    isBlueGarden = true;
-                    isBlueOpposite = false;
                 }
                 // Drive sample 1 to point 2 once. The next time this case runs, the robot is stopped there.
                 if (!sample1ToPoint2Started) {
@@ -417,12 +395,7 @@ public class EntireAuto extends OpMode {
                     break;
                 }
                 if (pathTimer.seconds() >= 3) {
-                    if (isBlueSample || isRedSample) {
-                        setPathState(AutoState.SAMPLE3TODONE);
-                    }
-                    else {
-                        setPathState(AutoState.SAMPLE2TOSHOOT2);
-                    }
+                    setPathState(AutoState.SAMPLE2TOSHOOT2);
                 }
                 break;
 
@@ -447,58 +420,23 @@ public class EntireAuto extends OpMode {
                 if (isHatchClosed) {
                     isHatchClosed = false;
                     sample2ToShoot2Started = false;
-                    if (isBlue) {
-                        setShootState(ShootState.INTAKE);
-                    }
-                    else {
-                        flowerIntakeDone = false;
-                        setShootState(ShootState.FLOWERINTAKE);
-                    }
+                    setShootState(ShootState.INTAKE);
                     setPathState(AutoState.SHOOT2TOSAMPLE3);
                 }
                 break;
 
             case SHOOT2TOSAMPLE3:
                 if (!shoot2ToSample3Started) {
-                    if (isBlue) {
-                        follower.followPath(point4ToPoint5, true);
-                    }
-                    else {
-                        follower.followPath(shoot2ToSample3, true);
-                    }
+                    follower.followPath(point4ToPoint5, true);
                     shoot2ToSample3Started = true;
                     break;
                 }
-                if (isBlue || pathTimer.seconds() >= 3) {
-                    setPathState(AutoState.SAMPLE3TODONE);
-                }
+                setPathState(AutoState.SAMPLE3TODONE);
                 break;
 
             case SAMPLE3TODONE:
-                if (isBlue) {
-                    follower.followPath(sample3ToDone, true);
-                    setPathState(AutoState.DONE);
-                }
-                else if (isRed || isBlueSample || isRedSample || isBlue2) {
-                    if (!sample3ToDoneStarted) {
-                        isHatchClosed = false;
-                        isShootOffset = true;
-                        turnOnShooter();
-                        setShootState(ShootState.SHOOTOFFSET);
-                        sample3ToDoneStarted = true;
-                        break;
-                    }
-                    if (isHatchClosed) {
-                        isHatchClosed = false;
-                        follower.followPath(sample3ToDone, true);
-                        setPathState(AutoState.DONE);
-                    }
-                }
-                else {
-                    // Small paths build their one curve in shootToSample1.
-                    follower.followPath(shootToSample1, true);
-                    setPathState(AutoState.DONE);
-                }
+                follower.followPath(sample3ToDone, true);
+                setPathState(AutoState.DONE);
                 break;
 
             case DONE:
@@ -589,95 +527,27 @@ public class EntireAuto extends OpMode {
 
      */
     private void poses() {
-        if (isBlue) {
-            PoseFactory degrees = PoseFactory.degrees();
-            start = degrees.of(98, 135, 0);
-            sample1 = degrees.of(125.5, 135, 5);
-            sample1Segment1Start = degrees.of(131.5, 135, 0);
-            sample1Segment1End = degrees.of(131.5, 135, 0);
-            sample1Segment2Start = degrees.of(131.5, 135, 0);
-            sample1Segment2End = degrees.of(131.5, 135, 5);
-            sample3Control1 = degrees.of(120.0843, 72.9993, 0);
-            sample3 = degrees.of(94.8651, 18.3682, -90);
-            sample2Control1 = degrees.of(131.0383, 108.6424, 0);
-            sample2Control2 = degrees.of(115.5581, 90.1564, 0);
-            sample2 = degrees.of(122.7151, 92.924, 0);
-            point2 = degrees.of(60.07, 9.95, -90);
-            point4 = degrees.of(94.87, 14.37, -90);
-            point5 = degrees.of(95.07, 11.56, -90);
-            doneStart = degrees.of(95.07, 9.56, 270);
-            done = degrees.of(124.6912, 23.9385, 180);
-        } else if (isBlue2) {
-            // 144-reflection of Akash's red path.
-            start = new Pose(88, 135, Math.toRadians(0));
-            garden = new Pose(117, 135, Math.toRadians(0));
-            sample1 = new Pose(131.5, 135, Math.toRadians(0));
-            point2 = new Pose(88, 135, Math.toRadians(330));
-            sample2 = new Pose(131, 90, Math.toRadians(0));
-            flowerBackup = new Pose(122.6, 91, Math.toRadians(0));
-            farSide = new Pose(121.9853, 55.7128, Math.toRadians(0));
-            shoot2 = new Pose(112.0451, 9.7096, Math.toRadians(77.8071));
-            turnaround = new Pose(97.7987, 35.0105, Math.toRadians(268.0699));
-            sample3 = new Pose(96.9537, 10.4, Math.toRadians(270));
-            done = new Pose(145.2065, 37.0964, Math.toRadians(180));
-        } else if (isRed) {
-            start = new Pose(56, 9, Math.toRadians(180));
-            garden = new Pose(27, 9, Math.toRadians(180));
-            sample1 = new Pose(12.5, 9, Math.toRadians(180));
-            point2 = new Pose(56, 9, Math.toRadians(150));
-            sample2 = new Pose(13, 54, Math.toRadians(180));
-            flowerBackup = new Pose(21.4, 53, Math.toRadians(180));
-            farSide = new Pose(22.0147, 88.2872, Math.toRadians(180));
-            shoot2 = new Pose(31.9549, 134.2904, Math.toRadians(-102.1929));
-            turnaround = new Pose(46.2013, 108.9895, Math.toRadians(88.0699));
-            sample3 = new Pose(47.0463, 133.6, Math.toRadians(90));
-            done = new Pose(-1.2065, 106.9036, Math.toRadians(0));
-        } else if (isSmallBlue) {
-            start = new Pose(80.21707317073172, 9.035365853658533, Math.toRadians(90));
-            done = new Pose(139.17439024390245, 41.521951219512204, Math.toRadians(180));
-        } else if (isSmallRed) {
-            start = new Pose(63.78292682926828, 134.96463414634147, Math.toRadians(270));
-            done = new Pose(4.82560975609755, 102.4780487804878, Math.toRadians(0));
-        } else if (isBlueSample) {
-            start = new Pose(80.2171, 9.0354, Math.toRadians(-90));
-            sample1 = new Pose(94.3909, 16.2493, Math.toRadians(-90));
-            done = new Pose(139.1744, 29.522, Math.toRadians(180));
-        } else if (isRedSample) {
-            // Exact mathematical 144-reflection of the Blue Sample poses
-            start = new Pose(63.7829, 134.9646, Math.toRadians(90));
-            sample1 = new Pose(49.6091, 127.7507, Math.toRadians(90));
-            done = new Pose(4.8256, 114.4780, Math.toRadians(0));
-        }
+        // Blue and red share this pose set. isBlue/isRed still control aiming/teleop side.
+        PoseFactory degrees = PoseFactory.degrees();
+        start = degrees.of(98, 135, 0);
+        sample1 = degrees.of(125.5, 135, 5);
+        sample1Segment1Start = degrees.of(131.5, 135, 0);
+        sample1Segment1End = degrees.of(131.5, 135, 0);
+        sample1Segment2Start = degrees.of(131.5, 135, 0);
+        sample1Segment2End = degrees.of(131.5, 135, 5);
+        sample3Control1 = degrees.of(120.0843, 72.9993, 0);
+        sample3 = degrees.of(94.8651, 18.3682, -90);
+        sample2Control1 = degrees.of(131.0383, 108.6424, 0);
+        sample2Control2 = degrees.of(115.5581, 90.1564, 0);
+        sample2 = degrees.of(122.7151, 92.924, 0);
+        point2 = degrees.of(60.07, 9.95, -90);
+        point4 = degrees.of(94.87, 14.37, -90);
+        point5 = degrees.of(95.07, 11.56, -90);
+        doneStart = degrees.of(95.07, 9.56, 270);
+        done = degrees.of(124.6912, 23.9385, 180);
     }
 
     private void buildPaths() {
-        if (isBlue) {
-            buildBlueRoute();
-        }
-        else if (isRed || isBlue2) {
-            buildAkashRoute();
-        }
-        else if(isSmallBlue) {
-            shootToSample1 = curve(start, new Pose(73.47804878048782, 23.213414634146346), done)
-                    .linear(start.heading(), done.heading());
-        }
-        else if(isSmallRed) {
-            shootToSample1 = curve(start, new Pose(70.52195121951218, 120.78658536585365), done)
-                    .linear(start.heading(), done.heading());
-        }
-        else if(isBlueSample) {
-            point2ToSample2 = curve(start, new Pose(88.3183, 28.3902), sample1)
-                    .linear(start.heading(), sample1.heading());
-            sample3ToDone = line(sample1, done).linear(sample1.heading(), done.heading());
-        }
-        else if(isRedSample) {
-            point2ToSample2 = curve(start, new Pose(55.6817, 115.6098), sample1)
-                    .linear(start.heading(), sample1.heading());
-            sample3ToDone = line(sample1, done).linear(sample1.heading(), done.heading());
-        }
-    }
-
-    private void buildBlueRoute() {
         shootToSample1 = line(start, sample1).heading(Interpolator.piecewise()
                 .until(0.8, Interpolator.linear(sample1Segment1Start, sample1Segment1End))
                 .until(1, Interpolator.linear(sample1Segment2Start, sample1Segment2End)));
@@ -688,71 +558,17 @@ public class EntireAuto extends OpMode {
         sample3ToDone = line(doneStart, done).linear(doneStart, done);
     }
 
-    private void buildAkashRoute() {
-        shootToSample1 = path(
-                line(start, garden).tangent(),
-                line(garden, sample1).tangent());
-
-        sample1ToPoint2 = line(sample1, point2).linear(sample1.heading(), point2.heading());
-        point2ToSample2 = line(point2, sample2).linear(point2.heading(), sample2.heading());
-
-        sample2ToShoot2 = path(
-                line(sample2, flowerBackup).reverseTangent(),
-                line(flowerBackup, farSide).constant(farSide.heading()),
-                line(farSide, shoot2).reverseTangent());
-
-        shoot2ToSample3 = path(
-                line(shoot2, turnaround).reverseTangent(),
-                line(turnaround, sample3).constant(sample3.heading()));
-
-        sample3ToDone = line(sample3, done).linear(sample3.heading(), done.heading());
-    }
-
     public void gamepadSide() {
         if (gamepad1.y) {
-            isBlue = true; isRed = false; isSmallBlue = false; isSmallRed = false; isBlueSample = false; isRedSample = false; isBlue2 = false;
+            isBlue = true;
+            isRed = false;
             poses();
             buildPaths();
             follower.setPose(start);
             autoState = AutoState.SHOOTTOSAMPLE1;
-        }
-        else if(gamepad1.a) {
-            isRed = true; isBlue = false; isSmallBlue = false; isSmallRed = false; isBlueSample = false; isRedSample = false; isBlue2 = false;
-            poses();
-            buildPaths();
-            follower.setPose(start);
-            autoState = AutoState.SHOOTTOSAMPLE1;
-        }
-        else if(gamepad1.x) {
-            isSmallBlue = true; isBlue = false; isRed = false; isSmallRed = false; isBlueSample = false; isRedSample = false; isBlue2 = false;
-            poses();
-            buildPaths();
-            follower.setPose(start);
-            autoState = AutoState.SAMPLE3TODONE;
-        }
-        else if(gamepad1.b) {
-            isSmallRed = true; isSmallBlue = false; isBlue = false; isRed = false; isBlueSample = false; isRedSample = false; isBlue2 = false;
-            poses();
-            buildPaths();
-            follower.setPose(start);
-            autoState = AutoState.SAMPLE3TODONE;
-        }
-        else if(gamepad1.dpad_up) {
-            isBlueSample = true; isBlue = false; isRed = false; isSmallBlue = false; isSmallRed = false; isRedSample = false; isBlue2 = false;
-            poses();
-            buildPaths();
-            follower.setPose(start);
-            autoState = AutoState.POINT2TOSAMPLE2;
-        }
-        else if(gamepad1.dpad_down) {
-            isRedSample = true; isBlue = false; isRed = false; isSmallBlue = false; isSmallRed = false; isBlueSample = false; isBlue2 = false;
-            poses();
-            buildPaths();
-            follower.setPose(start);
-            autoState = AutoState.POINT2TOSAMPLE2;
-        }
-        else if(gamepad1.dpad_left) {
-            isBlue2 = true; isBlue = false; isRed = false; isSmallBlue = false; isSmallRed = false; isBlueSample = false; isRedSample = false;
+        } else if (gamepad1.a) {
+            isRed = true;
+            isBlue = false;
             poses();
             buildPaths();
             follower.setPose(start);
@@ -763,11 +579,6 @@ public class EntireAuto extends OpMode {
     private String selectedScenario() {
         if (isBlue) return "BLUE";
         if (isRed) return "RED";
-        if (isSmallBlue) return "SMALL BLUE";
-        if (isSmallRed) return "SMALL RED";
-        if (isBlueSample) return "BLUE SAMPLE";
-        if (isRedSample) return "RED SAMPLE";
-        if (isBlue2) return "BLUE 2";
         return "NONE";
     }
 

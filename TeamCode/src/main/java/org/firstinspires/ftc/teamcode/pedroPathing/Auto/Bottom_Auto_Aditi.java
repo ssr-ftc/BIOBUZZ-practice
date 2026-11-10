@@ -13,7 +13,6 @@ import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.teamcode.pedroPathing.Robot1;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Depo;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Intake;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Transfer;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Turret;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
@@ -81,7 +80,6 @@ public class Bottom_Auto_Aditi extends OpMode {
     private Follower follower;
     private Depo depo;
     private Intake intake;
-    private Transfer transfer;
     private Turret turret;
     private AprilTagProcessor tagProcessor;
     private VisionPortal portal;
@@ -92,7 +90,6 @@ public class Bottom_Auto_Aditi extends OpMode {
         follower = Robot1.createFollower(hardwareMap);
         depo = new Depo(hardwareMap);
         intake = new Intake(hardwareMap);
-        transfer = new Transfer(hardwareMap);
         turret = new Turret(hardwareMap);
         turret.start();                                  // load PIDF values
         turretTargetDeg = TURRET_START_DEG;
@@ -132,7 +129,6 @@ public class Bottom_Auto_Aditi extends OpMode {
         follower.setPose(start);
         intake.start();
         depo.start();
-       // transfer.start();
         // turret keeps the start angle set in init(); nothing to do here
         setActionState(ActionState.IDLE);    // nothing moves till the aprtag is seen
     }
