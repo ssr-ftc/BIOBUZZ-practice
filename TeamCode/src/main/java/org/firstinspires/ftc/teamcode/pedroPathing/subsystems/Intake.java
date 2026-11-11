@@ -25,10 +25,10 @@ public class Intake {
     private double flowerDownPos = 0.0894;
 
     private double frontUpPos = 0.38;
-    private double frontDownPos = 0.5;
+    private double frontDownPos = 0.49;
 
     private double backUpPos = 0.42;
-    private double backDownPos = 0.54;
+    private double backDownPos = 0.55;
     private static final double intake_power = -1;
     private static final double outtake_power = 1;
     boolean backState,frontState;

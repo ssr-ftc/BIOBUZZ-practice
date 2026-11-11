@@ -35,7 +35,7 @@ public class DepoTest extends LinearOpMode {
     public static double p = 0.004;
     public static double i = 0;
     public static double d = 0;
-    public static double kF = 0.0007;
+    public static double kF = 0.0005;
     public static double targetVelocity = 0;
 
     private enum Mode {DRIVER, AUTO}
@@ -112,8 +112,8 @@ public class DepoTest extends LinearOpMode {
                 power = pid.calculate(currentVelocity, targetVelocity);
                 power = Math.max(-1.0, Math.min(1.0, power));
             }
-            depo.setPower(power);
-            depo1.setPower(power);
+            depo.setPower(-power);
+            depo1.setPower(-power);
 
             telemetry.addData("Mode", mode);
             telemetry.addData("targetVelocity", targetVelocity);

@@ -12,8 +12,11 @@ import com.qualcomm.robotcore.hardware.Servo;
 
 @Config
 public class Turret {
-    private static final Pose GARDEN_HIVE = new Pose(58, 55, 0);
-    private static final Pose FLOWER_HIVE = new Pose(58, 84, 0);
+    public static  Pose GARDEN_HIVE = new Pose(59, 64, 0);
+    public static  Pose FLOWER_HIVE = new Pose(59, 89, 0);
+    public static final Pose GARDEN_HIVE_dist = new Pose(59, 55, 0);
+    public static final  Pose FLOWER_HIVE_dist = new Pose(59, 89, 0);
+    public static double face_coeff = 0;
     public static double deg;
     final double scalerToDegrees = -23.13888;
 
@@ -32,11 +35,11 @@ public class Turret {
     }
     PIDFController pid;
     public double power;
-    public static double p = 0.0006;
+    public static double p = 0.0002;
     public static double i = 0;
-    public static double d = 0.00003;
+    public static double d = 0.000013;
     public static double kF = 0;
-    public static double kS = 0.04;
+    public static double kS = 0.07;
     public static double Deadband = 70;
     private double targetPos = 0;
 
@@ -95,17 +98,19 @@ public class Turret {
          AutoAllignTo(FLOWER_HIVE, robot);
     }
     public double distanceToGardenHive(Pose robot) {
-         return distanceTo(GARDEN_HIVE, robot);
+         return distanceTo(GARDEN_HIVE_dist, robot);
     }
     public double distanceToFlowerHive(Pose robot) {
-         return distanceTo(FLOWER_HIVE, robot);
+         return distanceTo(FLOWER_HIVE_dist, robot);
     }
 
     public void AutoAllignTo(Pose point, Pose robot) {
         double headingDeg = Math.toDegrees(robot.heading());
         double fieldDeg = Math.toDegrees(Math.atan2(point.y() - robot.y(), point.x() - robot.x()));
+        double xDiff = (point.x()-robot.x())*face_coeff;
         deg = -(fieldDeg - headingDeg);
-        setPositionDeg(deg);
+        if(robot.y()>71)setPositionDeg(deg-xDiff);
+        else setPositionDeg(deg+xDiff);
     }
     public double distanceTo(Pose point, Pose robot){
         double x = robot.x()-point.x();

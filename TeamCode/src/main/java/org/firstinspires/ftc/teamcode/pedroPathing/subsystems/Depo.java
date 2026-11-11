@@ -18,7 +18,8 @@ public class Depo {
         bottom = hardwareMap.get(DcMotorEx.class, "depo1");
 
         top.setDirection(DcMotorSimple.Direction.FORWARD);
-        bottom.setDirection(DcMotorSimple.Direction.FORWARD);
+        bottom.setDirection(DcMotorSimple.Direction.FORWARD
+        );
 
         top.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         bottom.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -44,16 +45,16 @@ public class Depo {
     }
     PIDFController pid;
     public double power;
-    public static double p = 0.0191; //0.0188
+    public static double p = 0.004; //0.0188
     public static double i = 0.000;
     public static double d = 0.0000;
-    public static double kF = 0.0004;
+    public static double kF = 0.0005;
     private static double targetVelocity = 0;
 
     //important constatnts below
     double ON_VELOCITY = 1520; // change the deposit speed here (prev 550)
-    double hatchopen = 0.48;
-    double hatchclose = 0.32;
+    double hatchopen = 0.45;
+    double hatchclose = 0.29;
     double cam_up = 0.2;
     double cam_down = 0.8;
     double camMiddle = 0.5;
@@ -75,8 +76,8 @@ public class Depo {
         }
         power = pid.calculate(top.getVelocity(), targetVelocity);
         power = Math.max(-1, Math.min(1, power));
-        top.setPower(power);
-        bottom.setPower(power);
+        top.setPower(-power);
+        bottom.setPower(-power);
     }
 
     public void turn_on_deposit() {
@@ -135,6 +136,13 @@ public class Depo {
 
     public boolean isDepositOn() {
         return targetVelocity != 0;
+    }
+    public double distToVelo(double dist){
+        return 5.75489*dist+1279.47344;
+    }
+    public double distToAngle(double dist){
+        if(dist>35) return 0.44; //far/normal positons
+        else return 0.47; //close positions
     }
 }
 //hi
