@@ -49,7 +49,7 @@ public class Depo {
     public static double i = 0.000;
     public static double d = 0.0000;
     public static double kF = 0.0005;
-    private static double targetVelocity = 0;
+    private double targetVelocity = 0;
 
     //important constatnts below
     double ON_VELOCITY = 1520; // change the deposit speed here (prev 550)
@@ -60,11 +60,15 @@ public class Depo {
     double camMiddle = 0.5;
     public double hoodMax = 0.5;
     public double hoodMin = 0.44;
+    double hoodFarShot = 0.44;
 
 
 
     public void set_target_velocity(double x) {
         targetVelocity = x;
+    }
+    public double get_target_velocity() {
+        return targetVelocity;
     }
 
     public void run_using_pid() {
@@ -122,6 +126,9 @@ public class Depo {
         if(pos<=hoodMax && pos>=hoodMin) {
             hood.setPosition(pos);
         }
+    }
+    public void SetHoodFarShot(){
+        hood.setPosition(hoodFarShot);
     }
     public double getHood(){
         return hood.getPosition();

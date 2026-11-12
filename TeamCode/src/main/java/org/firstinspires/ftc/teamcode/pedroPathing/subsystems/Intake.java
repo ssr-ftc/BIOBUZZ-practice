@@ -21,8 +21,8 @@ public class Intake {
     Rev2mDistanceSensor front_bottom;
     Rev2mDistanceSensor back_bottom;
 
-    private double flowerUpPos = 0.89;
-    private double flowerDownPos = 0.0894;
+    private double flowerUpPos = 0.91;
+    private double flowerDownPos = 0.19;
 
     private double frontUpPos = 0.38;
     private double frontDownPos = 0.49;
