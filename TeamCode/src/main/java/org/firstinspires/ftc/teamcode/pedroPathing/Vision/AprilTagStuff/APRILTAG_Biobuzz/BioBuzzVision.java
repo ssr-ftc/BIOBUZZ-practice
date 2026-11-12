@@ -55,6 +55,11 @@ public final class BioBuzzVision {
         return state;
     }
 
+    /** Tags in the latest camera frame, before alliance filtering. */
+    public int getRawDetectionCount() {
+        return rawDetections.size();
+    }
+
     public boolean hasTarget() {
         return state.hasTarget();
     }
