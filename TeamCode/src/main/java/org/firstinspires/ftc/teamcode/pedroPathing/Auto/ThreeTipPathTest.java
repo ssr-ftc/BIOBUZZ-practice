@@ -88,6 +88,7 @@ public class ThreeTipPathTest extends OpMode {
         intake.start();
         depo.start();
         turret.start();
+        turret.resetTurretEncoders();
         turret.setPositionDeg(firstShotAngle);
 
         timers.createNew("depo");
@@ -201,8 +202,12 @@ public class ThreeTipPathTest extends OpMode {
 
             case 2:
                 if (!follower.isBusy()) {
+
                     timers.start("flower");
+                    pathState=21;
                 }
+                break;
+            case 21:
                 if(timers.checkSecondsLast("flower",1)){
                     follower.follow(pathTwo);
                     pathState = 3;
