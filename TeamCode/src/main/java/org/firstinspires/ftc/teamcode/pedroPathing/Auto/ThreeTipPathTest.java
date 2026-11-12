@@ -20,38 +20,29 @@ public class ThreeTipPathTest extends OpMode {
 
     // Poses
     private final Pose start = poseFactory.of(62.8888, 6.1382, 0);
-
-    private final Pose path1 = poseFactory.of(94.7263, 11.9822, 270);
+    private final Pose path1 = poseFactory.of(94.9089, 15.4517, 270);
     private final Pose path1Control1 = poseFactory.of(93.6431, 41.7943, 0);
-
     private final Pose point2 = poseFactory.of(46.9775, 127.674, 90);
     private final Pose point2Control1 = poseFactory.of(31.6205, 14.1693, 0);
     private final Pose point2Control2 = poseFactory.of(81.7501, 116.6678, 0);
     private final Pose point2Control3 = poseFactory.of(45.2218, 94.0804, 0);
-
     private final Pose point2Segment1Start = poseFactory.of(46.9775, 127.674, 270);
     private final Pose point2Segment1End = poseFactory.of(46.9775, 127.674, 90);
-    private final Pose point2Segment3Start = poseFactory.of(46.9775, 127.674, 107.6615);
+    private final Pose point2Segment3Start = poseFactory.of(46.9775, 127.674, 107.3128);
     private final Pose point2Segment3End = poseFactory.of(46.9775, 127.674, 90);
-
-    private final Pose point3 = poseFactory.of(6.036, 7.9444, -90);
+    private final Pose point3 = poseFactory.of(6.5839, 13.2399, -90);
     private final Pose point3Control1 = poseFactory.of(9.8239, 49.7561, 0);
-
-    private final Pose point3Segment1Start = poseFactory.of(6.036, 7.9444, 90);
-    private final Pose point3Segment1End = poseFactory.of(6.036, 7.9444, 270);
-    private final Pose point3Segment4Start = poseFactory.of(6.036, 7.9444, -97.6926);
-    private final Pose point3Segment4End = poseFactory.of(6.036, 7.9444, 270);
-
-    private final Pose point4Start = poseFactory.of(6.036, 7.9444, 270);
+    private final Pose point3Segment1Start = poseFactory.of(6.5839, 13.2399, 90);
+    private final Pose point3Segment1End = poseFactory.of(6.5839, 13.2399, 270);
+    private final Pose point3Segment4Start = poseFactory.of(6.5839, 13.2399, -98.1388);
+    private final Pose point3Segment4End = poseFactory.of(6.5839, 13.2399, 270);
+    private final Pose point4Start = poseFactory.of(6.5839, 13.2399, 270);
     private final Pose point4 = poseFactory.of(39.4152, 9.8093, 180);
-
     private final Pose point5Start = poseFactory.of(39.4152, 9.8093, 180);
     private final Pose point5 = poseFactory.of(14.0346, 47.1105, 180);
     private final Pose point5Control1 = poseFactory.of(35.2228, 49.6518, 0);
-
     private final Pose point6 = poseFactory.of(42.9042, 14.1248, 104.4076);
     private final Pose point6Control1 = poseFactory.of(34.0614, 48.5461, 0);
-
     private final Pose point7 = poseFactory.of(8.7169, 94.6822, 112.9956);
 
     // Follower and paths
