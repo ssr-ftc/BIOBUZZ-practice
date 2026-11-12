@@ -1,120 +1,201 @@
-package org.firstinspires.ftc.teamcode;
 
-import static com.pedropathing.api.Paths.*;
-import com.pedropathing.api.Paths;
+package org.firstinspires.ftc.teamcode.pedroPathing.Auto;
 
 import com.pedropathing.api.PoseFactory;
-import com.pedropathing.follower.Follower;
+import com.pedropathing.api.Paths;
 import com.pedropathing.math.Pose;
 import com.pedropathing.paths.Path;
-import com.pedropathing.ivy.Command;
-import com.pedropathing.ivy.Scheduler;
-import static com.pedropathing.ivy.Scheduler.schedule;
-import static com.pedropathing.ivy.commands.Commands.*;
-import static com.pedropathing.ivy.groups.Groups.sequential;
-import static com.pedropathing.ivy.pedro.PedroCommands.follow;
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.pedropathing.paths.interpolator.Interpolator;
+import com.pedropathing.follower.Follower;
 
-@Autonomous(name = "3 tip pathing", group = "Autonomous")
-public class ThreeTipPathTest extends LinearOpMode {
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
-    private Follower follower;
+import org.firstinspires.ftc.teamcode.pedroPathing.Robot1;
+
+@Autonomous(name = "3 tip auto test", group = "Autonomous")
+public class ThreeTipPathTest extends OpMode {
 
     private final PoseFactory poseFactory = PoseFactory.degrees();
 
+    // Poses
     private final Pose start = poseFactory.of(62.8888, 6.1382, 0);
+
     private final Pose path1 = poseFactory.of(94.7263, 11.9822, 270);
     private final Pose path1Control1 = poseFactory.of(93.6431, 41.7943, 0);
+
     private final Pose point2 = poseFactory.of(46.9775, 127.674, 90);
     private final Pose point2Control1 = poseFactory.of(31.6205, 14.1693, 0);
     private final Pose point2Control2 = poseFactory.of(81.7501, 116.6678, 0);
     private final Pose point2Control3 = poseFactory.of(45.2218, 94.0804, 0);
+
     private final Pose point2Segment1Start = poseFactory.of(46.9775, 127.674, 270);
     private final Pose point2Segment1End = poseFactory.of(46.9775, 127.674, 90);
     private final Pose point2Segment3Start = poseFactory.of(46.9775, 127.674, 107.6615);
     private final Pose point2Segment3End = poseFactory.of(46.9775, 127.674, 90);
+
     private final Pose point3 = poseFactory.of(6.036, 7.9444, -90);
     private final Pose point3Control1 = poseFactory.of(9.8239, 49.7561, 0);
+
     private final Pose point3Segment1Start = poseFactory.of(6.036, 7.9444, 90);
     private final Pose point3Segment1End = poseFactory.of(6.036, 7.9444, 270);
     private final Pose point3Segment4Start = poseFactory.of(6.036, 7.9444, -97.6926);
     private final Pose point3Segment4End = poseFactory.of(6.036, 7.9444, 270);
+
     private final Pose point4Start = poseFactory.of(6.036, 7.9444, 270);
     private final Pose point4 = poseFactory.of(39.4152, 9.8093, 180);
+
     private final Pose point5Start = poseFactory.of(39.4152, 9.8093, 180);
     private final Pose point5 = poseFactory.of(14.0346, 47.1105, 180);
     private final Pose point5Control1 = poseFactory.of(35.2228, 49.6518, 0);
+
     private final Pose point6 = poseFactory.of(42.9042, 14.1248, 104.4076);
     private final Pose point6Control1 = poseFactory.of(34.0614, 48.5461, 0);
+
     private final Pose point7 = poseFactory.of(8.7169, 94.6822, 112.9956);
 
-    // Autonomous routine
-    public Command autoRoutine() {
-        return sequential(
-            follow(follower, path1()),
-            follow(follower, path2()),
-            follow(follower, path3()),
-            follow(follower, path4()),
-            follow(follower, path5()),
-            follow(follower, path6()),
-            follow(follower, path7())
+    // Follower and paths
+    private Follower follower;
+
+    private Path pathOne;
+    private Path pathTwo;
+    private Path pathThree;
+    private Path pathFour;
+    private Path pathFive;
+    private Path pathSix;
+    private Path pathSeven;
+
+    private int pathState = 1;
+
+    @Override
+    public void init() {
+
+        follower = Robot1.createFollower(hardwareMap);
+
+        // Build paths
+        pathOne = Paths.curve(start, path1Control1, path1)
+                .linear(start, path1);
+
+        pathTwo = Paths.curve(
+                path1,
+                point2Control1,
+                point2Control2,
+                point2Control3,
+                point2
+        ).heading(
+                Interpolator.piecewise()
+                        .until(0.2419, Interpolator.linear(
+                                point2Segment1Start,
+                                point2Segment1End
+                        ))
+                        .until(0.9143, Interpolator.tangent)
+                        .until(1, Interpolator.linear(
+                                point2Segment3Start,
+                                point2Segment3End
+                        ))
         );
+
+        pathThree = Paths.curve(point2, point3Control1, point3)
+                .heading(
+                        Interpolator.piecewise()
+                                .until(0.3573, Interpolator.linear(
+                                        point3Segment1Start,
+                                        point3Segment1End
+                                ))
+                                .until(0.8928, Interpolator.tangent)
+                                .until(0.9555, Interpolator.tangent)
+                                .until(1, Interpolator.linear(
+                                        point3Segment4Start,
+                                        point3Segment4End
+                                ))
+                );
+
+        pathFour = Paths.line(point4Start, point4)
+                .linear(point4Start, point4);
+
+        pathFive = Paths.curve(point5Start, point5Control1, point5)
+                .linear(point5Start, point5);
+
+        pathSix = Paths.curve(point5, point6Control1, point6)
+                .reverseTangent();
+
+        pathSeven = Paths.line(point6, point7)
+                .tangent();
+
+        // Set starting pose
+        follower.setPose(start);
+        follower.update();
     }
 
     @Override
-    public void runOpMode() {
-        Scheduler.reset();
-        follower = Constants.create(hardwareMap);
-        follower.setPose(start);
+    public void loop() {
+
         follower.update();
 
-        waitForStart();
-        schedule(autoRoutine());
+        autonomousPathUpdate();
 
-        while (opModeIsActive()) {
-            follower.update();
-            Scheduler.execute();
+        telemetry.addData("Path State", pathState);
+        telemetry.addData("X", follower.pose().x());
+        telemetry.addData("Y", follower.pose().y());
+        telemetry.addData("Heading", Math.toDegrees(follower.pose().heading()));
+        telemetry.addData("Is Busy", follower.isBusy());
 
-            telemetry.addData("x", follower.pose().x());
-            telemetry.addData("y", follower.pose().y());
-            telemetry.addData("heading", follower.pose().heading());
+        telemetry.update();
+    }
 
-            if (follower.currentPath() != null) {
-                telemetry.addData("Current path distance remaining", follower.distanceToEndpoint());
-                telemetry.addData("Path number", follower.pathIndex());
-            }
+    public void autonomousPathUpdate() {
 
-            telemetry.update();
+        switch (pathState) {
+
+            case 1:
+                follower.follow(pathOne);
+                pathState = 2;
+                break;
+
+            case 2:
+                if (!follower.isBusy()) {
+                    follower.follow(pathTwo);
+                    pathState = 3;
+                }
+                break;
+
+            case 3:
+                if (!follower.isBusy()) {
+                    follower.follow(pathThree);
+                    pathState = 4;
+                }
+                break;
+
+            case 4:
+                if (!follower.isBusy()) {
+                    follower.follow(pathFour);
+                    pathState = 5;
+                }
+                break;
+
+            case 5:
+                if (!follower.isBusy()) {
+                    follower.follow(pathFive);
+                    pathState = 6;
+                }
+                break;
+
+            case 6:
+                if (!follower.isBusy()) {
+                    follower.follow(pathSix);
+                    pathState = 7;
+                }
+                break;
+
+            case 7:
+                if (!follower.isBusy()) {
+                    follower.follow(pathSeven);
+                    pathState = 8;
+                }
+                break;
+
+            default:
+                break;
         }
-    }
-
-    public Path path1() {
-        return Paths.curve(start, path1Control1, path1).linear(start, path1);
-    }
-
-    public Path path2() {
-        return Paths.curve(path1, point2Control1, point2Control2, point2Control3, point2).heading(Interpolator.piecewise().until(0.2419, Interpolator.linear(point2Segment1Start, point2Segment1End)).until(0.9143, Interpolator.tangent).until(1, Interpolator.linear(point2Segment3Start, point2Segment3End)));
-    }
-
-    public Path path3() {
-        return Paths.curve(point2, point3Control1, point3).heading(Interpolator.piecewise().until(0.3573, Interpolator.linear(point3Segment1Start, point3Segment1End)).until(0.8928, Interpolator.tangent).until(0.9555, Interpolator.tangent).until(1, Interpolator.linear(point3Segment4Start, point3Segment4End)));
-    }
-
-    public Path path4() {
-        return Paths.line(point4Start, point4).linear(point4Start, point4);
-    }
-
-    public Path path5() {
-        return Paths.curve(point5Start, point5Control1, point5).linear(point5Start, point5);
-    }
-
-    public Path path6() {
-        return Paths.curve(point5, point6Control1, point6).reverseTangent();
-    }
-
-    public Path path7() {
-        return Paths.line(point6, point7).tangent();
     }
 }
