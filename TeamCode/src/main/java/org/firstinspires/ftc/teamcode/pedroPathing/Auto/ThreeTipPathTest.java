@@ -12,6 +12,10 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Robot1;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Depo;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Intake;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Turret;
 
 @Autonomous(name = "Three Tip Path Test", group = "Autonomous")
 public class ThreeTipPathTest extends OpMode {
@@ -56,14 +60,19 @@ public class ThreeTipPathTest extends OpMode {
 
     // Follower and paths
     private Follower follower;
+    Intake intake;
+    Depo depo;
+    Turret turret;
+    Timer timers;
 
-    private Path pathOne;
-    private Path pathTwo;
-    private Path pathThree;
-    private Path pathFour;
-    private Path pathFive;
-    private Path pathSix;
-    private Path pathSeven;
+
+    private Path pathOne;//to oponent flower
+    private Path pathTwo;//to back flower
+    private Path pathThree;//to garden
+    private Path pathFour;//to shoot garden balls
+    private Path pathFive;//to last flower
+    private Path pathSix;//to shoot flower balls
+    private Path pathSeven;//park
 
     private int pathState = 1;
 
@@ -71,6 +80,18 @@ public class ThreeTipPathTest extends OpMode {
     public void init() {
 
         follower = Robot1.createFollower(hardwareMap);
+        intake = new Intake(hardwareMap);
+        depo = new Depo(hardwareMap);
+        turret = new Turret(hardwareMap);
+        timers = new Timer();
+
+        intake.start();
+        depo.start();
+        turret.start();
+        turret.setPositionDeg(firstShotAngle);
+
+        timers.createNew("depo");
+        timers.createNew("flower");
 
         // Path 1
         pathOne = Paths.curve(start, path1Control1, path1)
@@ -132,11 +153,24 @@ public class ThreeTipPathTest extends OpMode {
         follower.setPose(start);
         follower.update();
     }
+    @Override
+    public void init_loop(){
+        turret.run_using_pid();
+    }
+    double firstShotVelo=1500;
+    double firstShotAngle=-95;
+
+    @Override
+    public void start(){
+        depo.set_target_velocity(firstShotVelo);
+    }
 
     @Override
     public void loop() {
 
         follower.update();
+        turret.run_using_pid();
+        depo.run_using_pid();
 
         autonomousPathUpdate();
 
@@ -152,14 +186,24 @@ public class ThreeTipPathTest extends OpMode {
     public void autonomousPathUpdate() {
 
         switch (pathState) {
-
             case 1:
-                follower.follow(pathOne);
-                pathState = 2;
+                if(depo.reachedvelocity() && !timers.isRunning("depo")){
+                    timers.start("depo");
+                }
+                shootingFunc();
+                if(depo.get_target_velocity()==0){
+                    follower.follow(pathOne);
+                    intake.intake_on();
+                    intake.flower_down();
+                    pathState = 2;
+                }
                 break;
 
             case 2:
                 if (!follower.isBusy()) {
+                    timers.start("flower");
+                }
+                if(timers.checkSecondsLast("flower",1)){
                     follower.follow(pathTwo);
                     pathState = 3;
                 }
@@ -202,6 +246,18 @@ public class ThreeTipPathTest extends OpMode {
 
             default:
                 break;
+        }
+
+    }
+    void shootingFunc(){
+
+        if(timers.checkSeconds("depo",0.3)){
+            intake.intake_on();
+            depo.open_hatch();
+        }
+        if(timers.checkSecondsLast("depo", 1.5)){
+            depo.close_hatch();
+            depo.set_target_velocity(0);
         }
     }
 }
