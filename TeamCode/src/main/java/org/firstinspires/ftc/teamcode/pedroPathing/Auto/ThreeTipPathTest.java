@@ -25,7 +25,7 @@ public class ThreeTipPathTest extends OpMode {
     // Poses
     private final Pose start = poseFactory.of(62.8888, 6.1382, 0);
 
-    private final Pose path1 = poseFactory.of(94.9089, 15.4517, 270);
+    private final Pose path1 = poseFactory.of(94.9089, 14, 270);
     private final Pose path1Control1 = poseFactory.of(93.6431, 41.7943, 0);
 
     private final Pose point2 = poseFactory.of(46.9775, 127.674, 90);
@@ -93,6 +93,7 @@ public class ThreeTipPathTest extends OpMode {
 
         timers.createNew("depo");
         timers.createNew("flower");
+        timers.createNew("intake");
 
         // Path 1
         pathOne = Paths.curve(start, path1Control1, path1)
@@ -210,12 +211,28 @@ public class ThreeTipPathTest extends OpMode {
             case 21:
                 if(timers.checkSecondsLast("flower",1)){
                     follower.follow(pathTwo);
-                    pathState = 3;
+                    turret.setPositionDeg(-192);
+                    depo.set_target_velocity(firstShotVelo);
+                    pathState = 30;
+                    timers.start("intake");
                 }
                 break;
+            case 30:
+                if(timers.checkSecondsLast("intake",1)){
+                    intake.intake_off();
+                    pathState=3;
+                }
 
             case 3:
                 if (!follower.isBusy()) {
+                    depo.open_hatch();
+                    intake.start();
+                    timers.start("flower");
+                    pathState=31;
+                }
+                break;
+            case 31:
+                if (timers.checkSecondsLast("flower",2.5)) {
                     follower.follow(pathThree);
                     pathState = 4;
                 }
