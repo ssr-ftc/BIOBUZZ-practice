@@ -13,6 +13,7 @@ import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.teamcode.pedroPathing.Robot1;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Depo;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Intake;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Turret;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
@@ -24,13 +25,25 @@ public class Bottom_Auto_Aditi extends OpMode {
     // ---------------- CONFIG ----------------
     private static final String CAMERA_NAME = "Webcam 1";        // must match robot config
     private static final double PARK_TIME_SECONDS = 27.0;        // if no tag is seen
-    private static final double SHOT_FEED_SECONDS = 2.0;
     private static final double FLOWER_INTAKE_SECONDS = 3.0;     // min time to intake at the flower
     private static final double PARK_START_HEADING_DEG = -90;    // park leg start heading (change to 90 if it snaps)
 
+    // --- shooting (same as EntireAuto) ---
+    /** Open the hatch (and start the intake) this long after the flywheel is at speed. */
+    private static final double SHOT_OPEN_SECONDS = 0.3;
+    /** How long every shot runs once the flywheel is at speed. */
+    private static final double SHOOT_HOLD_SECONDS = 2;
+
+    // --- shot velocity ---
+    /** Depo's own ON_VELOCITY (Depo.java). Update this if you change it there. */
+    private static final double DEPO_BASE_VELOCITY = 1520;
+    /** Extra velocity added to every shot. */
+    private static final double SHOT_VELOCITY_BOOST = 0; //can be used if needed
+    private static final double SHOT_VELOCITY = DEPO_BASE_VELOCITY + SHOT_VELOCITY_BOOST;
+
     // --- turret angles (fixed, no hive auto-aim) ---
     private static final double TURRET_START_DEG = -180;         // from init, through the preload shot and the flower trip
-    private static final double TURRET_SHOOT_DEG = -160;         // set when we leave the flower for the shootPose
+    private static final double TURRET_SHOOT_DEG = -195;         // set when we leave the flower for the shootPose
 
     /** Right toggle = RED (tags 30-33), left toggle = BLUE (tags 38-41). Both use the same poses. */
     private enum Side {
@@ -46,7 +59,7 @@ public class Bottom_Auto_Aditi extends OpMode {
     private final Pose start      = pose(64.084, 133.1202, 90);
     private final Pose leaveStart = pose(64.141, 117.5, 90);
     private final Pose gotoFlower = pose(46.0764, 117.5, 90);
-    private final Pose flower     = pose(46.8257, 128.0305, 90);
+    private final Pose flower     = pose(46.8257, 127, 90);
     private final Pose shootPose  = pose(46.9097, 119.2908, 90);
     private final Pose park       = pose(7.8308, 114.1196, 0);
 
@@ -59,14 +72,12 @@ public class Bottom_Auto_Aditi extends OpMode {
         WAIT_FOR_TAG, SHOOT_PRELOAD, LEAVE_START, GO_TO_FLOWER, FLOWER, SHOOT_FLOWER,
         FAILSAFE_LEAVE, PARK, DONE
     }
-    private enum ActionState { IDLE, SHOOT, FLOWER_INTAKE }
+    private enum ActionState { IDLE, SHOOT, APPROACH_INTAKE, FLOWER_INTAKE }
 
     private PathState pathState = PathState.WAIT_FOR_TAG;
     private ActionState actionState = ActionState.IDLE;
     private final ElapsedTime autoTimer = new ElapsedTime();
     private final ElapsedTime actionTimer = new ElapsedTime();
-    private final ElapsedTime shotTimer = new ElapsedTime();
-    private boolean shotStarted = false;     // depo reached speed and the hatch is open
 
     private Side side = null;                // null until a toggle is pressed
     private boolean tagSeen = false;
@@ -76,6 +87,7 @@ public class Bottom_Auto_Aditi extends OpMode {
     private Depo depo;
     private Intake intake;
     private Turret turret;
+    private Timer timers;
     private AprilTagProcessor tagProcessor;
     private VisionPortal portal;
 
@@ -86,6 +98,8 @@ public class Bottom_Auto_Aditi extends OpMode {
         depo = new Depo(hardwareMap);
         intake = new Intake(hardwareMap);
         turret = new Turret(hardwareMap);
+        timers = new Timer();
+        timers.createNew("shoot");
 
         turret.resetTurretEncoders();                    // zero the encoder here (turret must be at its home position on init)
         turret.setPositionDeg(TURRET_START_DEG);         // face the start angle from init
@@ -125,8 +139,6 @@ public class Bottom_Auto_Aditi extends OpMode {
         follower.setPose(start);
         intake.start();
         depo.start();
-        // turret keeps the start angle set in init(); nothing to do here
-        setActionState(ActionState.IDLE);    // nothing moves till the aprtag is seen
         turret.setPositionDeg(TURRET_START_DEG);         // set the target again at start
         turret.start();
         setActionState(ActionState.IDLE);    // nothing moves till the AprilTag is seen
@@ -153,7 +165,7 @@ public class Bottom_Auto_Aditi extends OpMode {
         telemetry.addData("Visible tag IDs", visibleTagIds());
         telemetry.addData("Path / Action", pathState + " / " + actionState);
         telemetry.addData("Auto timer", "%.1f / %.0f", autoTimer.seconds(), PARK_TIME_SECONDS);
-        telemetry.addData("Depo velocity", depo.getVelocity());
+        telemetry.addData("Depo velocity / target", "%.0f / %.0f", depo.getVelocity(), SHOT_VELOCITY);
         telemetry.addData("Turret deg / target", "%.1f / %.1f", turret.getPositionDeg(), turret.getTargetDeg());
         telemetry.addData("Pose", follower.pose());
         telemetry.update();
@@ -186,6 +198,7 @@ public class Bottom_Auto_Aditi extends OpMode {
             case LEAVE_START:
                 if (!follower.isBusy()) {
                     follower.follow(drive(leaveStart, gotoFlower));
+                    setActionState(ActionState.APPROACH_INTAKE); // all intakes on and down while driving to the flower
                     pathState = PathState.GO_TO_FLOWER;
                 }
                 break;
@@ -193,7 +206,7 @@ public class Bottom_Auto_Aditi extends OpMode {
             case GO_TO_FLOWER:
                 if (!follower.isBusy()) {
                     follower.follow(drive(gotoFlower, flower));
-                    setActionState(ActionState.FLOWER_INTAKE);
+                    setActionState(ActionState.FLOWER_INTAKE);   // front + back intakes stay down while entering the flower
                     pathState = PathState.FLOWER;
                 }
                 break;
@@ -232,50 +245,82 @@ public class Bottom_Auto_Aditi extends OpMode {
     }
 
     // ---------------- ACTIONS ----------------
-    /** Shoots once the robot has stopped and the depo is at speed; ends the shot after SHOT_FEED_SECONDS. */
+    /** While shooting: wait until the robot has stopped, then run the shot. Back to IDLE when it finishes. */
     private void updateActionState() {
         if (actionState != ActionState.SHOOT) return;
-        if (follower.isBusy()) return;
+        if (follower.isBusy()) return;                           // depo keeps spinning while we drive in
 
-        if (!shotStarted && depo.reachedvelocity()) {
-            shotStarted = true;
-            shotTimer.reset();
-            depo.open_hatch();
-        } else if (shotStarted && shotTimer.seconds() >= SHOT_FEED_SECONDS) {
-            setActionState(ActionState.IDLE);                    // depo, hatch and intake off
+        if (finishShot()) {
+            setActionState(ActionState.IDLE);
         }
     }
 
-    /** Runs the one-time entry actions. The intake only ever turns on together with the depo. */
+    /** Runs the one-time entry actions. */
     private void setActionState(ActionState newState) {
         actionState = newState;
         actionTimer.reset();
 
         switch (newState) {
             case IDLE:
+                timers.stop("shoot");
                 shooterOff();
                 intake.flower_up();
+                intake.front_up();                               // retract everything (also covers the failsafe)
+                intake.back_up();
                 break;
             case SHOOT:
-                shotStarted = false;
+                timers.stop("shoot");                            // fresh shot
                 intake.flower_up();
-                shooterOn();
+                spinUpShooter();                                 // pre-spin; the intake starts when the hatch opens
+                break;
+            case APPROACH_INTAKE:
+                intake.flower_down();                            // every intake on while driving to the flower:
+                intake.front_down();                             // flower, front, back, and both rollers
+                intake.back_down();
+                intake.intake_on();
                 break;
             case FLOWER_INTAKE:
                 intake.flower_down();
-                shooterOn();
+                intake.front_down();                             // front servo stays at frontDownPos
+                intake.back_down();                              // back servo stays at backDownPos
+                spinUpShooter();                                 // pre-spin for the flower shot while intaking
+                intake.intake_on();
                 break;
         }
     }
 
-    private void shooterOn() {
-        depo.turn_on_deposit();
-        intake.intake_on();
+    /**
+     * One shot (same logic as EntireAuto). True on the loop it finishes and the flywheel is turned off.
+     * The shoot timer starts once the flywheel is at speed. The intake and hatch open SHOT_OPEN_SECONDS later,
+     * and the shot ends SHOOT_HOLD_SECONDS after the flywheel reached speed.
+     */
+    private boolean finishShot() {
+        if (!depo.isDepositOn() && !timers.isRunning("shoot")) {
+            spinUpShooter();
+        }
+        if (depo.reachedvelocity() && !timers.isRunning("shoot")) {
+            timers.start("shoot");
+        }
+        if (timers.checkSeconds("shoot", SHOT_OPEN_SECONDS)) {
+            intake.intake_on();
+            depo.open_hatch();
+        }
+        if (timers.checkSecondsLast("shoot", SHOOT_HOLD_SECONDS)) {
+            shooterOff();                                        // hatch closed, depo off, intake off
+            return true;
+        }
+        return false;
+    }
+
+    /** Turns the flywheel on at the shot velocity (Depo's default + SHOT_VELOCITY_BOOST). */
+    private void spinUpShooter() {
+        depo.turn_on_deposit();                                  // resets the PID and turns the depo on
+        depo.set_target_velocity(SHOT_VELOCITY);                 // then raise the target
     }
 
     private void shooterOff() {
-        depo.turn_off_deposit();
         depo.close_hatch();
+        depo.turn_off_deposit();
         intake.intake_off();
     }
 
