@@ -1,632 +1,440 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.Auto;
 
-//import com.pedropathing.ivy.Scheduler;
-//import static com.pedropathing.ivy.Scheduler.schedule;
-//import static com.pedropathing.ivy.groups.Groups.sequential;
-//import static com.pedropathing.ivy.pedro.PedroCommands.*;
-
+import static com.pedropathing.api.Paths.line;
 
 import com.pedropathing.api.PoseFactory;
+import com.pedropathing.follower.Follower;
 import com.pedropathing.math.Pose;
-import com.pedropathing.paths.Path;
-import com.pedropathing.paths.interpolator.Interpolator;
-import com.pedropathing.utils.Timer;
-
-import static com.pedropathing.api.Paths.curve;
-import static com.pedropathing.api.Paths.line;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.qualcomm.robotcore.hardware.DcMotorEx;
-//import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.hardware.Servo;
-import com.qualcomm.robotcore.hardware.CRServo;
 
-//import org.firstinspires.ftc.teamcode.OFSB2.Subsystems.turret;
-//import org.firstinspires.ftc.teamcode.OFSB2.Subsystems.intake;
-//import org.firstinspires.ftc.teamcode.OFSB2.Auto.Constants;
+import org.firstinspires.ftc.teamcode.pedroPathing.Robot1;
 import org.firstinspires.ftc.teamcode.pedroPathing.Vision.AprilTagStuff.APRILTAG_Biobuzz.Alliance;
-import org.firstinspires.ftc.teamcode.pedroPathing.Vision.AprilTagStuff.APRILTAG_Biobuzz.AprilTagDetector;
+import org.firstinspires.ftc.teamcode.pedroPathing.Vision.AprilTagStuff.APRILTAG_Biobuzz.AllianceConfig;
+import org.firstinspires.ftc.teamcode.pedroPathing.Vision.AprilTagStuff.APRILTAG_Biobuzz.BioBuzzVision;
 import org.firstinspires.ftc.teamcode.pedroPathing.Vision.AprilTagStuff.APRILTAG_Biobuzz.BioBuzzVisionConfig;
-import org.firstinspires.ftc.teamcode.pedroPathing.Vision.AprilTagStuff.APRILTAG_Biobuzz.HiveCluster;
-import org.firstinspires.ftc.teamcode.pedroPathing.Vision.AprilTagStuff.APRILTAG_Biobuzz.TagClusterMapper;
-import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
-import java.util.List;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.CustomFollower;
-//import static com.pedropathing.ivy.pedro.PedroCommands.*;
-
+import org.firstinspires.ftc.teamcode.pedroPathing.Vision.AprilTagStuff.APRILTAG_Biobuzz.CellOrientation;
+import org.firstinspires.ftc.teamcode.pedroPathing.Vision.AprilTagStuff.APRILTAG_Biobuzz.FieldSide;
+import org.firstinspires.ftc.teamcode.pedroPathing.Vision.AprilTagStuff.APRILTAG_Biobuzz.HiveCell;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Depo;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Intake;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Turret;
 
-
+/**
+ * Full auto. The poses are fixed waypoints. After the garden intake, the
+ * audience-side hive of the alliance chosen in init decides which waypoints
+ * come next.
+ */
 @Autonomous(name = "EntireAuto", group = "Season")
 public class EntireAuto extends OpMode {
-    //boolean needDepo = true;
-    private DcMotorEx depo1;
-    private Depo depo;
+    private static final double FULL_INTAKE_BALLS = 4;
+    /** Open the hatch this long after the flywheel is at speed. */
+    private static final double SHOT_OPEN_SECONDS = 0.3;
+    /** How long every shot runs once the flywheel is at speed. */
+    private static final double SHOOT_HOLD_SECONDS = 2;
+    /** How long a flower intake stays down. */
+    private static final double INTAKE_HOLD_SECONDS = 1;
+    /** How long to watch the hive before choosing the next path. */
+    private static final double HIVE_LOOK_SECONDS = 0.5;
+
+    /** Field headings. Converted to robot-relative when commanded. */
+    private static final double PRELOAD_FIELD_DEG = 63;
+    private static final double GARDEN_FIELD_DEG = 41;
+    private static final double SHOOT1_FIELD_DEG = 63;
+    private static final double OPP_FIELD_DEG = 296;
+
+    private enum PathState {
+        PRELOAD_SHOOT,
+        TO_GARDEN_APPROACH,
+        GARDEN_INTAKE,
+        READ_HIVE,
+        TO_SHOOT1,
+        SHOOT1,
+        TO_FLOWER_APPROACH,
+        FLOWER_INTAKE,
+        TO_FLOWER_BACK,
+        TO_OPP_FLOWER,
+        SHOOT_HELD,
+        INTAKE_OPP,
+        SHOOT_OPP,
+        TO_PARK_PREP,
+        PARK,
+        DONE
+    }
+
+    private final PoseFactory poses = PoseFactory.degrees();
+    private final Pose start = poses.of(36, 6.5, 180);
+    private final Pose gardenApproach = poses.of(24, 6.5, 180);
+    private final Pose gardenIntakeStart = poses.of(24, 6.5, 180);
+    private final Pose gardenIntake = poses.of(10, 6.5, 180);
+    private final Pose shoot1Start = poses.of(10, 6.5, 180);
+    private final Pose shoot1 = poses.of(36, 6.5, 180);
+    private final Pose flowerApproach = poses.of(24, 48, 180);
+    private final Pose flowerIntake = poses.of(16, 48, 180);
+    private final Pose flowerBack = poses.of(24, 48, 180);
+    private final Pose oppFlowerApproachStart = poses.of(24, 48, 90);
+    private final Pose oppFlowerApproach = poses.of(42.3663, 128.1642, 75);
+    private final Pose parkPrepStart = poses.of(42.3663, 128.1642, 75);
+    private final Pose parkPrep = poses.of(18, 96, 0);
+    private final Pose park = poses.of(10, 96, 0);
+
+    private Follower follower;
     private Intake intake;
+    private Depo depo;
     private Turret turret;
-    private Servo hatch;
-    private CRServo turret_servo;
-    private CustomFollower follower;
-    Pose start, sample1, point2, sample2, sample3, done;
-    Pose point4, point5, doneStart;
-    Pose sample3Control1, sample2Control1, sample2Control2;
-    Pose sample1Segment1Start, sample1Segment1End, sample1Segment2Start, sample1Segment2End;
-    static Pose teleop;
-    private Path shootToSample1, sample1ToPoint2, point2ToSample2, sample2ToShoot2, point4ToPoint5, sample3ToDone;
+    private Timer timers;
+    private final BioBuzzVision vision = new BioBuzzVision();
 
-    private Timer pathTimer, opModeTimer;
-    // pedroPathing's Timer is already imported above, so the team's own Timer (same one soloTeleop uses) needs its full name
-    private org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer timers;
-
-    static boolean isBlue;
-    static boolean isRed;
-    boolean isHatchClosed;
-    boolean isShootOffset;
-    boolean isBlueGarden, isBlueOpposite, isRedGarden, isRedOpposite;
-    // True once that drive has been started, so the case does not restart the path when the follower goes idle.
-    private boolean shootToSample1Started = false;
-    private boolean sample1ToPoint2Started = false;
-    private boolean point2ToSample2Started = false;
-    private boolean sample2ToShoot2Started = false;
-    private boolean shoot2ToSample3Started = false;
-    // False until the flower path is moving, then the flower stays down until that path ends.
-    private boolean flowerPathStarted = false;
-    private boolean flowerIntakeDone;
-    //intake intake;
-    // turret turret;
-
-    // soloTeleop teleop = new soloTeleop();
-
-    private enum AutoState {
-        SHOOTTOSAMPLE1,
-        SAMPLE1TOPOINT2,
-        POINT2TOSAMPLE2,
-        SAMPLE2TOSHOOT2,
-        SHOOT2TOSAMPLE3,
-        SAMPLE3TODONE,
-        DONE;
-    }
-
-    private enum ShootState {
-        INTAKE,
-        SHOOT,
-        SHOOTOFFSET,
-        FLOWERINTAKE;
-    }
-
-    private AutoState autoState;
-    private ShootState shootState;
-    // Close enough to the commanded turret angle to open the hatch.
-    private static final double TURRET_TOLERANCE_DEG = 3.0;
-    // ---------------- APRILTAG (read during INIT) ----------------
-    private final AprilTagDetector aprilTag = new AprilTagDetector();
-    private boolean cameraStarted = false;       // ca  mera was created without an error
+    private PathState pathState = PathState.PRELOAD_SHOOT;
+    private boolean intakeFull;
+    private boolean cameraReady;
     private String cameraMessage = "";
-
-    private AprilTagDetection seenTag = null;    // best HIVE tag the camera saw during INIT (null = none yet)
-    private HiveCluster seenHive = null;         // which hive cell that tag belongs to
-    private boolean otherSideHiveAssumed = true; // true while no tag has been seen
-    private Alliance tagAlliance = null;         // null = accept every hive tag; RED / BLUE = only that alliance's tags
-
-    // What we assume about the other side's hive if INIT ends without ever seeing a tag.
-    // PLACEHOLDER word - change it to whatever you meant by "u..".
-    private static final String HIVE_IF_NO_TAG = "UNKNOWN";
-    private static final long LOST_TAG_GRACE_NS = 1_000_000_000L;
-    private HiveCluster selectedHive = null;
-    private HiveCluster oppositeHive = null;
-    private long lastVisibleTagNanos = 0;
-    private boolean switchedToOpposite = false;
-    private int rawDetectionCount = 0;
-    private int blueDetectionCount = 0;
-    private int redDetectionCount = 0;
-    private int unmappedDetectionCount = 0;
-    private int badHammingCount = 0;
-    private boolean previousBothBumpers = false;
-    public void subsystems() {
-        //intake = new intake(hardwareMap);
-        // turret = new turret(hardwareMap);
-    }
+    private boolean hiveChecked;
+    private boolean hiveFacingUp;
+    private CellOrientation seenAudience = CellOrientation.UNKNOWN;
+    private double commandedFieldDeg = Double.NaN;
 
     @Override
     public void init() {
-        //Scheduler.reset();
-        subsystems();
-        pathTimer = new Timer();
-        opModeTimer = new Timer();
-        timers = new org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer();
-        follower = new CustomFollower(hardwareMap, telemetry);
+        AllianceConfig.reset();
+        follower = Robot1.createFollower(hardwareMap);
+        follower.setPose(start);
         intake = new Intake(hardwareMap);
         depo = new Depo(hardwareMap);
         turret = new Turret(hardwareMap);
-        initAprilTag();
-        telemetry.addLine("READY. PRESS Y FOR BLUE, A FOR RED.");
-        telemetry.update();
+        timers = new Timer();
+        timers.createNew("hold");
+        timers.createNew("shoot");
+        timers.createNew("look");
+
+        intake.start();
+        depo.start();
+        turret.resetTurretEncoders();
+        turret.setPositionDeg(0);
+        intake.flower_up();
+        follower.update();
+
+        try {
+            vision.init(hardwareMap, telemetry);
+            cameraReady = true;
+        } catch (RuntimeException e) {
+            cameraReady = false;
+            cameraMessage = e.getMessage();
+        }
     }
 
     @Override
     public void init_loop() {
-        gamepadSide();
-        selectTagAlliance();
-        telemetry.addLine("Y = BLUE, A = RED.");
-        telemetry.addData("SELECTED", selectedScenario());
-        updateAprilTag();
+        if (gamepad1.y) {
+            AllianceConfig.select(Alliance.BLUE);
+        } else if (gamepad1.a) {
+            AllianceConfig.select(Alliance.RED);
+        }
+
+        follower.update();
+        turret.run_using_pid();
+        updateVision();
+
+        telemetry.addLine("Y = BLUE, A = RED");
+        telemetry.addData("Alliance", allianceLabel());
+        telemetry.addData("Turret deg", turret.getPositionDeg());
+        telemetry.addData("Camera", cameraReady ? "ON" : cameraMessage);
+        telemetry.update();
     }
 
     @Override
     public void start() {
-        opModeTimer.reset();
-        pathTimer.reset();
+        AllianceConfig.lock();
         intake.start();
         depo.start();
-        turret.holdCurrentPosition();
-        timers.createNew("depo");
-        shootToSample1Started = false;
-        sample1ToPoint2Started = false;
-        point2ToSample2Started = false;
-        sample2ToShoot2Started = false;
-        shoot2ToSample3Started = false;
-        flowerPathStarted = false;
-        flowerIntakeDone = false;
-        setShootState(ShootState.SHOOTOFFSET);
-        isShootOffset = true;
-        turnOnShooter();
+        turret.start();
+        intake.resetBalls();
     }
 
     @Override
     public void loop() {
-        teleop = new Pose(follower.getPose().x(), follower.getPose().y(), follower.getPose().heading());
         follower.update();
         turret.run_using_pid();
         depo.run_using_pid();
-        updateAutoState();
-        telemetry.addData("SELECTED", selectedScenario());
-        updateAprilTag();
-        updateTelemetry();
-        updateShootState();
+        updateVision();
+        updateIntakeCount();
+        autonomousPathUpdate();
+
+        telemetry.addData("Path", pathState);
+        telemetry.addData("Alliance", allianceLabel());
+        telemetry.addData("Hive", hiveLabel());
+        telemetry.addData("X", follower.pose().x());
+        telemetry.addData("Y", follower.pose().y());
+        telemetry.addData("Heading", Math.toDegrees(follower.pose().heading()));
+        telemetry.addData("Field aim", Double.isNaN(commandedFieldDeg) ? "hold" : commandedFieldDeg);
+        telemetry.addData("Turret deg", turret.getPositionDeg());
+        telemetry.addData("Turret target", turret.getTargetDeg());
+        telemetry.addData("Depo velo", depo.getVelocity());
+        telemetry.addData("Balls", intake.getBalls());
+        telemetry.update();
     }
 
     @Override
     public void stop() {
-        if (cameraStarted) {
-            aprilTag.stop();
+        stopCollecting();
+        intake.flower_up();
+        depo.close_hatch();
+        depo.turn_off_deposit();
+        turret.turretOff();
+        if (cameraReady) {
+            vision.stop();
         }
     }
 
-    private void selectTagAlliance() {
-        Alliance picked = tagAlliance;
-        boolean both = gamepad1.left_bumper && gamepad1.right_bumper;
-        if (both && !previousBothBumpers) {
-            picked = null;
-        } else if (!both && gamepad1.left_bumper) {
-            picked = Alliance.BLUE;
-        } else if (!both && gamepad1.right_bumper) {
-            picked = Alliance.RED;
-        }
-        previousBothBumpers = both;
-        if (picked != tagAlliance) {
-            tagAlliance = picked;
-            seenTag = null;
-            seenHive = null;
-            selectedHive = null;
-            oppositeHive = null;
-            switchedToOpposite = false;
-            lastVisibleTagNanos = 0;
-        }
-    }
-
-    private void initAprilTag() {
-        try {
-            aprilTag.init(hardwareMap, telemetry);
-            cameraStarted = true;
-        } catch (Exception e) {
-            cameraStarted = false;
-            cameraMessage = "could not start: " + e.getMessage();
-        }
-    }
-
-    private HiveCluster findOppositeHive(HiveCluster current) {
-        if (current == null) return null;
-        HiveCluster opposite = null;
-        for (int id = 30; id <= 45; id++) {
-            HiveCluster candidate = TagClusterMapper.getCellForTagId(id);
-            if (candidate == null || candidate.alliance != current.alliance
-                    || candidate.displayName().equals(current.displayName())) continue;
-            if (opposite != null && !opposite.displayName().equals(candidate.displayName())) {
-                return null; // More than two cells: cannot safely infer an opposite.
-            }
-            opposite = candidate;
-        }
-        return opposite;
-    }
-
-    private void updateAprilTag() {
-        telemetry.addData("Tag filter (LB blue / RB red / BOTH all)",
-                tagAlliance == null ? "ALL" : tagAlliance.name());
-        if (!cameraStarted) {
-            telemetry.addData("Camera", cameraMessage);
-            return;
-        }
-
-        aprilTag.update();
-        telemetry.addData("Camera streaming", aprilTag.isStreaming());
-
-        List<AprilTagDetection> detections = aprilTag.getDetections();
-        rawDetectionCount = detections == null ? 0 : detections.size();
-        blueDetectionCount = 0;
-        redDetectionCount = 0;
-        unmappedDetectionCount = 0;
-        badHammingCount = 0;
-        AprilTagDetection best = null;
-        HiveCluster bestCell = null;
-
-        if (detections != null) for (AprilTagDetection d : detections) {
-            telemetry.addData("Raw ID " + d.id,
-                    "hamming=%d, margin=%.1f", d.hamming, d.decisionMargin);
-            HiveCluster cell = TagClusterMapper.getCellForTagId(d.id);
-            if (cell == null) {
-                unmappedDetectionCount++;
-                continue;
-            }
-            if (cell.alliance == Alliance.BLUE) blueDetectionCount++;
-            else if (cell.alliance == Alliance.RED) redDetectionCount++;
-
-            if (d.hamming > BioBuzzVisionConfig.MAX_HAMMING) {
-                badHammingCount++;
-                continue;
-            }
-            if (tagAlliance != null && cell.alliance != tagAlliance) continue;
-            if (best == null || d.decisionMargin > best.decisionMargin) {
-                best = d;
-                bestCell = cell;
-            }
-        }
-
-        telemetry.addData("Raw tags", rawDetectionCount);
-        telemetry.addData("Mapped RED", redDetectionCount);
-        telemetry.addData("Mapped BLUE", blueDetectionCount);
-        telemetry.addData("Unmapped", unmappedDetectionCount);
-        telemetry.addData("Bad hamming", badHammingCount);
-
-        if (best != null) {
-            seenTag = best;
-            seenHive = bestCell;
-            selectedHive = bestCell;
-            oppositeHive = findOppositeHive(bestCell);
-            lastVisibleTagNanos = System.nanoTime();
-            switchedToOpposite = false;
-            otherSideHiveAssumed = false;
-            telemetry.addData("Current tag", best.id);
-            telemetry.addData("Current hive", bestCell.displayName());
-            if (best.ftcPose != null) {
-                telemetry.addData("Range (in)", "%.1f", best.ftcPose.range);
-                telemetry.addData("Bearing (deg)", "%.1f", best.ftcPose.bearing);
-                telemetry.addData("Yaw (deg)", "%.1f", best.ftcPose.yaw);
-            }
-        } else if (seenTag != null) {
-            // A previously seen target disappeared: propose switching to the
-            // opposite mapped hive after a short dropout tolerance.
-            long elapsed = System.nanoTime() - lastVisibleTagNanos;
-            if (elapsed >= LOST_TAG_GRACE_NS && oppositeHive != null) {
-                selectedHive = oppositeHive;
-                switchedToOpposite = true;
-            }
-            telemetry.addLine("No accepted tag NOW (last tag is remembered)");
-        } else {
-            telemetry.addLine("AprilTag: NOT seen");
-            otherSideHiveAssumed = true;
-        }
-
-        telemetry.addData("Last accepted ID", seenTag == null ? "none" : seenTag.id);
-        telemetry.addData("Seen hive", seenHive == null ? "UNKNOWN" : seenHive.displayName());
-        telemetry.addData("Opposite mapped hive",
-                oppositeHive == null ? "UNRESOLVED" : oppositeHive.displayName());
-        telemetry.addData("SELECTED hive",
-                selectedHive == null ? HIVE_IF_NO_TAG : selectedHive.displayName());
-        telemetry.addData("Switched after losing tag", switchedToOpposite);
-        // NOTE: selectedHive is decision state only. Mechanical aiming and
-        // Pedro paths require hive-specific geometry not supplied here.
-    }
-
-    // --- THE SINGLE STATE MACHINE ---
-    private void updateAutoState() {
-        if (follower.isBusy()) {
-            return;
-        }
-        switch (autoState) {
-            case SHOOTTOSAMPLE1:
-                if (isRed) {
-                    isRedGarden = true;
-                    isRedOpposite = false;
-                } else {
-                    isBlueGarden = true;
-                    isBlueOpposite = false;
-                }
-                if (!shootToSample1Started) {
-                    isHatchClosed = false;
-                    isShootOffset = true;
-                    turnOnShooter();
-                    setShootState(ShootState.SHOOTOFFSET);
-                    shootToSample1Started = true;
-                    break;
-                }
-                if (isHatchClosed) {
-                    isHatchClosed = false;
-                    setShootState(ShootState.INTAKE);
-                    //follower.acceleration(0.5, 1.0, 1.0, 0.5);
-                    follower.followPath(shootToSample1, true);
-                    setPathState(AutoState.SAMPLE1TOPOINT2);
+    private void autonomousPathUpdate() {
+        switch (pathState) {
+            case PRELOAD_SHOOT:
+                aimFieldDegrees(PRELOAD_FIELD_DEG);
+                if (finishShot()) {
+                    follower.follow(line(start, gardenApproach).linear(start, gardenApproach));
+                    pathState = PathState.TO_GARDEN_APPROACH;
                 }
                 break;
-
-            case SAMPLE1TOPOINT2:
-                if (isRed) {
-                    isRedGarden = true;
-                    isRedOpposite = false;
-                } else {
-                    isBlueGarden = false;
-                    isBlueOpposite = true;
-                }
-                // Drive sample 1 to point 2 once. The next time this case runs, the robot is stopped there.
-                if (!sample1ToPoint2Started) {
-                    follower.followPath(sample1ToPoint2, true);
-                    isShootOffset = true;
-                    turnOnShooter();
-                    sample1ToPoint2Started = true;
-                    break;
-                }
-
-                setShootState(ShootState.SHOOTOFFSET);
-
-                if (isHatchClosed) {
-                    isHatchClosed = false;
-                    sample1ToPoint2Started = false;
-                    flowerIntakeDone = false;
-                    setShootState(ShootState.FLOWERINTAKE);
-                    setPathState(AutoState.POINT2TOSAMPLE2);
+            case TO_GARDEN_APPROACH:
+                if (!follower.isBusy()) {
+                    aimFieldDegrees(GARDEN_FIELD_DEG);
+                    collectGarden();
+                    follower.follow(line(gardenApproach, gardenIntake).linear(gardenIntakeStart, gardenIntake));
+                    pathState = PathState.GARDEN_INTAKE;
                 }
                 break;
-
-            case POINT2TOSAMPLE2:
-                if (!point2ToSample2Started) {
-                    follower.followPath(point2ToSample2, true);
-                    point2ToSample2Started = true;
-                    break;
-                }
-                if (pathTimer.seconds() >= 3) {
-                    setPathState(AutoState.SAMPLE2TOSHOOT2);
+            case GARDEN_INTAKE:
+                aimFieldDegrees(GARDEN_FIELD_DEG);
+                collectGarden();
+                if (!follower.isBusy()) {
+                    stopCollecting();
+                    seenAudience = CellOrientation.UNKNOWN;
+                    pathState = PathState.READ_HIVE;
                 }
                 break;
-
-            case SAMPLE2TOSHOOT2:
-                if (isRed) {
-                    isRedGarden = false;
-                    isRedOpposite = true;
-                } else {
-                    isBlueGarden = false;
-                    isBlueOpposite = true;
-                }
-                if (!sample2ToShoot2Started) {
-                    follower.followPath(sample2ToShoot2, true);
-                    isShootOffset = true;
-                    turnOnShooter();
-                    sample2ToShoot2Started = true;
-                    break;
-                }
-
-                setShootState(ShootState.SHOOTOFFSET);
-
-                if (isHatchClosed) {
-                    isHatchClosed = false;
-                    sample2ToShoot2Started = false;
-                    setShootState(ShootState.INTAKE);
-                    setPathState(AutoState.SHOOT2TOSAMPLE3);
+            case READ_HIVE:
+                rememberAudienceHive();
+                if (timers.checkSecondsLast("look", HIVE_LOOK_SECONDS)) {
+                    hiveChecked = true;
+                    hiveFacingUp = seenAudience == CellOrientation.FACING_UP;
+                    if (hiveFacingUp) {
+                        follower.follow(line(gardenIntake, shoot1).linear(shoot1Start, shoot1));
+                        pathState = PathState.TO_SHOOT1;
+                    } else {
+                        follower.follow(line(gardenIntake, oppFlowerApproach).linear(gardenIntake, oppFlowerApproach));
+                        pathState = PathState.TO_OPP_FLOWER;
+                    }
+                } else if (!timers.isRunning("look")) {
+                    timers.start("look");
                 }
                 break;
-
-            case SHOOT2TOSAMPLE3:
-                if (!shoot2ToSample3Started) {
-                    follower.followPath(point4ToPoint5, true);
-                    shoot2ToSample3Started = true;
-                    break;
+            case TO_SHOOT1:
+                if (!follower.isBusy()) {
+                    pathState = PathState.SHOOT1;
                 }
-                setPathState(AutoState.SAMPLE3TODONE);
                 break;
-
-            case SAMPLE3TODONE:
-                follower.followPath(sample3ToDone, true);
-                setPathState(AutoState.DONE);
+            case SHOOT1:
+                aimFieldDegrees(SHOOT1_FIELD_DEG);
+                if (finishShot()) {
+                    follower.follow(line(shoot1, flowerApproach).constant(flowerApproach));
+                    pathState = PathState.TO_FLOWER_APPROACH;
+                }
                 break;
-
+            case TO_FLOWER_APPROACH:
+                if (!follower.isBusy()) {
+                    prepareFlower();
+                    follower.follow(line(flowerApproach, flowerIntake).constant(flowerIntake));
+                    pathState = PathState.FLOWER_INTAKE;
+                }
+                break;
+            case FLOWER_INTAKE:
+                if (timers.checkSecondsLast("hold", INTAKE_HOLD_SECONDS)) {
+                    intake.flower_up();
+                    stopCollecting();
+                    follower.follow(line(flowerIntake, flowerBack).constant(flowerBack));
+                    pathState = PathState.TO_FLOWER_BACK;
+                } else if (!follower.isBusy() && !timers.isRunning("hold")) {
+                    intake.resetBalls();
+                    intakeFull = false;
+                    collectFlower();
+                    timers.start("hold");
+                }
+                break;
+            case TO_FLOWER_BACK:
+                if (!follower.isBusy()) {
+                    follower.follow(line(flowerBack, oppFlowerApproach)
+                            .linear(oppFlowerApproachStart, oppFlowerApproach));
+                    pathState = PathState.TO_OPP_FLOWER;
+                }
+                break;
+            case TO_OPP_FLOWER:
+                if (!follower.isBusy()) {
+                    pathState = PathState.SHOOT_HELD;
+                }
+                break;
+            case SHOOT_HELD:
+                aimFieldDegrees(OPP_FIELD_DEG);
+                if (finishShot()) {
+                    prepareFlower();
+                    pathState = PathState.INTAKE_OPP;
+                }
+                break;
+            case INTAKE_OPP:
+                if (timers.checkSecondsLast("hold", INTAKE_HOLD_SECONDS)) {
+                    intake.flower_up();
+                    stopCollecting();
+                    pathState = PathState.SHOOT_OPP;
+                } else if (!timers.isRunning("hold")) {
+                    intake.resetBalls();
+                    intakeFull = false;
+                    collectFlower();
+                    timers.start("hold");
+                }
+                break;
+            case SHOOT_OPP:
+                aimFieldDegrees(OPP_FIELD_DEG);
+                if (finishShot()) {
+                    follower.follow(line(oppFlowerApproach, parkPrep).linear(parkPrepStart, parkPrep));
+                    pathState = PathState.TO_PARK_PREP;
+                }
+                break;
+            case TO_PARK_PREP:
+                if (!follower.isBusy()) {
+                    follower.follow(line(parkPrep, park).constant(park));
+                    pathState = PathState.PARK;
+                }
+                break;
+            case PARK:
+                if (!follower.isBusy()) {
+                    pathState = PathState.DONE;
+                }
+                break;
             case DONE:
-                telemetry.addLine("Finished everything!");
                 break;
-
             default:
                 break;
         }
     }
 
-    private void updateShootState() {
-        switch (shootState) {
-            case INTAKE:
-                //needDepo = false;
-                intake.intake_on();
-                break;
-            case SHOOT:
-                isShootOffset = false;
-                intake.intake_on();
-                turret.setPositionDeg(90);
-                if (Math.abs(turret.getPositionDeg() - 90) <= TURRET_TOLERANCE_DEG) {
-                    runAutoDepo();
-                } else if (timers.isRunning("depo")) {
-                    runAutoDepo();
-                }
-                break;
-            case SHOOTOFFSET:
-                isShootOffset = true;
-                Pose robot = new Pose(follower.getPose().x(), follower.getPose().y(), follower.getPose().heading());
-
-                if (isBlueGarden) {
-                    turret.faceGardenHive(robot);
-                }
-                if (isBlueOpposite) {
-                    turret.faceFlowerHive(robot);
-                }
-                if (isRedGarden) {
-                    turret.faceFlowerHive(robot);
-                }
-                if (isRedOpposite) {
-                    turret.faceGardenHive(robot);
-                }
-
-                if (Math.abs(turret.getPositionDeg() - Turret.deg) <= TURRET_TOLERANCE_DEG) {
-                    runAutoDepo();
-                } else if (timers.isRunning("depo")) {
-                    runAutoDepo();
-                }
-                break;
-            case FLOWERINTAKE:
-                if (pathTimer.seconds() >= 3) {
-                    flowerIntakeDone = true;
-                }
-                if (!flowerIntakeDone) {
-                    intake.flower_down();
-                    intake.intake_on();
-                }
-                else {
-                    intake.flower_up();
-                    intake.intake_off();
-                }
-                break;
-
-        }
-    }
-
-    private void setPathState(AutoState newState) {
-        autoState = newState;
-        pathTimer.reset();
-    }
-
-    private void setShootState(ShootState newState) {
-        if (newState == ShootState.FLOWERINTAKE && shootState != ShootState.FLOWERINTAKE) {
-            flowerPathStarted = false;
-            flowerIntakeDone = false;
-        }
-        shootState = newState;
-    }
-
-    /* public void hardwareMap() {
-         intake = hardwareMap.get(DcMotorEx.class, "intake");
-         depo = hardwareMap.get(DcMotorEx.class, "depo");
-         depo1 = hardwareMap.get(DcMotorEx.class, "depo1");
-
-         hatch = hardwareMap.get(Servo.class, "hatch");
-     }
-
+    /**
+     * Field heading to the robot-relative angle {@link Turret#setPositionDeg(double)} expects.
+     * Same conversion as {@link Turret#AutoAllignTo}: -(field - robot heading).
      */
-    private void poses() {
-        // Blue and red share this pose set. isBlue/isRed still control aiming/teleop side.
-        PoseFactory degrees = PoseFactory.degrees();
-        start = degrees.of(98, 135, 0);
-        sample1 = degrees.of(125.5, 135, 5);
-        sample1Segment1Start = degrees.of(131.5, 135, 0);
-        sample1Segment1End = degrees.of(131.5, 135, 0);
-        sample1Segment2Start = degrees.of(131.5, 135, 0);
-        sample1Segment2End = degrees.of(131.5, 135, 5);
-        sample3Control1 = degrees.of(120.0843, 72.9993, 0);
-        sample3 = degrees.of(94.8651, 18.3682, -90);
-        sample2Control1 = degrees.of(131.0383, 108.6424, 0);
-        sample2Control2 = degrees.of(115.5581, 90.1564, 0);
-        sample2 = degrees.of(122.7151, 92.924, 0);
-        point2 = degrees.of(60.07, 9.95, -90);
-        point4 = degrees.of(94.87, 14.37, -90);
-        point5 = degrees.of(95.07, 11.56, -90);
-        doneStart = degrees.of(95.07, 9.56, 270);
-        done = degrees.of(124.6912, 23.9385, 180);
+    private void aimFieldDegrees(double fieldDeg) {
+        commandedFieldDeg = fieldDeg;
+        double headingDeg = Math.toDegrees(follower.pose().heading());
+        turret.setPositionDeg(-(fieldDeg - headingDeg));
     }
 
-    private void buildPaths() {
-        shootToSample1 = line(start, sample1).heading(Interpolator.piecewise()
-                .until(0.8, Interpolator.linear(sample1Segment1Start, sample1Segment1End))
-                .until(1, Interpolator.linear(sample1Segment2Start, sample1Segment2End)));
-        sample1ToPoint2 = curve(sample1, sample3Control1, sample3).linear(sample1, sample3);
-        point2ToSample2 = curve(sample3, sample2Control1, sample2Control2, sample2).linear(sample3, sample2);
-        sample2ToShoot2 = line(sample2, point4).linear(sample2, point4);
-        point4ToPoint5 = line(point4, point5).constant(point5);
-        sample3ToDone = line(doneStart, done).linear(doneStart, done);
-    }
-
-    public void gamepadSide() {
-        if (gamepad1.y) {
-            isBlue = true;
-            isRed = false;
-            poses();
-            buildPaths();
-            follower.setPose(start);
-            autoState = AutoState.SHOOTTOSAMPLE1;
-        } else if (gamepad1.a) {
-            isRed = true;
-            isBlue = false;
-            poses();
-            buildPaths();
-            follower.setPose(start);
-            autoState = AutoState.SHOOTTOSAMPLE1;
+    /** One shot. True on the loop it finishes and the flywheel is turned off. */
+    private boolean finishShot() {
+        if (!depo.isDepositOn() && !timers.isRunning("shoot")) {
+            depo.turn_on_deposit();
         }
-    }
-
-    private String selectedScenario() {
-        if (isBlue) return "BLUE";
-        if (isRed) return "RED";
-        return "NONE";
-    }
-
-    public void runAutoDepo() {
-        depo.run_using_pid();
-
-        if (depo.reachedvelocity() && !timers.isRunning("depo")){
-            timers.start("depo");
-            depo.open_hatch();
+        if (depo.reachedvelocity() && !timers.isRunning("shoot")) {
+            timers.start("shoot");
+        }
+        if (timers.checkSeconds("shoot", SHOT_OPEN_SECONDS)) {
             intake.intake_on();
-            isHatchClosed = false;
+            depo.open_hatch();
         }
-        if (timers.checkSecondsLast("depo", 2)){
-            depo.turn_off_deposit();
+        if (timers.checkSecondsLast("shoot", SHOOT_HOLD_SECONDS)) {
             depo.close_hatch();
+            depo.turn_off_deposit();
             intake.intake_off();
-            isHatchClosed = true;
+            intake.resetBalls();
+            intakeFull = false;
+            return true;
+        }
+        return false;
+    }
+
+    private void updateVision() {
+        if (cameraReady) {
+            vision.update(getRuntime());
         }
     }
 
-    private void turnOnShooter() {
-        depo.turn_on_deposit();
-    }
-
-    public static Pose returnToTeleop() {
-        return teleop;
-    }
-
-    public boolean isShootingOffset() {
-        return isShootOffset;
-    }
-    public static boolean[] whichSide() {
-        return new boolean[] {isBlue, isRed};
-    }
-
-
-    private void updateTelemetry() {
-        telemetry.addData("auto state", autoState);
-        Pose pose = follower.getPose();
-        if (pose != null) {
-            telemetry.addData("x", pose.x());
-            telemetry.addData("y", pose.y());
-            telemetry.addData("heading (deg)", Math.toDegrees(pose.heading()));
+    /** Audience cell of the alliance picked in init. The other alliance is ignored. */
+    private void rememberAudienceHive() {
+        Alliance alliance = AllianceConfig.get();
+        if (alliance == null) {
+            return;
         }
-        telemetry.addData("path time", pathTimer.seconds());
-        telemetry.addData("Tag filter", tagAlliance == null ? "ALL" : tagAlliance.name());
-        telemetry.addData("Last accepted tag", seenTag == null ? "none" : seenTag.id);
-        telemetry.addData("Selected hive", selectedHive == null ? "UNKNOWN" : selectedHive.displayName());
-        telemetry.addData("Opposite hive", oppositeHive == null ? "UNRESOLVED" : oppositeHive.displayName());
+        for (HiveCell cell : vision.getVisibleCells()) {
+            if (cell.alliance == alliance
+                    && cell.fieldSide == FieldSide.AUDIENCE
+                    && cell.orientation != CellOrientation.UNKNOWN
+                    && cell.meanDecisionMargin >= BioBuzzVisionConfig.MIN_MARGIN_FOR_ORIENTATION) {
+                seenAudience = cell.orientation;
+            }
+        }
+    }
+
+    private void updateIntakeCount() {
+        if (shooting() || !intake.intaking() || intakeFull) {
+            return;
+        }
+        intake.countBalls();
+        if (intake.getBalls() >= FULL_INTAKE_BALLS) {
+            intakeFull = true;
+            stopCollecting();
+        }
+    }
+
+    private boolean shooting() {
+        return pathState == PathState.PRELOAD_SHOOT
+                || pathState == PathState.SHOOT1
+                || pathState == PathState.SHOOT_HELD
+                || pathState == PathState.SHOOT_OPP;
+    }
+
+    private void collectGarden() {
+        if (intakeFull) {
+            return;
+        }
+        intake.flower_up();
+        intake.front_down();
+        intake.back_down();
+        intake.intake_on();
+    }
+
+    private void prepareFlower() {
+        intake.front_up();
+        intake.back_up();
+        intake.flower_down();
+        intake.intake_off();
+    }
+
+    private void collectFlower() {
+        if (intakeFull) {
+            return;
+        }
+        intake.front_up();
+        intake.back_up();
+        intake.flower_down();
+        intake.intake_on();
+    }
+
+    private void stopCollecting() {
+        intake.intake_off();
+        intake.front_up();
+        intake.back_up();
+    }
+
+    private String allianceLabel() {
+        Alliance alliance = AllianceConfig.get();
+        if (alliance == null) {
+            return "NONE - press Y or A";
+        }
+        return alliance.name();
+    }
+
+    private String hiveLabel() {
+        if (!hiveChecked) {
+            return seenAudience.name();
+        }
+        return hiveFacingUp ? "FACING UP" : "NOT FACING UP";
     }
 }
