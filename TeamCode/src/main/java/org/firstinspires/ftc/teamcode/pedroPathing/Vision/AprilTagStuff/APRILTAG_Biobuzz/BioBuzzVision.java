@@ -29,6 +29,9 @@ public final class BioBuzzVision {
     private TagClusterMapper.FilterResult lastFilter = new TagClusterMapper.FilterResult(
             Collections.<HiveCluster, List<AprilTagDetection>>emptyMap(), 0, 0, 0);
     private List<HiveCell> visibleCells = Collections.emptyList();
+    private CellOrientation closestOrientation = CellOrientation.UNKNOWN;
+    private int closestHiveTagId = -1;
+    private double closestHiveRange = Double.NaN;
 
     public void init(HardwareMap hardwareMap, Telemetry telemetry) {
         selector.reset();
@@ -43,6 +46,7 @@ public final class BioBuzzVision {
         Alliance alliance = AllianceConfig.get();
         lastFilter = TagClusterMapper.filter(rawDetections, alliance);
         visibleCells = HivePoseEstimator.estimate(lastFilter);
+        rememberClosestHiveTag();
         state = selector.select(
                 visibleCells,
                 lastFilter,
@@ -58,6 +62,58 @@ public final class BioBuzzVision {
     /** Tags in the latest camera frame, before alliance filtering. */
     public int getRawDetectionCount() {
         return rawDetections.size();
+    }
+
+    /**
+     * Up or down from the closest hive tag this frame, either alliance.
+     * UNKNOWN when no hive tag has a usable pose.
+     */
+    public CellOrientation getClosestHiveOrientation() {
+        return closestOrientation;
+    }
+
+    /** Id of the tag {@link #getClosestHiveOrientation()} used, or -1 when there is none. */
+    public int getClosestHiveTagId() {
+        return closestHiveTagId;
+    }
+
+    /** Camera range of the closest hive tag, inches. NaN when no hive tag has a pose. */
+    public double getClosestHiveRange() {
+        return closestHiveRange;
+    }
+
+    /** Closest hive tag by camera range. Alliance selection is not required. */
+    private void rememberClosestHiveTag() {
+        AprilTagDetection closest = null;
+        double closestRange = Double.POSITIVE_INFINITY;
+        for (AprilTagDetection detection : rawDetections) {
+            if (detection == null || detection.ftcPose == null) {
+                continue;
+            }
+            if (detection.hamming > BioBuzzVisionConfig.MAX_HAMMING
+                    || detection.decisionMargin < BioBuzzVisionConfig.MIN_MARGIN_FOR_ORIENTATION
+                    || TagClusterMapper.getCellForTagId(detection.id) == null) {
+                continue;
+            }
+            double range = detection.ftcPose.range;
+            if (!Double.isFinite(range)) {
+                range = Math.hypot(detection.ftcPose.x, detection.ftcPose.y);
+            }
+            if (!Double.isFinite(range) || range >= closestRange) {
+                continue;
+            }
+            closestRange = range;
+            closest = detection;
+        }
+        if (closest == null) {
+            closestHiveTagId = -1;
+            closestHiveRange = Double.NaN;
+            closestOrientation = CellOrientation.UNKNOWN;
+            return;
+        }
+        closestHiveTagId = closest.id;
+        closestHiveRange = closestRange;
+        closestOrientation = HivePoseEstimator.classifyRoll(closest.ftcPose.roll);
     }
 
     public boolean hasTarget() {

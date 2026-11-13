@@ -10,22 +10,17 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Robot1;
-import org.firstinspires.ftc.teamcode.pedroPathing.Vision.AprilTagStuff.APRILTAG_Biobuzz.Alliance;
-import org.firstinspires.ftc.teamcode.pedroPathing.Vision.AprilTagStuff.APRILTAG_Biobuzz.AllianceConfig;
 import org.firstinspires.ftc.teamcode.pedroPathing.Vision.AprilTagStuff.APRILTAG_Biobuzz.BioBuzzVision;
-import org.firstinspires.ftc.teamcode.pedroPathing.Vision.AprilTagStuff.APRILTAG_Biobuzz.BioBuzzVisionConfig;
-import org.firstinspires.ftc.teamcode.pedroPathing.Vision.AprilTagStuff.APRILTAG_Biobuzz.CellOrientation;
-import org.firstinspires.ftc.teamcode.pedroPathing.Vision.AprilTagStuff.APRILTAG_Biobuzz.FieldSide;
-import org.firstinspires.ftc.teamcode.pedroPathing.Vision.AprilTagStuff.APRILTAG_Biobuzz.HiveCell;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Depo;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Turret;
 
 /**
- * Full auto. The poses are fixed waypoints. After the garden intake, an
- * upright audience hive takes shoot1. A down hive skips shoot1 and drives
- * to the opposite flower.
+ * Full auto. The poses are fixed waypoints. After the garden intake, a hive
+ * tag within {@link #NEAR_HIVE_INCHES} means the hive has not tipped, so the
+ * robot takes shoot1. No tag that close means it has tipped, and farther tags
+ * are ignored. Alliance selection is not used.
  */
 @Autonomous(name = "EntireAuto", group = "Season")
 public class EntireAuto extends OpMode {
@@ -34,12 +29,15 @@ public class EntireAuto extends OpMode {
     private static final double SHOT_OPEN_SECONDS = 0.3;
     /** How long every shot runs once the flywheel is at speed. */
     private static final double SHOOT_HOLD_SECONDS = 2;
-    /** How long a flower intake stays down. */
+    /** How long the front gate stays down on the way back from the near flower. */
     private static final double INTAKE_HOLD_SECONDS = 1;
-    /** Extra intake after backing out, while the flower is still down. */
-    private static final double FLOWER_CLEAR_SECONDS = 0.5;
     /** How long to watch the hive before choosing the next path. */
     private static final double HIVE_LOOK_SECONDS = 0.5;
+    /**
+     * A hive tag this close belongs to the near hive. Tags farther away can be
+     * the other alliance, so they do not count. 76 includes a tag at 75 or 76.
+     */
+    private static final double NEAR_HIVE_INCHES = 76;
     /** Garden creep only. 0.5 is half of the robot's max path speed. */
     private static final double GARDEN_INTAKE_SPEED = 0.5;
     /** Front gate and flower stay down this long after the garden intake path ends. */
@@ -51,10 +49,10 @@ public class EntireAuto extends OpMode {
     private static final double SHOOT1_FIELD_DEG = 70;
     private static final double OPP_FIELD_DEG = 296;
 
-    private static final double PRELOAD = -254;
+    private static final double PRELOAD = 4;
     private static final double GARDEN = -130;
-    private static final double SHOOT1 = -254;
-    private static final double FLOWER = -192;
+    private static final double SHOOT1 = 0;
+    private static final double FLOWER = -195;
 
     private enum PathState {
         PRELOAD_SHOOT,
@@ -67,10 +65,11 @@ public class EntireAuto extends OpMode {
         TO_FLOWER_APPROACH,
         FLOWER_INTAKE,
         TO_FLOWER_BACK,
-        FLOWER_CLEAR,
         TO_OPP_FLOWER,
-        TO_OPP_INTAKE,
         SHOOT_OPP,
+        TO_OPP_INTAKE,
+        TO_OPP_BACK,
+        SHOOT_OPP_RETURN,
         TO_PARK_PREP,
         PARK,
         DONE
@@ -78,19 +77,17 @@ public class EntireAuto extends OpMode {
 
     private final PoseFactory poseFactory = PoseFactory.degrees();
 
-    private final Pose start = poseFactory.of(39, 6.5, 180);
+    private final Pose start = poseFactory.of(54, 8, 90);
     private final Pose gardenApproach = poseFactory.of(8, 18.5119, 270);
-    private final Pose gardenIntake = poseFactory.of(8, 13, 270);
-    private final Pose shoot1Start = poseFactory.of(8, 13,
-            270);
-    private final Pose shoot1 = poseFactory.of(39, 6.5, 180);
+    private final Pose gardenIntake = poseFactory.of(8, 12, 270);
+    private final Pose shoot1Start = poseFactory.of(8, 11, 270);
+    private final Pose shoot1 = poseFactory.of(54, 8, 90);
     private final Pose shoot1Control1 = poseFactory.of(22.4327, 17.928, 0);
     private final Pose flowerApproach = poseFactory.of(24, 48, 180);
-    private final Pose flowerIntake = poseFactory.of(13, 48, 180);
+    private final Pose flowerIntake = poseFactory.of(14, 48, 180);
     private final Pose flowerBack = poseFactory.of(24, 48, 180);
-    private final Pose oppFlowerApproach = poseFactory.of(48, 116.873, 90);
-    private final Pose oppFlowerIntake = poseFactory.of(48, 131, 90);
-    private final Pose parkPrepStart = poseFactory.of(48, 131, 75);
+    private final Pose oppFlowerApproach = poseFactory.of(47, 124, 90);
+    private final Pose oppFlowerIntake = poseFactory.of(47, 129, 90);
     private final Pose parkPrep = poseFactory.of(18, 96, 0);
     private final Pose park = poseFactory.of(10, 96, 0);
 
@@ -107,14 +104,14 @@ public class EntireAuto extends OpMode {
     private boolean cameraReady;
     private String cameraMessage = "";
     private boolean hiveChecked;
+    /** A hive tag within {@link #NEAR_HIVE_INCHES} was seen. The hive has not tipped. */
+    private boolean hiveNear;
     /** Garden balls stay trapped on the skip drive until the opposite flower. */
     private boolean trapUntilOpp;
-    private CellOrientation seenAudience = CellOrientation.UNKNOWN;
     private double commandedFieldDeg = Double.NaN;
 
     @Override
     public void init() {
-        AllianceConfig.reset();
         follower = Robot1.createFollower(hardwareMap);
         follower.setPose(start);
         intake = new Intake(hardwareMap);
@@ -145,21 +142,14 @@ public class EntireAuto extends OpMode {
 
     @Override
     public void init_loop() {
-        if (gamepad1.y) {
-            AllianceConfig.select(Alliance.BLUE);
-        } else if (gamepad1.a) {
-            AllianceConfig.select(Alliance.RED);
-        }
-
         follower.update();
 //        aimFieldDegrees(PRELOAD_FIELD_DEG);
         turret.setPositionDeg(PRELOAD);
         turret.run_using_pid();
         updateVision();
 
-        telemetry.addLine("Y = BLUE, A = RED");
-        telemetry.addData("Alliance", allianceLabel());
         telemetry.addData("Turret deg", turret.getPositionDeg());
+        telemetry.addData("Nearest hive", hiveRangeLabel());
         telemetry.addData("Camera", cameraReady ? "ON" : cameraMessage);
         int tagCount = cameraReady ? vision.getRawDetectionCount() : 0;
         telemetry.addData("AprilTag", tagCount > 0 ? "DETECTED" : "NOT DETECTED");
@@ -169,7 +159,6 @@ public class EntireAuto extends OpMode {
 
     @Override
     public void start() {
-        AllianceConfig.lock();
         intake.start();
         depo.start();
         turret.start();
@@ -186,8 +175,9 @@ public class EntireAuto extends OpMode {
         autonomousPathUpdate();
 
         telemetry.addData("Path", pathState);
-        telemetry.addData("Alliance", allianceLabel());
         telemetry.addData("Hive", hiveLabel());
+        telemetry.addData("Nearest hive", hiveRangeLabel());
+        telemetry.addData("Closest tag", vision.getClosestHiveTagId() < 0 ? "NONE" : vision.getClosestHiveTagId());
         telemetry.addData("X", follower.pose().x());
         telemetry.addData("Y", follower.pose().y());
         telemetry.addData("Heading", Math.toDegrees(follower.pose().heading()));
@@ -247,7 +237,7 @@ public class EntireAuto extends OpMode {
                 break;
             case GARDEN_CLEAR:
                 if (timers.checkSecondsLast("hold", GARDEN_FLOWER_UP_SECONDS)) {
-                    seenAudience = CellOrientation.UNKNOWN;
+                    hiveNear = false;
                     pathState = PathState.READ_HIVE;
                 } else {
                     holdGardenBalls();
@@ -258,10 +248,10 @@ public class EntireAuto extends OpMode {
                 break;
             case READ_HIVE:
                 holdGardenBalls();
-                rememberAudienceHive();
+                rememberNearHive();
                 if (timers.checkSecondsLast("look", HIVE_LOOK_SECONDS)) {
                     hiveChecked = true;
-                    if (seenAudience == CellOrientation.FACING_UP) {
+                    if (hiveNear) {
                         follower.follow(curve(shoot1Start, shoot1Control1, shoot1).linear(shoot1Start, shoot1));
                         pathState = PathState.TO_SHOOT1;
                     } else {
@@ -300,38 +290,22 @@ public class EntireAuto extends OpMode {
                 }
                 break;
             case FLOWER_INTAKE:
-                if (timers.checkSecondsLast("hold", INTAKE_HOLD_SECONDS)) {
+                trapGarden();
+                if (!follower.isBusy()) {
+                    intake.front_down();
                     follower.follow(line(flowerIntake, flowerBack).constant(flowerBack));
                     pathState = PathState.TO_FLOWER_BACK;
-                } else if (!follower.isBusy() && !timers.isRunning("hold")) {
-                    intake.front_down();
-                    intake.resetBalls();
-                    intakeFull = false;
-                    timers.start("hold");
-                    holdGardenBalls();
-                } else if (timers.isRunning("hold")) {
-                    holdGardenBalls();
-                } else {
-                    trapGarden();
                 }
                 break;
             case TO_FLOWER_BACK:
-                keepFlowerIntaking();
-                if (!follower.isBusy()) {
-                    pathState = PathState.FLOWER_CLEAR;
-                }
-                break;
-            case FLOWER_CLEAR:
-                if (timers.checkSecondsLast("hold", FLOWER_CLEAR_SECONDS)) {
+                holdGardenBalls();
+                if (!timers.isRunning("hold")) {
+                    timers.start("hold");
+                } else if (!follower.isBusy() && timers.checkSecondsLast("hold", INTAKE_HOLD_SECONDS)) {
                     intake.flower_up();
                     stopCollecting();
                     follower.follow(line(flowerBack, oppFlowerApproach).constant(oppFlowerApproach));
                     pathState = PathState.TO_OPP_FLOWER;
-                } else {
-                    keepFlowerIntaking();
-                    if (!timers.isRunning("hold")) {
-                        timers.start("hold");
-                    }
                 }
                 break;
             case TO_OPP_FLOWER:
@@ -340,27 +314,40 @@ public class EntireAuto extends OpMode {
                 }
                 if (!follower.isBusy()) {
                     trapUntilOpp = false;
-                    lowerFlower();
-                    follower.follow(line(oppFlowerApproach, oppFlowerIntake).constant(oppFlowerIntake));
-                    pathState = PathState.TO_OPP_INTAKE;
-                }
-                break;
-            case TO_OPP_INTAKE:
-                keepFlowerIntaking();
-                if (!follower.isBusy()) {
-                    intakeFull = false;
                     pathState = PathState.SHOOT_OPP;
                 }
                 break;
             case SHOOT_OPP:
 //                aimFieldDegrees(OPP_FIELD_DEG);
                 turret.setPositionDeg(FLOWER);
-                keepFlowerIntaking();
-                if (finishShot()) {
+                if (finishShot(true)) {
+                    intake.front_up();
+                    trapGarden();
+                    follower.follow(line(oppFlowerApproach, oppFlowerIntake).constant(oppFlowerIntake));
+                    pathState = PathState.TO_OPP_INTAKE;
+                } else {
+                    holdGardenBalls();
+                }
+                break;
+            case TO_OPP_INTAKE:
+                runFlowerIntake(oppFlowerIntake, oppFlowerApproach, PathState.TO_OPP_BACK);
+                break;
+            case TO_OPP_BACK:
+                holdGardenBalls();
+                if (!follower.isBusy()) {
+                    pathState = PathState.SHOOT_OPP_RETURN;
+                }
+                break;
+            case SHOOT_OPP_RETURN:
+//                aimFieldDegrees(OPP_FIELD_DEG);
+                turret.setPositionDeg(FLOWER);
+                if (finishShot(true)) {
                     intake.flower_up();
                     stopCollecting();
-                    follower.follow(line(parkPrepStart, parkPrep).linear(parkPrepStart, parkPrep));
+                    follower.follow(line(oppFlowerApproach, parkPrep).linear(oppFlowerApproach, parkPrep));
                     pathState = PathState.TO_PARK_PREP;
+                } else {
+                    holdGardenBalls();
                 }
                 break;
             case TO_PARK_PREP:
@@ -372,6 +359,7 @@ public class EntireAuto extends OpMode {
             case PARK:
                 if (!follower.isBusy()) {
                     pathState = PathState.DONE;
+                    turret.setPositionDeg(0);
                 }
                 break;
             case DONE:
@@ -391,10 +379,22 @@ public class EntireAuto extends OpMode {
         turret.setPositionDeg(-(fieldDeg - headingDeg));
     }
 
-    /** One shot. True on the loop it finishes and the flywheel is turned off. */
+    /** One shot at the normal flywheel speed. True on the loop it finishes. */
     private boolean finishShot() {
+        return finishShot(false);
+    }
+
+    /**
+     * One shot. {@code flowerSpeed} uses the flower flywheel speed.
+     * True on the loop it finishes and the flywheel is turned off.
+     */
+    private boolean finishShot(boolean flowerSpeed) {
         if (!depo.isDepositOn() && !timers.isRunning("shoot")) {
-            depo.turn_on_deposit();
+            if (flowerSpeed) {
+                depo.turn_on_flower();
+            } else {
+                depo.turn_on_deposit();
+            }
         }
         if (depo.reachedvelocity() && !timers.isRunning("shoot")) {
             timers.start("shoot");
@@ -421,22 +421,13 @@ public class EntireAuto extends OpMode {
     }
 
     /**
-     * The audience cell of the alliance picked in init.
-     * A right-side-up tag means the hive is up. The latest confident frame wins.
+     * A hive tag at {@link #NEAR_HIVE_INCHES} or closer means the near hive has
+     * not tipped. Farther tags are left out, and one close frame is enough.
      */
-    private void rememberAudienceHive() {
-        Alliance alliance = AllianceConfig.get();
-        if (alliance == null) {
-            return;
-        }
-        for (HiveCell cell : vision.getVisibleCells()) {
-            if (cell.alliance != alliance
-                    || cell.fieldSide != FieldSide.AUDIENCE
-                    || cell.orientation == CellOrientation.UNKNOWN
-                    || cell.meanDecisionMargin < BioBuzzVisionConfig.MIN_MARGIN_FOR_ORIENTATION) {
-                continue;
-            }
-            seenAudience = cell.orientation;
+    private void rememberNearHive() {
+        double range = vision.getClosestHiveRange();
+        if (Double.isFinite(range) && range <= NEAR_HIVE_INCHES) {
+            hiveNear = true;
         }
     }
 
@@ -454,7 +445,8 @@ public class EntireAuto extends OpMode {
     private boolean shooting() {
         return pathState == PathState.PRELOAD_SHOOT
                 || pathState == PathState.SHOOT1
-                || pathState == PathState.SHOOT_OPP;
+                || pathState == PathState.SHOOT_OPP
+                || pathState == PathState.SHOOT_OPP_RETURN;
     }
 
     /** Flower is down and the rollers should keep running. The ball counter must not shut them off. */
@@ -463,11 +455,30 @@ public class EntireAuto extends OpMode {
                 || pathState == PathState.READ_HIVE
                 || pathState == PathState.TO_SHOOT1
                 || (pathState == PathState.TO_OPP_FLOWER && trapUntilOpp)
-                || (pathState == PathState.FLOWER_INTAKE && timers.isRunning("hold"))
                 || pathState == PathState.TO_FLOWER_BACK
-                || pathState == PathState.FLOWER_CLEAR
-                || pathState == PathState.TO_OPP_INTAKE
-                || pathState == PathState.SHOOT_OPP;
+                || (pathState == PathState.TO_OPP_INTAKE && timers.isRunning("hold"))
+                || pathState == PathState.TO_OPP_BACK;
+    }
+
+    /**
+     * Opposite-flower intake. The front gate stays up while the robot drives in
+     * with the flower down, then both stay down for the hold before backing out.
+     */
+    private void runFlowerIntake(Pose intakePose, Pose backPose, PathState backState) {
+        if (timers.checkSecondsLast("hold", INTAKE_HOLD_SECONDS)) {
+            follower.follow(line(intakePose, backPose).constant(backPose));
+            pathState = backState;
+        } else if (!follower.isBusy() && !timers.isRunning("hold")) {
+            intake.front_down();
+            intake.resetBalls();
+            intakeFull = false;
+            timers.start("hold");
+            holdGardenBalls();
+        } else if (timers.isRunning("hold")) {
+            holdGardenBalls();
+        } else {
+            trapGarden();
+        }
     }
 
     /** Garden rollers on and flower down. The front gate stays up until the intake path ends. */
@@ -483,24 +494,10 @@ public class EntireAuto extends OpMode {
     private void holdGardenBalls() {
         intake.flower_down();
         intake.front_down();
+        intake.back_up();
         if (!intakeFull) {
             intake.intake_on();
         }
-    }
-
-    /** Flower stays down and the rollers stay on while leftover balls are pulled in. */
-    private void keepFlowerIntaking() {
-        intake.front_up();
-        intake.back_up();
-        intake.flower_down();
-        intake.intake_on();
-    }
-
-    /** Gates up, flower down, so the arm can enter the flower instead of hitting it. */
-    private void lowerFlower() {
-        intake.front_up();
-        intake.back_up();
-        intake.flower_down();
     }
 
     private void stopCollecting() {
@@ -509,24 +506,21 @@ public class EntireAuto extends OpMode {
         intake.back_up();
     }
 
-    private String allianceLabel() {
-        Alliance alliance = AllianceConfig.get();
-        if (alliance == null) {
-            return "NONE - press Y or A";
+    private String hiveRangeLabel() {
+        double range = vision.getClosestHiveRange();
+        if (!Double.isFinite(range)) {
+            return "NONE";
         }
-        return alliance.name();
+        if (range <= NEAR_HIVE_INCHES) {
+            return String.format("%.1f in - counts", range);
+        }
+        return String.format("%.1f in - ignored", range);
     }
 
     private String hiveLabel() {
         if (!hiveChecked) {
-            return seenAudience.name();
+            return hiveNear ? "NEAR" : "looking";
         }
-        if (seenAudience == CellOrientation.FACING_UP) {
-            return "UP - shoot1";
-        }
-        if (seenAudience == CellOrientation.FACING_DOWN) {
-            return "DOWN - opp flower";
-        }
-        return "NOT SEEN - opp flower";
+        return hiveNear ? "NOT TIPPED - shoot1" : "TIPPED - opp flower";
     }
 }

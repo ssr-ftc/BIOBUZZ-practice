@@ -53,6 +53,7 @@ public class Depo {
 
     //important constatnts below
     double ON_VELOCITY = 1520; // change the deposit speed here (prev 550)
+    double FlOWER_VELOCITY = 1500;
     double hatchopen = 0.45;
     double hatchclose = 0.29;
     double cam_up = 0.2;
@@ -87,6 +88,12 @@ public class Depo {
     public void turn_on_deposit() {
         pid.reset();
         targetVelocity = ON_VELOCITY;
+    }
+
+    /** Opposite-flower shots. Slower than {@link #turn_on_deposit()}. */
+    public void turn_on_flower() {
+        pid.reset();
+        targetVelocity = FlOWER_VELOCITY;
     }
 
     public void turn_off_deposit() {
