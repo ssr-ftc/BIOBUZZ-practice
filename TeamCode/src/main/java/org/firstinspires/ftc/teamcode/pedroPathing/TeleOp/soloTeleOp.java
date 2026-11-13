@@ -23,6 +23,7 @@ public class soloTeleOp extends OpMode {
     Turret turret;
     Timer timers;
     double distanceToGoal;
+    double degField;
     boolean useTurret=true;
     boolean autoTracking = false;
     double velo = 1500;
@@ -76,7 +77,9 @@ public class soloTeleOp extends OpMode {
                 turret.faceFlowerHive(follower.pose());
             }
             else {
-                turret.faceGardenHive(follower.pose());
+                double turretPos = Math.toDegrees(follower.pose().heading())-calculateTargetTurretFieldPos(follower.pose().x(),follower.pose().y());
+                turret.setPositionDeg(turretPos);
+//                turret.faceGardenHive(follower.pose());
             }
         }
         if(useTurret){
@@ -147,6 +150,10 @@ public class soloTeleOp extends OpMode {
         if(gamepad1.cross && !depo.isDepositOn()){
             depo.set_target_velocity(velo);
         }
+        degField = Math.toDegrees( follower.pose().heading())-turret.getPositionDeg();
+        while(degField>360) degField-=360;
+        while(degField<0) degField+=360;
+
 
         shootingFunc();
         flower();
@@ -197,6 +204,22 @@ public class soloTeleOp extends OpMode {
             }
         }
     }
+    private static final double INTERCEPT = 38.68147392415711;
+
+    private static final double C_X   =  7.09522059e-01;
+    private static final double C_Y   = -1.79156178e+00;
+    private static final double C_X2  = -5.41117144e-04;
+    private static final double C_XY  =  3.95673415e-02;
+    private static final double C_Y2  = -3.03243179e-02;
+
+    public static double calculateTargetTurretFieldPos(double x, double y) {
+        return INTERCEPT +
+                (C_X * x) +
+                (C_Y * y) +
+                (C_X2 * x * x) +
+                (C_XY * x * y) +
+                (C_Y2 * y * y);
+    }
 
     private void sendTelemetry() {
         telemetry.addData("hood pos", depo.getHood());
@@ -207,6 +230,8 @@ public class soloTeleOp extends OpMode {
         telemetry.addData("turret running",useTurret);
         telemetry.addData("auto tracking",autoTracking);
         telemetry.addData("turret position",turret.getPositionDeg());
+        telemetry.addData("turret field pos",degField);
+        telemetry.addData("turret reg pos",calculateTargetTurretFieldPos(follower.pose().x(),follower.pose().y()));
         telemetry.addData("target position",turret.getTargetDeg());
         telemetry.addData("robot x",follower.pose().x());
         telemetry.addData("robot y",follower.pose().y());

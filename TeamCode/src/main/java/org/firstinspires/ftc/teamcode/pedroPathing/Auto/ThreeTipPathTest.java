@@ -10,6 +10,7 @@ import com.pedropathing.follower.Follower;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Robot1;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Depo;
@@ -25,10 +26,10 @@ public class ThreeTipPathTest extends OpMode {
     // Poses
     private final Pose start = poseFactory.of(62.8888, 6.1382, 0);
 
-    private final Pose path1 = poseFactory.of(94.9089, 14, 270);
+    private final Pose path1 = poseFactory.of(94.9089, 13, 270);
     private final Pose path1Control1 = poseFactory.of(93.6431, 41.7943, 0);
 
-    private final Pose point2 = poseFactory.of(46.9775, 127.674, 90);
+    private final Pose point2 = poseFactory.of(46.9775, 130, 90);
     private final Pose point2Control1 = poseFactory.of(31.6205, 14.1693, 0);
     private final Pose point2Control2 = poseFactory.of(81.7501, 116.6678, 0);
     private final Pose point2Control3 = poseFactory.of(45.2218, 94.0804, 0);
@@ -37,8 +38,10 @@ public class ThreeTipPathTest extends OpMode {
     private final Pose point2Segment1End = poseFactory.of(46.9775, 127.674, 90);
     private final Pose point2Segment3Start = poseFactory.of(46.9775, 127.674, 107.3128);
     private final Pose point2Segment3End = poseFactory.of(46.9775, 127.674, 90);
+    private final Pose pointExtra = poseFactory.of(46.9775, 122, 90);
 
-    private final Pose point3 = poseFactory.of(6.5839, 13.2399, -90);
+
+    private final Pose point3 = poseFactory.of(6.5839, 12, -90);
     private final Pose point3Control1 = poseFactory.of(9.8239, 49.7561, 0);
 
     private final Pose point3Segment1Start = poseFactory.of(6.5839, 13.2399, 90);
@@ -50,7 +53,7 @@ public class ThreeTipPathTest extends OpMode {
     private final Pose point4 = poseFactory.of(39.4152, 9.8093, 180);
 
     private final Pose point5Start = poseFactory.of(39.4152, 9.8093, 180);
-    private final Pose point5 = poseFactory.of(14.0346, 47.1105, 180);
+    private final Pose point5 = poseFactory.of(12, 47.1105, 180);
     private final Pose point5Control1 = poseFactory.of(35.2228, 49.6518, 0);
 
     private final Pose point6 = poseFactory.of(42.9042, 14.1248, 104.4076);
@@ -66,13 +69,15 @@ public class ThreeTipPathTest extends OpMode {
     Timer timers;
 
 
-    private Path pathOne;//to oponent flower
-    private Path pathTwo;//to back flower
-    private Path pathThree;//to garden
-    private Path pathFour;//to shoot garden balls
-    private Path pathFive;//to last flower
-    private Path pathSix;//to shoot flower balls
-    private Path pathSeven;//park
+    private Path opponentFlower;//to oponent flower
+    private Path bottomFlower;//to back flower
+    private Path extraPath; //to extra step back
+    private Path garden;//to garden
+    private Path gardenToShoot;//to shoot garden balls
+    private Path lastFlower;//to last flower
+    private Path lastShot;//to shoot flower balls
+    private Path park;//park
+    private ElapsedTime didyTimer;
 
     private int pathState = 1;
 
@@ -84,6 +89,7 @@ public class ThreeTipPathTest extends OpMode {
         depo = new Depo(hardwareMap);
         turret = new Turret(hardwareMap);
         timers = new Timer();
+        didyTimer = new ElapsedTime();
 
         intake.start();
         depo.start();
@@ -96,11 +102,11 @@ public class ThreeTipPathTest extends OpMode {
         timers.createNew("intake");
 
         // Path 1
-        pathOne = Paths.curve(start, path1Control1, path1)
+        opponentFlower = Paths.curve(start, path1Control1, path1)
                 .linear(start, path1);
 
         // Path 2
-        pathTwo = Paths.curve(
+        bottomFlower = Paths.curve(
                 path1,
                 point2Control1,
                 point2Control2,
@@ -118,9 +124,10 @@ public class ThreeTipPathTest extends OpMode {
                                 point2Segment3End
                         ))
         );
+        extraPath = Paths.line(point2,pointExtra).heading(Interpolator.constant(pointExtra));
 
         // Path 3
-        pathThree = Paths.curve(point2, point3Control1, point3)
+        garden = Paths.curve(pointExtra, point3Control1, point3)
                 .heading(
                         Interpolator.piecewise()
                                 .until(0.3573, Interpolator.linear(
@@ -136,19 +143,19 @@ public class ThreeTipPathTest extends OpMode {
                 );
 
         // Path 4
-        pathFour = Paths.line(point4Start, point4)
+        gardenToShoot = Paths.line(point4Start, point4)
                 .linear(point4Start, point4);
 
         // Path 5
-        pathFive = Paths.curve(point5Start, point5Control1, point5)
+        lastFlower = Paths.curve(point5Start, point5Control1, point5)
                 .linear(point5Start, point5);
 
         // Path 6
-        pathSix = Paths.curve(point5, point6Control1, point6)
+        lastShot = Paths.curve(point5, point6Control1, point6)
                 .reverseTangent();
 
         // Path 7
-        pathSeven = Paths.line(point6, point7)
+        park = Paths.line(point6, point7)
                 .tangent();
 
         // Set starting pose
@@ -160,7 +167,15 @@ public class ThreeTipPathTest extends OpMode {
         turret.run_using_pid();
     }
     double firstShotVelo=1500;
-    double firstShotAngle=-95;
+    double backShotVelo=1480;
+    double gardenShotVelo=1520;
+
+
+    double firstShotAngle=-97;
+    double bottomFlowerAngle = -192;
+    double bottomFlowerAngle2 = -197;
+    double gardenShotAngle = -245;
+    double lastShotAngle = 37;
 
     @Override
     public void start(){
@@ -188,80 +203,166 @@ public class ThreeTipPathTest extends OpMode {
     public void autonomousPathUpdate() {
 
         switch (pathState) {
-            case 1:
-                if(depo.reachedvelocity() && !timers.isRunning("depo")){
+            case 1://shoot and start going to flower after
+                if(depo.reachedvelocity() && !timers.isRunning("depo")){//reached velocity
                     timers.start("depo");
                 }
                 shootingFunc();
-                if(depo.get_target_velocity()==0){
-                    follower.follow(pathOne);
-                    intake.intake_on();
-                    intake.flower_down();
+                if(depo.get_target_velocity()==0){//finished shooting
+                    follower.follow(opponentFlower);//go to flower
+                    intake.intake_on();//turn on intake
+                    intake.flower_down();//lower flower intake
                     pathState = 2;
                 }
                 break;
 
-            case 2:
-                if (!follower.isBusy()) {
-
-                    timers.start("flower");
+            case 2://going to flower
+                if (!follower.isBusy()) {//when reached stand and collect
+                    didyTimer.reset();
                     pathState=21;
                 }
                 break;
-            case 21:
-                if(timers.checkSecondsLast("flower",1)){
-                    follower.follow(pathTwo);
-                    turret.setPositionDeg(-192);
-                    depo.set_target_velocity(firstShotVelo);
+            case 21://reached first flower, wait and collect
+                if(didyTimer.seconds()>1.5){//after done waiting
+                    intake.front_down();//added here to test
+                    follower.follow(bottomFlower);//start dring to next flower
+                    turret.setPositionDeg(bottomFlowerAngle);//change turret for the next shot
+                    depo.set_target_velocity(firstShotVelo);//start the depo while driving
+                    didyTimer.reset();//start the timer of finishing intaking while driving to the other side
                     pathState = 30;
-                    timers.start("intake");
                 }
                 break;
-            case 30:
-                if(timers.checkSecondsLast("intake",1)){
+            case 30://robot is currently driving to next flower
+                if(didyTimer.seconds()>0.7){
+                    intake.front_down();
+                    didyTimer.reset();
+                    pathState = 301;
+                }
+                break;
+            case 301:
+                if(didyTimer.seconds()>1.8){
                     intake.intake_off();
+                    intake.front_up();
                     pathState=3;
                 }
+                break;
 
-            case 3:
-                if (!follower.isBusy()) {
+            case 3://still driving but done with intake stuff from old flower
+                if (!follower.isBusy()) {//when reached position open the hatch and start shooting
+                    didyTimer.reset();//start timing the long shot
+                    pathState=310;
+                }
+                break;
+            case 310:
+                if(didyTimer.seconds()>0.7){
                     depo.open_hatch();
-                    intake.start();
-                    timers.start("flower");
-                    pathState=31;
+                    intake.intake_on();
+                    didyTimer.reset();
+                    pathState = 31;
                 }
                 break;
             case 31:
-                if (timers.checkSecondsLast("flower",2.5)) {
-                    follower.follow(pathThree);
+                if(didyTimer.seconds()>1.5){
+                    intake.front_down();//lower the intake again
+                    depo.close_hatch();
+                    depo.set_target_velocity(backShotVelo);
+                    turret.setPositionDeg(bottomFlowerAngle2);
+
+                    follower.follow(extraPath);
+                    depo.setHood(0.46);
+                    pathState = 312;
+                }
+                break;
+            case 312:
+                if(!follower.isBusy()){
+                    didyTimer.reset();
+                    depo.open_hatch();
+                    pathState = 32;
+                }
+                break;
+            case 32:
+                if (didyTimer.seconds()>1.5) {//done shooting
+                    depo.close_hatch();
+                    depo.turn_off_deposit();
+                    intake.front_up();
+                    intake.flower_up();
+                    follower.follow(garden);//go to garden
+                    didyTimer.reset();
+                    pathState = 40;
+                }
+                break;
+            case 40://currently driving to garden
+                if(didyTimer.seconds()>2){
+                    intake.flower_down();
+                    depo.setHood(0.44);
                     pathState = 4;
                 }
                 break;
 
-            case 4:
-                if (!follower.isBusy()) {
-                    follower.follow(pathFour);
+            case 4://still driving to garden
+                if (!follower.isBusy()) {//reached garden, wait to intake
+                    didyTimer.reset();
+                    pathState = 41;
+                }
+                break;
+            case 41:
+                if(didyTimer.seconds()>1){//finished intaking
+                    intake.front_down();
+                    follower.follow(gardenToShoot);//drive to shoot
+                    depo.set_target_velocity(gardenShotVelo);//prep depo and turret for shooting
+                    turret.setPositionDeg(gardenShotAngle);
                     pathState = 5;
                 }
                 break;
 
-            case 5:
-                if (!follower.isBusy()) {
-                    follower.follow(pathFive);
+            case 5://driving to shot pose
+                if (!follower.isBusy()) {//reached the shot pos
+                    depo.open_hatch();
+                    didyTimer.reset();
+                    pathState = 51;
+                }
+                break;
+            case 51://waiting to finish shooting
+                if(didyTimer.seconds()>1.5){//done shooting
+                    intake.front_up();
+                    depo.turn_off_deposit();
+                    depo.close_hatch();
+                    depo.setHood(0.46);
+                    follower.follow(lastFlower);//start driving to the last flower
+                    pathState = 60;
+                }
+                break;
+            case 60:
+                if (!follower.isBusy()) {//reached the last flower
+                    didyTimer.reset();
                     pathState = 6;
                 }
                 break;
 
             case 6:
-                if (!follower.isBusy()) {
-                    follower.follow(pathSix);
+                if (didyTimer.seconds()>1.5) {//waited to intake
+                    follower.follow(lastShot);
+                    intake.front_down();
+                    depo.set_target_velocity(gardenShotVelo);
+                    turret.setPositionDeg(lastShotAngle);
                     pathState = 7;
                 }
                 break;
 
             case 7:
-                if (!follower.isBusy()) {
-                    follower.follow(pathSeven);
+                if (!follower.isBusy()&&depo.reachedvelocity()) {
+                    depo.open_hatch();
+                    didyTimer.reset();
+                    pathState = 71;
+                }
+                break;
+            case 71:
+                if(didyTimer.seconds()>1.5){//done shooting
+                    intake.front_up();
+                    depo.turn_off_deposit();
+                    depo.close_hatch();
+                    intake.intake_off();
+                    follower.follow(park);//park
                     pathState = 8;
                 }
                 break;
