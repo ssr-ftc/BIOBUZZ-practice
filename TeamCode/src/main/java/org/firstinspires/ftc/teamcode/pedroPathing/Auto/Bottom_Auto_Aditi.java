@@ -42,7 +42,7 @@ public class Bottom_Auto_Aditi extends OpMode {
     private static final double SHOT_VELOCITY = DEPO_BASE_VELOCITY + SHOT_VELOCITY_BOOST;
 
     // --- turret angles (fixed, no hive auto-aim) ---
-    private static final double TURRET_START_DEG = -180;         // from init, through the preload shot and the flower trip
+    private static final double TURRET_START_DEG = -175;         // from init, through the preload shot and the flower trip
     private static final double TURRET_SHOOT_DEG = -195;         // set when we leave the flower for the shootPose
 
     /** Right toggle = RED (tags 30-33), left toggle = BLUE (tags 38-41). Both use the same poses. */
@@ -56,11 +56,11 @@ public class Bottom_Auto_Aditi extends OpMode {
     private static Pose pose(double x, double y, double headingDeg) {
         return new Pose(x, y, Math.toRadians(headingDeg));
     }
-    private final Pose start      = pose(64.084, 133.1202, 90);
-    private final Pose leaveStart = pose(64.141, 117.5, 90);
-    private final Pose gotoFlower = pose(46.0764, 117.5, 90);
-    private final Pose flower     = pose(46.8257, 127, 90);
-    private final Pose shootPose  = pose(46.9097, 119.2908, 90);
+    private final Pose start      = pose(64.084, 133, 90);
+    private final Pose leaveStart = pose(64, 117.5, 90);
+    private final Pose gotoFlower = pose(48, 117.5, 90);
+    private final Pose flower     = pose(48, 127, 90);
+    private final Pose shootPose  = pose(47, 125, 90);
     private final Pose park       = pose(7.8308, 114.1196, 0);
 
     private static Path drive(Pose from, Pose to) {
@@ -137,11 +137,10 @@ public class Bottom_Auto_Aditi extends OpMode {
     public void start() {
         autoTimer.reset();
         follower.setPose(start);
-        intake.start();
-        depo.start();
+        intake.start();                                  // intake off, flower/front/back all up
+        depo.start();                                    // hatch closed, depo off
         turret.setPositionDeg(TURRET_START_DEG);         // set the target again at start
         turret.start();
-        setActionState(ActionState.IDLE);    // nothing moves till the AprilTag is seen
     }
 
     @Override
@@ -173,15 +172,20 @@ public class Bottom_Auto_Aditi extends OpMode {
 
     @Override
     public void stop() {
+        if (portal != null) { portal.close(); portal = null; }   // close the camera first so it always gets released
         shooterOff();
         turret.turretOff();
-        if (portal != null) portal.close();
     }
 
     // ---------------- PATH STATE MACHINE ----------------
+    // Intake servos by phase:
+    //   start -> leaveStart (incl. preload shot): flower UP, front UP, back UP
+    //   leaveStart -> flower -> until shootPose:  flower DOWN, front UP, back DOWN
+    //   driving to / at the shootPose:            flower DOWN, front DOWN, back DOWN
+    //   after the shot (IDLE):                    everything retracted for parking
     private void updatePathState() {
         switch (pathState) {
-            case WAIT_FOR_TAG:                                   // wait till tag is seen
+            case WAIT_FOR_TAG:                                   // nothing moves till the AprilTag is seen
                 if (tagSeen) {
                     setActionState(ActionState.SHOOT);           // shoot preload
                     pathState = PathState.SHOOT_PRELOAD;
@@ -189,7 +193,7 @@ public class Bottom_Auto_Aditi extends OpMode {
                 break;
 
             case SHOOT_PRELOAD:
-                if (actionState == ActionState.IDLE) {           // finished shooting
+                if (actionState == ActionState.IDLE) {           // finished shooting (IDLE leaves everything up)
                     follower.follow(drive(start, leaveStart));
                     pathState = PathState.LEAVE_START;
                 }
@@ -198,7 +202,7 @@ public class Bottom_Auto_Aditi extends OpMode {
             case LEAVE_START:
                 if (!follower.isBusy()) {
                     follower.follow(drive(leaveStart, gotoFlower));
-                    setActionState(ActionState.APPROACH_INTAKE); // all intakes on and down while driving to the flower
+                    setActionState(ActionState.APPROACH_INTAKE); // flower + back go down, rollers on
                     pathState = PathState.GO_TO_FLOWER;
                 }
                 break;
@@ -206,7 +210,7 @@ public class Bottom_Auto_Aditi extends OpMode {
             case GO_TO_FLOWER:
                 if (!follower.isBusy()) {
                     follower.follow(drive(gotoFlower, flower));
-                    setActionState(ActionState.FLOWER_INTAKE);   // front + back intakes stay down while entering the flower
+                    setActionState(ActionState.FLOWER_INTAKE);   // same intake pose, depo pre-spins, flower timer restarts
                     pathState = PathState.FLOWER;
                 }
                 break;
@@ -215,7 +219,8 @@ public class Bottom_Auto_Aditi extends OpMode {
                 if (!follower.isBusy() && actionTimer.seconds() >= FLOWER_INTAKE_SECONDS) {
                     follower.follow(drive(flower, shootPose));
                     turret.setPositionDeg(TURRET_SHOOT_DEG);     // start angle -> shoot angle while driving to the shootPose
-                    setActionState(ActionState.SHOOT);
+                    setActionState(ActionState.SHOOT);           // flower + back stay down, rollers stay on
+                    intake.front_down();                         // front goes down for the shootPose
                     pathState = PathState.SHOOT_FLOWER;
                 }
                 break;
@@ -262,42 +267,33 @@ public class Bottom_Auto_Aditi extends OpMode {
 
         switch (newState) {
             case IDLE:
-                timers.stop("shoot");
                 shooterOff();
-                intake.flower_up();
-                intake.front_up();                               // retract everything (also covers the failsafe)
+                intake.flower_up();                              // retract everything (also covers the failsafe)
+                intake.front_up();
                 intake.back_up();
                 break;
             case SHOOT:
-                timers.stop("shoot");                            // fresh shot
-                intake.flower_up();
                 spinUpShooter();                                 // pre-spin; the intake starts when the hatch opens
                 break;
             case APPROACH_INTAKE:
-                intake.flower_down();                            // every intake on while driving to the flower:
-                intake.front_down();                             // flower, front, back, and both rollers
-                intake.back_down();
-                intake.intake_on();
+                collectBalls();
                 break;
             case FLOWER_INTAKE:
-                intake.flower_down();
-                intake.front_down();                             // front servo stays at frontDownPos
-                intake.back_down();                              // back servo stays at backDownPos
+                collectBalls();
                 spinUpShooter();                                 // pre-spin for the flower shot while intaking
-                intake.intake_on();
                 break;
         }
     }
 
-    /**
-     * One shot (same logic as EntireAuto). True on the loop it finishes and the flywheel is turned off.
-     * The shoot timer starts once the flywheel is at speed. The intake and hatch open SHOT_OPEN_SECONDS later,
-     * and the shot ends SHOOT_HOLD_SECONDS after the flywheel reached speed.
-     */
+    /** Intake pose for collecting: flower DOWN, front UP, back DOWN, rollers on. */
+    private void collectBalls() {
+        intake.flower_down();
+        intake.front_up();
+        intake.back_down();
+        intake.intake_on();
+    }
+
     private boolean finishShot() {
-        if (!depo.isDepositOn() && !timers.isRunning("shoot")) {
-            spinUpShooter();
-        }
         if (depo.reachedvelocity() && !timers.isRunning("shoot")) {
             timers.start("shoot");
         }
@@ -337,17 +333,20 @@ public class Bottom_Auto_Aditi extends OpMode {
 
     // ---------------- APRILTAG ----------------
     private void checkForTag() {
-        if (tagSeen || side == null) return;
+        if (tagSeen || side == null || portal == null) return;
         for (AprilTagDetection d : tagProcessor.getDetections()) {
             if (d.id >= side.minTag && d.id <= side.maxTag) {
                 tagSeen = true;
                 seenTagId = d.id;
+                portal.close();                                  // tag locked: stop streaming + detection, free the camera
+                portal = null;
                 return;
             }
         }
     }
 
     private String visibleTagIds() {
+        if (portal == null) return "camera off";                 // portal closed after the tag was locked
         StringBuilder sb = new StringBuilder();
         for (AprilTagDetection d : tagProcessor.getDetections()) sb.append(d.id).append(' ');
         return sb.length() == 0 ? "none" : sb.toString().trim();
