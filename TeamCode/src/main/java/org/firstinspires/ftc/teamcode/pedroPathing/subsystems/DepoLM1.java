@@ -27,7 +27,7 @@ public class DepoLM1 {
         bottom.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
         hatch = hardwareMap.get(Servo.class,"hatch");
-        cam = hardwareMap.get(Servo.class,"camera");
+        // cam = hardwareMap.get(Servo.class,"camera");
 
         close_hatch();
 
@@ -52,7 +52,7 @@ public class DepoLM1 {
     //important constatnts below
     public static double ON_VELOCITY = 1520; // change the deposit speed here (prev 550)
     public static double hatchopen = 0.11;
-    public static double hatchclose = 0;
+    public static double hatchclose = 0.03;
     public static double cam_up = 0.2;
     public static double cam_down = 0.8;
     public static double camMiddle = 0.5;
