@@ -18,11 +18,10 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Turret;
 
 /**
  * One-side auto on the EntireAutoMisha poses. Preload shot, garden, wait at
- * garden, then the garden shot. On that shot the robot looks for
- * {@link #GARDEN_LOOK_SECONDS} seconds. A near hive tag means it shoots. If
- * that tag never shows up, it waits until {@link #PARK_LEAVE_SECONDS} seconds
- * are left and drives to park, skipping the flower. The preload does not use
- * the camera.
+ * garden, then the garden shot. A near hive tag makes that shot fire
+ * immediately. If the tag never shows up, it waits until
+ * {@link #PARK_LEAVE_SECONDS} seconds are left and drives to park, skipping
+ * the flower. The preload does not use the camera.
  */
 @Autonomous(name = "Half Auto 3 Tip", group = "Autonomous")
 public class HalfAuto3tip extends OpMode {
@@ -37,8 +36,6 @@ public class HalfAuto3tip extends OpMode {
     private static final double INTAKE_HOLD_SECONDS = 1;
     /** Flower and front stay down this long after the garden intake path ends. */
     private static final double GARDEN_FLOWER_UP_SECONDS = 1;
-    /** Garden shot watches this long before deciding. */
-    private static final double GARDEN_LOOK_SECONDS = 3;
     /** Autonomous period. The no-tag escape leaves when this much time is left. */
     private static final double AUTO_SECONDS = 30;
     private static final double PARK_LEAVE_SECONDS = 5;
@@ -98,12 +95,8 @@ public class HalfAuto3tip extends OpMode {
     private boolean cameraReady;
     private String cameraMessage = "";
     private boolean intakeFull;
-    /** The garden shot has read the hive and may open the flywheel. */
+    /** The garden shot has seen the hive tag and may open the flywheel. */
     private boolean gardenShotReady;
-    /** The first garden-shot look has finished. */
-    private boolean gardenLookDone;
-    /** A near hive tag was seen during the garden shot. */
-    private boolean sawGardenTag;
 
     @Override
     public void init() {
@@ -115,7 +108,6 @@ public class HalfAuto3tip extends OpMode {
         timers = new Timer();
         timers.createNew("hold");
         timers.createNew("shoot");
-        timers.createNew("look");
         depo.start();
         turret.resetTurretEncoders();
         turret.setPositionDeg(10);
@@ -236,26 +228,16 @@ public class HalfAuto3tip extends OpMode {
                 if (!gardenShotReady) {
                     holdGardenBalls();
                     if (cameraReady && hiveIsUp()) {
-                        sawGardenTag = true;
-                    }
-                    if (!sawGardenTag && getRuntime() >= AUTO_SECONDS - PARK_LEAVE_SECONDS) {
+                        gardenShotReady = true;
+                    } else if (getRuntime() >= AUTO_SECONDS - PARK_LEAVE_SECONDS) {
                         intake.flower_up();
                         stopCollecting();
                         follower.follow(line(shoot1, parkPrep).linear(shoot1, parkPrep));
                         pathState = PathState.TO_PARK_PREP;
                         break;
+                    } else {
+                        break;
                     }
-                    if (!gardenLookDone) {
-                        if (timers.checkSecondsLast("look", GARDEN_LOOK_SECONDS)) {
-                            gardenLookDone = true;
-                        } else if (!timers.isRunning("look")) {
-                            timers.start("look");
-                        }
-                    }
-                    if (gardenLookDone && sawGardenTag) {
-                        gardenShotReady = true;
-                    }
-                    break;
                 }
                 if (finishShot2(SHOOT1)) {
                     intake.flower_up();
