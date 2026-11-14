@@ -91,7 +91,6 @@ public class EntireAuto extends OpMode {
     private final Pose parkPrep = poseFactory.of(18, 96, 0);
     private final Pose park = poseFactory.of(10, 96, 0);
 
-
     private Follower follower;
     private Intake intake;
     private Depo depo;
@@ -128,7 +127,6 @@ public class EntireAuto extends OpMode {
         turret.start();
         intake.flower_up();
         follower.update();
-//        aimFieldDegrees(PRELOAD_FIELD_DEG);
         turret.setPositionDeg(PRELOAD);
 
         try {
@@ -143,8 +141,6 @@ public class EntireAuto extends OpMode {
     @Override
     public void init_loop() {
         follower.update();
-//        aimFieldDegrees(PRELOAD_FIELD_DEG);
-        turret.setPositionDeg(PRELOAD);
         turret.run_using_pid();
         updateVision();
 
@@ -484,7 +480,7 @@ public class EntireAuto extends OpMode {
     /** Garden rollers on and flower down. The front gate stays up until the intake path ends. */
     private void trapGarden() {
         intake.flower_down();
-        intake.back_down();
+//        intake.back_down();
         if (!intakeFull) {
             intake.intake_on();
         }

@@ -19,7 +19,7 @@ import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
-@Autonomous(name = "Bottom_Auto", group = "Auto")
+@Autonomous(name = "Bottom_Auto aididt", group = "Auto")
 public class Bottom_Auto_Aditi extends OpMode {
 
     // ---------------- CONFIG ----------------
@@ -36,14 +36,14 @@ public class Bottom_Auto_Aditi extends OpMode {
 
     // --- shot velocity ---
     /** Depo's own ON_VELOCITY (Depo.java). Update this if you change it there. */
-    private static final double DEPO_BASE_VELOCITY = 1520;
+    private static final double DEPO_BASE_VELOCITY = 1500;
     /** Extra velocity added to every shot. */
     private static final double SHOT_VELOCITY_BOOST = 0; //can be used if needed
     private static final double SHOT_VELOCITY = DEPO_BASE_VELOCITY + SHOT_VELOCITY_BOOST;
 
     // --- turret angles (fixed, no hive auto-aim) ---
     private static final double TURRET_START_DEG = -175;         // from init, through the preload shot and the flower trip
-    private static final double TURRET_SHOOT_DEG = -195;         // set when we leave the flower for the shootPose
+    private static final double TURRET_SHOOT_DEG = -200;         // set when we leave the flower for the shootPose
 
     /** Right toggle = RED (tags 30-33), left toggle = BLUE (tags 38-41). Both use the same poses. */
     private enum Side {
@@ -61,7 +61,7 @@ public class Bottom_Auto_Aditi extends OpMode {
     private final Pose gotoFlower = pose(48, 117.5, 90);
     private final Pose flower     = pose(48, 127, 90);
     private final Pose shootPose  = pose(47, 125, 90);
-    private final Pose park       = pose(7.8308, 114.1196, 0);
+    private final Pose park       = pose(15.8308, 114.1196, 0);
 
     private static Path drive(Pose from, Pose to) {
         return line(from, to).linear(from.heading(), to.heading());
@@ -145,16 +145,10 @@ public class Bottom_Auto_Aditi extends OpMode {
 
     @Override
     public void loop() {
-        if (side == null) {
-            telemetry.addLine("pick an alliance.");
-            telemetry.update();
-            return;
-        }
-
         follower.update();
         turret.run_using_pid();
         depo.run_using_pid();
-        checkForTag();
+//        checkForTag();
         updatePathState();
         updateActionState();
         checkFailsafe();
@@ -186,9 +180,16 @@ public class Bottom_Auto_Aditi extends OpMode {
     private void updatePathState() {
         switch (pathState) {
             case WAIT_FOR_TAG:                                   // nothing moves till the AprilTag is seen
+                for (AprilTagDetection d : tagProcessor.getDetections()) {
+                    if (d.id ==30 || d.id==31 || d.id==32 || d.id==33 || d.id==38 || d.id==39 || d.id==40 || d.id==41) {
+                        setActionState(ActionState.SHOOT);           // shoot preload
+                        pathState = PathState.SHOOT_PRELOAD;
+                        portal.close();                                  // tag locked: stop streaming + detection, free the camera
+                        portal = null;
+                    }
+                }
                 if (tagSeen) {
-                    setActionState(ActionState.SHOOT);           // shoot preload
-                    pathState = PathState.SHOOT_PRELOAD;
+
                 }
                 break;
 
@@ -339,7 +340,7 @@ public class Bottom_Auto_Aditi extends OpMode {
                 tagSeen = true;
                 seenTagId = d.id;
                 portal.close();                                  // tag locked: stop streaming + detection, free the camera
-                portal = null;
+//                portal = null;
                 return;
             }
         }
