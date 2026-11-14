@@ -83,11 +83,12 @@ public class Turret {
         return encoder.getCurrentPosition();
     }
 
+    public double getTargetDeg() {
+        return targetPos / scalerToDegrees;
+    }
+
     public double getPositionDeg() {
         return encoder.getCurrentPosition() / scalerToDegrees;
-    }
-    public double getTargetDeg(){
-        return targetPos / scalerToDegrees;
     }
 
 
