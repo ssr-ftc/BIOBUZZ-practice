@@ -75,11 +75,14 @@ public class soloTeleOp extends OpMode {
         }
         if(autoTracking){
             if(follower.pose().y()>71){
+                velo=1510;
                 double turretPosw = Math.toDegrees(follower.pose().heading())-calculateTargetTurretFieldPosZone2(follower.pose().x(),follower.pose().y());
                 if(follower.pose().x()<50) turret.setPositionDeg(turretPosw-5);
                 else turret.setPositionDeg(turretPosw);
+
             }
             else {
+                velo=calculateTargetVelo(follower.pose().x(),follower.pose().y());
                 double turretPos = Math.toDegrees(follower.pose().heading())-calculateTargetTurretFieldPos(follower.pose().x(),follower.pose().y());
                 turret.setPositionDeg(turretPos);
 //                turret.faceGardenHive(follower.pose());
@@ -238,6 +241,34 @@ public class soloTeleOp extends OpMode {
                 (cX2 * x * x) +
                 (cXY * x * y) +
                 (cY2 * y * y);
+    }
+    private static double interceptz = 1717.7419043780508;
+    private static double cXz   = -5.541214696529229;
+    private static double cYz   = -5.2647028430389025;
+    private static double cX2z  = 0.03915493921234289;
+    private static double cXYz  = 0.02367837710655511;
+    private static double cY2z  = 0.14648240249828864;
+
+    public static double calculateTargetVelo(double x, double y) {
+
+
+        return interceptz +
+                (cXz * x) +
+                (cYz * y) +
+                (cX2z * x * x) +
+                (cXYz * x * y) +
+                (cY2z * y * y);
+    }
+
+    private static double intercepte = 2811.4583065615507;
+    private static double cXe   = -26.891446696332263;
+    private static double cYe   = -2.468710298098701;
+    private static double cX2e  = -0.011242742593918569;
+    private static double cXYe  = 0.22330617169768033;
+    private static double cY2e  = -0.0645682837084156;
+    public static double calculateTargetVelo2(double x, double y) {
+
+        return intercepte + (cXe * x) + (cYe * y) + (cX2e * x * x) + (cXYe * x * y) + (cY2e * y * y);
     }
 
     private void sendTelemetry() {
