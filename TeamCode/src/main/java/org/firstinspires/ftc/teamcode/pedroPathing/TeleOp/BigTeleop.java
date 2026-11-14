@@ -10,6 +10,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Depo;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Turret;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.savePosition;
 
 
 @TeleOp(name = "tyrese maxey", group = "Templates")
@@ -34,7 +35,7 @@ public class BigTeleop extends OpMode {
     @Override
     public void init() {//this is called once when the driver presses init
         follower = Robot1.createFollower(hardwareMap);
-        follower.setPose(new Pose(0, 0, 0));
+        follower.setPose(savePosition.endPose);
         intake = new Intake(hardwareMap);
         depo = new Depo(hardwareMap);
         turret = new Turret(hardwareMap);

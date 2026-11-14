@@ -20,6 +20,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Depo;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Turret;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.savePosition;
 
 /**
  * Full auto. The poses are fixed waypoints. After the garden intake, a hive
@@ -249,6 +250,7 @@ public class EntireAutoMisha extends OpMode {
 
     @Override
     public void stop() {
+        savePosition.endPose=follower.pose();
         stopCollecting();
         intake.flower_up();
         depo.close_hatch();

@@ -15,6 +15,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Depo;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Turret;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.savePosition;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
@@ -166,6 +167,7 @@ public class Bottom_Auto_Aditi extends OpMode {
 
     @Override
     public void stop() {
+        savePosition.endPose=follower.pose();
         if (portal != null) { portal.close(); portal = null; }   // close the camera first so it always gets released
         shooterOff();
         turret.turretOff();

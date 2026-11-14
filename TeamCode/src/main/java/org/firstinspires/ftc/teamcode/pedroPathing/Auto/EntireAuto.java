@@ -15,6 +15,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Depo;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Turret;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.savePosition;
 
 /**
  * Full auto. The poses are fixed waypoints. After the garden intake, a hive
@@ -22,7 +23,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Turret;
  * robot takes shoot1. No tag that close means it has tipped, and farther tags
  * are ignored. Alliance selection is not used.
  */
-@Autonomous(name = "EntireAuto", group = "Season")
+@Autonomous(name = "EntireAuto Akash (vision)", group = "Season")
 public class EntireAuto extends OpMode {
     private static final double FULL_INTAKE_BALLS = 4;
     /** Open the hatch this long after the flywheel is at speed. */
@@ -190,6 +191,7 @@ public class EntireAuto extends OpMode {
 
     @Override
     public void stop() {
+        savePosition.endPose=follower.pose();
         stopCollecting();
         intake.flower_up();
         depo.close_hatch();

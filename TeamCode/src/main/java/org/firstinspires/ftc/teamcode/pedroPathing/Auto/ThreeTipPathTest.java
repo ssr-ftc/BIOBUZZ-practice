@@ -17,8 +17,9 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Depo;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Turret;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.savePosition;
 
-@Autonomous(name = "Three Tip Path Test", group = "Autonomous")
+@Autonomous(name = "Three tip aura farm", group = "Autonomous")
 public class ThreeTipPathTest extends OpMode {
 
     private final PoseFactory poseFactory = PoseFactory.degrees();
@@ -198,6 +199,10 @@ public class ThreeTipPathTest extends OpMode {
         telemetry.addData("Is Busy", follower.isBusy());
 
         telemetry.update();
+    }
+    @Override
+    public void stop(){
+        savePosition.endPose=follower.pose();
     }
 
     public void autonomousPathUpdate() {

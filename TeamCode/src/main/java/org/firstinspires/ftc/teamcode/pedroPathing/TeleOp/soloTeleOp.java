@@ -10,6 +10,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Depo;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Timer;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Turret;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.savePosition;
 
 
 @TeleOp(name = "Solo TeleOp", group = "Templates")
@@ -35,7 +36,7 @@ public class soloTeleOp extends OpMode {
     @Override
     public void init() {//this is called once when the driver presses init
         follower = Robot1.createFollower(hardwareMap);
-        follower.setPose(new Pose(0, 0, 0));
+        follower.setPose(savePosition.endPose);
         intake = new Intake(hardwareMap);
         depo = new Depo(hardwareMap);
         turret = new Turret(hardwareMap);
@@ -74,7 +75,9 @@ public class soloTeleOp extends OpMode {
         }
         if(autoTracking){
             if(follower.pose().y()>71){
-                turret.faceFlowerHive(follower.pose());
+                double turretPosw = Math.toDegrees(follower.pose().heading())-calculateTargetTurretFieldPosZone2(follower.pose().x(),follower.pose().y());
+                if(follower.pose().x()<50) turret.setPositionDeg(turretPosw-5);
+                else turret.setPositionDeg(turretPosw);
             }
             else {
                 double turretPos = Math.toDegrees(follower.pose().heading())-calculateTargetTurretFieldPos(follower.pose().x(),follower.pose().y());
@@ -89,9 +92,9 @@ public class soloTeleOp extends OpMode {
 
 
         if(gamepad1.dpadUpWasPressed()){
-            velo+=25;
+            velo+=20;
         }if(gamepad1.dpadDownWasPressed()){
-            velo-=25;
+            velo-=20;
         }
         if(gamepad1.dpadRightWasPressed()){
             depo.setHood(depo.getHood()+0.005);
@@ -211,6 +214,12 @@ public class soloTeleOp extends OpMode {
     private static final double C_X2  = -5.41117144e-04;
     private static final double C_XY  =  3.95673415e-02;
     private static final double C_Y2  = -3.03243179e-02;
+    private static double intercept = 777.1674296419671;
+    private static double cX   = -4.768397999283539;
+    private static double cY   = -4.98295878473558;
+    private static double cX2  =  0.0006487514145186647;
+    private static double cXY  =  0.02706887985602425;
+    private static double cY2  =  0.012778730865253204;
 
     public static double calculateTargetTurretFieldPos(double x, double y) {
         return INTERCEPT +
@@ -219,6 +228,16 @@ public class soloTeleOp extends OpMode {
                 (C_X2 * x * x) +
                 (C_XY * x * y) +
                 (C_Y2 * y * y);
+    }
+    public static double calculateTargetTurretFieldPosZone2(double x, double y) {
+
+
+        return intercept +
+                (cX * x) +
+                (cY * y) +
+                (cX2 * x * x) +
+                (cXY * x * y) +
+                (cY2 * y * y);
     }
 
     private void sendTelemetry() {
